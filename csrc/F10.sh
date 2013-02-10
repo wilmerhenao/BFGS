@@ -1,5 +1,9 @@
 #set library paths
-export LD_LIBRARY_PATH=/home/ubuntu/Desktop/BFGS/csrc:/home/ubuntu/Desktop/BFGS/lib
+stuff="cinco"
+echo "this is the stuff: $stuff" 
+BFGSHOME="~/Documents/thesis/BFGS"
+echo $BFGSHOME
+export LD_LIBRARY_PATH=$BFGSHOME/csrc:$BFGSHOME/lib
 
 make clean
 make

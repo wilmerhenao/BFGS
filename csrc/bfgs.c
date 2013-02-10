@@ -13,88 +13,87 @@
 /* BFGS MAIN ALGORITHM: */
 void bfgs
 (double x[], double * fopt, const int n, const int lm, const int m,
-const double ftarget, const double gnormtol, const int maxit,
-const int J, const double taux, const double taud,
-const int echo, void(*testFunction)(double*, double*, double*, int), const char * datafilename, double info[])
-{
-
-    /* ============ INITIALIZATION =================== */
-    
-    const double C1 = 0.0001;
-    const double C2 = 0.9;
-    
-    clock_t t1, t2;
-    t1 = clock();
-    
-    int absecho    = abs(echo);
-    
-    /*
-     echo   = 0: no output, no file dump
-            = 1: print init and final data to +
-            = 2: print iter info to +
-            = -k: as k, but to - (only for above 0,1,2)
-            = -9: print final data (minimal) to -
-            where + is the screen and - is the datafile
-     */
-    
-    FILE *output = stdout;
-    const char *outputname = "stdout";
-
-    if (echo < 0) {
-        output = fopen(datafilename, "a" );
-        outputname = datafilename;
-    }
+ const double ftarget, const double gnormtol, const int maxit,
+ const int J, const double taux, const double taud,
+ const int echo, void(*testFunction)(double*, double*, double*, int), const char * datafilename, double info[]){
+  
+  /* ============ INITIALIZATION =================== */
+  
+  const double C1 = 0.0001;
+  const double C2 = 0.9;
+  
+  clock_t t1, t2;
+  t1 = clock();
+  
+  int absecho    = abs(echo);
+  
+  /*
+    echo   = 0: no output, no file dump
+    = 1: print init and final data to +
+    = 2: print iter info to +
+    = -k: as k, but to - (only for above 0,1,2)
+    = -9: print final data (minimal) to -
+    where + is the screen and - is the datafile
+  */
+  
+  FILE *output = stdout;
+  const char *outputname = "stdout";
+  
+  if (echo < 0) {
+    output = fopen(datafilename, "a" );
+    outputname = datafilename;
+  }
     else {
         output = stdout;
         outputname = "stdout";
     }
-
-    /* ============= ALLOCATE memory: ================= */
-    
-    int n1, n2, nm, m1;
-    
-    /* Common to both BFGS and LBFGS */
-    double *g = new double[n];
-    double *p = new double[n];
-    double *s = new double[n];
-    double *y = new double[n];
-    double *d = new double[n];
-    
-    /* Only allocate what is actually needed: */
-    if (!lm) {
+  
+  /* ============= ALLOCATE memory: ================= */
+  
+  int n1, n2, nm, m1;
+  
+  /* Common to both BFGS and LBFGS */
+  double *g = new double[n];
+  double *p = new double[n];
+  double *s = new double[n];
+  double *y = new double[n];
+  double *d = new double[n];
+  
+  /* Only allocate what is actually needed: */
+  if (!lm) {
         n1 = n;
         n2 = n*n;
         nm = 1;
         m1 = 1;
-    }
-    else {
+  }
+  else {
         n1 = 1;
         n2 = 1;
         nm = n*m;
         m1 = m;
-    }
-    
+  }
+  
     /* BFGS specific arrays: */
-    double *q = new double[n1];
-    double *H = new double[n2];
-    
-    /* LBFGS specific arrays: */
-    double *S   = new double[nm];
-    double *Y   = new double[nm];
-    double *rho = new double[m1];
-    double *a   = new double[m1];
-    
-    /* doubles:*/
-    double t, gnorm, bgnorm, gtp, fval, fprev, dtmp;
-    /* double pointers: */
-    double *f;
-    f = &(fval);
-    
-    /* integers:*/
-    int it = 0, done = 0, j, ol = 1, cs = 0, tmp, bgnormidx = 1;
-    /* integer pointers: */
-    int nfevalval = 0, exitflagval = 0;
-    int *nfeval    = &(nfevalval);
+  double *q = new double[n1];
+  double *H = new double[n2];
+  
+  /* LBFGS specific arrays: */
+  double *S   = new double[nm];
+  double *Y   = new double[nm];
+  double *rho = new double[m1];
+  double *a   = new double[m1];
+  
+  /* doubles:*/
+  double t, gnorm, bgnorm, gtp, fval, fprev, dtmp;
+  /* double pointers: */
+  double *f;
+  f = &(fval);
+  
+  /* integers:*/
+  int it = 0, done = 0, j, ol = 1, cs = 0, tmp, bgnormidx = 1;
+  /* integer pointers: */
+  int nfevalval = 0, exitflagval = 0;
+  int *nfeval    = &(nfevalval);
     int *exitflag  = &(exitflagval);
     
     /* VARS FOR QP STOPPING CRITERION */

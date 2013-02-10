@@ -1,5 +1,6 @@
 #set library paths
-export LD_LIBRARY_PATH=/home/ubuntu/Desktop/BFGS/csrc:/home/ubuntu/Desktop/BFGS/lib
+export BFGS_HOME=~/Documents/thesis/BFGS
+export LD_LIBRARY_PATH=$(BFGS_HOME)/BFGS/csrc:$(BFGS_HOME)/BFGS/lib
 
 make clean
 make

@@ -2,30 +2,26 @@
 #include <stdio.h>
 
 void print_iter_info(FILE *output, int it, double * f, double gnorm, int j, double * q, double * x, double t,  int n) {
-
     printf("it=%i, f=%2.2e, |g|=%2.2e, t=%2.2e, j=%i, q=%2.2e \n",it,*f,gnorm,t,j,*q);
-
 //printf("%i %2.16e\n", it, *f);
-
 }
 
 void print_init_info(FILE *output, int n, double ftarget, double gnormtol, int maxit, int echo, int lm, const char*outputname, void(*testFunction)(double*, double*, double*, int)) {
     
     printf("================================\n");
     if (!lm) {
-		printf("BFGS D on %s with \n", "Test Function");
-	}
-	else {
-		printf("LM-BFGS DD on %s with \n", "Test Function");
-	}
+      printf("BFGS D on %s with \n", "Test Function");
+    }
+    else {
+      printf("LM-BFGS DD on %s with \n", "Test Function");
+    }
     printf("n        = %i \n",n);
     printf("ftarget  = %f \n",ftarget);
     printf("gnormtol = %f \n",gnormtol);
     printf("maxit    = %i \n",maxit);
     printf("echo     = %i \n",echo);
     printf("output   = %s \n",outputname);
-    printf("--------------------------------\n");
-
+    printf("--------------------------------\n");   
 }
 
 void print_final_info(FILE *output, int it, double f, double gnorm, int nfeval, int exitflag, double ttime) {

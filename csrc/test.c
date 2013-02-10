@@ -1,4 +1,5 @@
 using namespace std;
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h> 
@@ -20,13 +21,14 @@ using namespace std;
 #include "yurirosen.h"
 #include <qd/dd_real.h>
 
-int main(int argc, char *argv[]) 
-{
+int main(int argc, char *argv[]) {
     unsigned int old_cw;
     fpu_fix_start(&old_cw);		//necessary for double-double
     cout.precision(32);			//set precision
     
     /* Declare needed variables (input) */
+    // Don't forget that this is just a pointer to a function
+    // we might want to replace this with templates
     typedef void(*test_fun_ptr_type)(double*, double*, double*, int);
     test_fun_ptr_type testFunction;
     typedef void(*test_fun_ptr_type_dd)(dd_real*, dd_real*, dd_real*, int);
@@ -34,24 +36,30 @@ int main(int argc, char *argv[])
     int n;
     int lm;
     int m;
-
+    
+    // All these are candidates for template definitions
     double ftarget;
     double gnormtol;
     double taux, taud;
     dd_real ftarget_dd;
     dd_real gnormtol_dd;
     dd_real taux_dd, taud_dd;
-
+    
     int J;
     int maxit;
     int echo;
     const char * datafilename;
     const char * datafilename_dd;
-
+    
+    // Perhaps this RTLD_NOW here is wasting some time, this is something that could be
+    // investigated further
+    // Catch error if dlopen returns NULL (see wikipedia)
+    // It would be nice to close this library
     void *prg_handle = dlopen("libtestfun.so", RTLD_NOW);    
 
     /* Declare needed variables (output) */
 
+    // more candidates for templating
     double * fopt = new double;
     dd_real * fopt_dd = new dd_real;
     double * info = new double[4];
@@ -71,7 +79,7 @@ int main(int argc, char *argv[])
     ftarget      = -1e100;		//fvalquit
     gnormtol     = 0;
     maxit        = 10e8;		//maximum iterations
-    echo         = 1;			//print level
+    echo         = 2;			//print level
     datafilename = "stddump.txt";
     datafilename_dd = "stddump_dd.txt";
 
