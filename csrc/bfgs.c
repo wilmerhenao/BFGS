@@ -38,7 +38,7 @@ void bfgs
   
   FILE *output = stdout;
   const char *outputname = "stdout";
-  
+
   if (echo < 0) {
     output = fopen(datafilename, "a" );
     outputname = datafilename;
@@ -94,35 +94,35 @@ void bfgs
   /* integer pointers: */
   int nfevalval = 0, exitflagval = 0;
   int *nfeval    = &(nfevalval);
-    int *exitflag  = &(exitflagval);
-    
-    /* VARS FOR QP STOPPING CRITERION */
-    const double R = 10;
-    int qpmaxit    = 100;
-    int jcur       = 0;
-    int oldestg    = 2;
-    double snorm   = 0;
-
-    double qpoptval = taud + 100;
-    double * qpoptvalptr;
-    qpoptvalptr = &(qpoptval);
-    
-    double * G      = new double[J*n];
-    double * qpx0   = new double[J];
-    double * qpinfo = new double[3];
-    
-    /* ============ INITIALIZATION END ===============*/
-    
-    /* ============ BEFORE MAIN LOOP: ================ */
-    testFunction(f,g,x,n);
-
+  int *exitflag  = &(exitflagval);
+  
+  /* VARS FOR QP STOPPING CRITERION */
+  const double R = 10;
+  int qpmaxit    = 100;
+  int jcur       = 0;
+  int oldestg    = 2;
+  double snorm   = 0;
+  
+  double qpoptval = taud + 100;
+  double * qpoptvalptr;
+  qpoptvalptr = &(qpoptval);
+  
+  double * G      = new double[J*n];
+  double * qpx0   = new double[J];
+  double * qpinfo = new double[3];
+  
+  /* ============ INITIALIZATION END ===============*/
+  
+  /* ============ BEFORE MAIN LOOP: ================ */
+  testFunction(f,g,x,n);
     *nfeval = *nfeval + 1;
-    
+  
     /* calculate gnorm:*/
     gnorm  = vecnorm(g,n);
     bgnorm = gnorm;
 
     /* first search direction  p = -H*g (BFGS) and p = -g (LBFGS) */
+    // Probably there are better ways for an initial search direction
     if(!lm) {
         /* initialize H to the identity matrix:*/
         mat_set_eye(H,n,n);
@@ -141,10 +141,9 @@ void bfgs
     
     
     if (echo==2) print_iter_info(output,it,f,gnorm,jcur,qpoptvalptr,x,t,n);
-    
     /* ================= MAIN LOOP: =================== */
     while (!done) {
-
+      
         /* increase iteration counter:*/
         it++;
         
@@ -166,7 +165,7 @@ void bfgs
         
         /* line search:*/
         t = linesearch_ww(x,f,g,p,C1,C2,n,testFunction,nfeval,ftarget,exitflag);
-
+	
         /* If f is NaN, exit with best found f,x,g so far */
         if (isnan(*f)) {
             *exitflag = -8;
@@ -176,7 +175,7 @@ void bfgs
             /* best f found is stored in fprev. Exit with that: */
             *f = fprev;
         }
-
+	
 	if (*f > fprev)
 	    *f = fprev;
        

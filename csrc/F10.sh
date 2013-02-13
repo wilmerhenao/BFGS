@@ -1,8 +1,5 @@
 #set library paths
-stuff="cinco"
-echo "this is the stuff: $stuff" 
-BFGSHOME="~/Documents/thesis/BFGS"
-echo $BFGSHOME
+BFGSHOME="/home/yo/Documents/thesis/BFGS"
 export LD_LIBRARY_PATH=$BFGSHOME/csrc:$BFGSHOME/lib
 
 make clean
