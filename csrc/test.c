@@ -8,12 +8,11 @@ using namespace std;
 #include <iostream>
 #include <dlfcn.h>
 #include "randnums_template.hpp"
-#include "libmatrix_dd.h"
 #include "bfgs_dd.h"
 #include "F10_dd.h"
 #include "T10_dd.h"
 #include "yurirosen_dd.h" 
-#include "libmatrix.h"
+#include "libmatrix_template.hpp"
 #include "bfgs.h"
 #include "F10.h"
 #include "T10.h"
@@ -97,8 +96,7 @@ int main(int argc, char *argv[]) {
     useconds = time.tv_usec;	//pseudo-random number generator seed
 
     srand(useconds);
-    rand_real_vec<double
->(x0, n, -1, 1);
+    rand_real_vec<double>(x0, n, -1, 1);
 
 /*
     x0[0] = -1;

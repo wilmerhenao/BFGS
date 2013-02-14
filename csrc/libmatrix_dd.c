@@ -1,6 +1,4 @@
-#include <stdlib.h>
-#include <math.h>
-#include <qd/dd_real.h>
+
 
 dd_real vecip(dd_real x[], dd_real y[], int n) {
     dd_real ip = 0;

@@ -1,9 +1,5 @@
-//void mxm(double C[], double A[], double B[], double alpha, double beta, int m, int n, int k);
-//void mtxm(double C[], double A[], double B[], double alpha, double beta, int m, int n, int k);
-//void mxmt(double C[], double A[], double B[], double alpha, double beta, int m, int n, int k);
+
 void mxv(double y[], double A[], double x[], double alpha, double beta, int m, int n);
-//int linsolve(double A[], double B[], int n, int m);
-//int minv(double A[], const int n);
 double vecip(double x[], double y[], int n);
 double vecnorm(double v[], int n);
 void mat_set_eye(double A[], int m, int n);
@@ -12,4 +8,3 @@ void vcopy(double y[], double x[], int n);
 void vcopyp(double y[], double x[], double a, int n);
 void vscal(double x[], double a, int n);
 void mat_r1update(double A[], double x[], double y[], double alpha, int n);
-//void changemajor(double A[], int m, int n);

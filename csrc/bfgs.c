@@ -4,9 +4,9 @@
 #include <time.h>
 #include "linesearch.h"
 #include "math.h"
-#include "quasinewt_updates.h"
+#include "quasinewt_updates_template.hpp"
 #include "print.h"
-#include "libmatrix.h"
+#include "libmatrix_template.hpp"
 
 #define debug 0
 
@@ -118,7 +118,7 @@ void bfgs
     *nfeval = *nfeval + 1;
   
     /* calculate gnorm:*/
-    gnorm  = vecnorm(g,n);
+    gnorm  = vecnorm<double>(g,n);
     bgnorm = gnorm;
 
     /* first search direction  p = -H*g (BFGS) and p = -g (LBFGS) */
@@ -126,10 +126,10 @@ void bfgs
     if(!lm) {
         /* initialize H to the identity matrix:*/
         mat_set_eye(H,n,n);
-        mxv(p,H,g,-1.0,0.0,n,n);
+        mxv<double>(p,H,g,-1.0,0.0,n,n);
     }
     else {
-        vcopyp(p, g, -1.0, n);
+        vcopyp<double>(p, g, -1.0, n);
     }
     
     if (echo>0) print_init_info(output,n,ftarget,gnormtol,maxit,echo,lm,outputname,testFunction);
@@ -148,7 +148,7 @@ void bfgs
         it++;
         
         /* gtp = g'*p*/
-        gtp = vecip(g,p,n);
+        gtp = vecip<double>(g,p,n);
         
         if (gtp > 0) {
             done = 1;
@@ -157,8 +157,8 @@ void bfgs
         
         /* need previous x and g for update later (for s and y), */
         /* so copy them before the linsearch overwrites them:*/
-        vcopyp(s,x,-1.0,n);
-        vcopyp(y,g,-1.0,n);
+        vcopyp<double>(s,x,-1.0,n);
+        vcopyp<double>(y,g,-1.0,n);
         
         /* Copy f before overwritten by linesearch in case of NaN */
         fprev = *f;
@@ -170,8 +170,8 @@ void bfgs
         if (isnan(*f)) {
             *exitflag = -8;
             /* at this point, s=-x, so take x from s (same with y/g) */
-            vcopyp(x,s,-1.0,n);
-            vcopyp(g,y,-1.0,n);
+            vcopyp<double>(x,s,-1.0,n);
+            vcopyp<double>(g,y,-1.0,n);
             /* best f found is stored in fprev. Exit with that: */
             *f = fprev;
         }
@@ -182,9 +182,9 @@ void bfgs
         /* calculate s and y:
         /* before these calls, s and y contain
         /* previous -x and prev. -g, so e.g. s = x - xprev is s = s + x */
-        vpv(s,x,1,n);
-        vpv(y,g,1,n);
-        gnorm = vecnorm(g,n);
+        vpv<double>(s,x,1,n);
+        vpv<double>(y,g,1,n);
+        gnorm = vecnorm<double>(g,n);
 
         /* ============= QP STOPPING CRITERING =========== */
 //        snorm = vecnorm(s,n);
@@ -234,17 +234,17 @@ void bfgs
         /* QUASINEWTON update:*/
         if (!lm) {
             /* BFGS update: */
-            update_bfgs(H,p,g,s,y,q,n);
+            update_bfgs<double>(H,p,g,s,y,q,n);
             /* BFGS update end */
         }
         else {
             /* LBFGS update:*/
             if(it <= m) cs++;
             tmp = (ol-1)*n;
-            vcopy(S+tmp,s,n);
-            vcopy(Y+tmp,y,n);
-            rho[ol-1] = 1.0 / vecip(y,s,n);
-            update_lbfgs(p,S,Y,rho,a,g,cs,ol,m,n);
+            vcopy<double>(S+tmp,s,n);
+            vcopy<double>(Y+tmp,y,n);
+            rho[ol-1] = 1.0 / vecip<double>(y,s,n);
+            update_lbfgs<double>(p,S,Y,rho,a,g,cs,ol,m,n);
             ol = (ol % m) + 1;
             /* LBFGS update end */
         }

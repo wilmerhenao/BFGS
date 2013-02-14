@@ -1,12 +1,12 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <time.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <ctime>
 #include "linesearch_dd.h"
-#include "quasinewt_updates_dd.h"
+#include "quasinewt_updates_template.hpp"
 #include "print_dd.h"
-#include "libmatrix_dd.h"
+#include "libmatrix_template.hpp"
 #include <qd/dd_real.h>
 
 #define debug 0
@@ -121,17 +121,17 @@ const int echo, void(*testFunction_dd)(dd_real*, dd_real*, dd_real*, int), const
     *nfeval = *nfeval + 1;
     
     /* calculate gnorm:*/
-    gnorm  = vecnorm(g,n);
+    gnorm  = vecnorm<dd_real>(g,n);
     bgnorm = gnorm;
 
     /* first search direction  p = -H*g (BFGS) and p = -g (LBFGS) */
     if(!lm) {
         /* initialize H to the identity matrix:*/
         mat_set_eye(H,n,n);
-        mxv(p,H,g,-1.0,0.0,n,n);
+        mxv<dd_real>(p,H,g,-1.0,0.0,n,n);
     }
     else {
-        vcopyp(p, g, -1.0, n);
+        vcopyp<dd_real>(p, g, -1.0, n);
     }
     
     if (echo>0) print_init_info(output,n,ftarget,gnormtol,maxit,echo,lm,outputname,testFunction_dd);
@@ -151,7 +151,7 @@ const int echo, void(*testFunction_dd)(dd_real*, dd_real*, dd_real*, int), const
         it++;
         
         /* gtp = g'*p*/
-        gtp = vecip(g,p,n);
+        gtp = vecip<dd_real>(g,p,n);
         
         if (gtp > 0) {
             done = 1;
@@ -160,8 +160,8 @@ const int echo, void(*testFunction_dd)(dd_real*, dd_real*, dd_real*, int), const
         
         /* need previous x and g for update later (for s and y), */
         /* so copy them before the linsearch overwrites them:*/
-        vcopyp(s,x,-1.0,n);
-        vcopyp(y,g,-1.0,n);
+        vcopyp<dd_real>(s,x,-1.0,n);
+        vcopyp<dd_real>(y,g,-1.0,n);
         
         /* Copy f before overwritten by linesearch in case of NaN */
         fprev = *f;
@@ -173,8 +173,8 @@ const int echo, void(*testFunction_dd)(dd_real*, dd_real*, dd_real*, int), const
         if (isnan(*f)) {
             *exitflag = -8;
             /* at this point, s=-x, so take x from s (same with y/g) */
-            vcopyp(x,s,-1.0,n);
-            vcopyp(g,y,-1.0,n);
+            vcopyp<dd_real>(x,s,-1.0,n);
+            vcopyp<dd_real>(g,y,-1.0,n);
             /* best f found is stored in fprev. Exit with that: */
             *f = fprev;
         }
@@ -185,9 +185,9 @@ const int echo, void(*testFunction_dd)(dd_real*, dd_real*, dd_real*, int), const
         /* calculate s and y:
         /* before these calls, s and y contain
         /* previous -x and prev. -g, so e.g. s = x - xprev is s = s + x */
-        vpv(s,x,1,n);
-        vpv(y,g,1,n);
-        gnorm = vecnorm(g,n);
+        vpv<dd_real>(s,x,1,n);
+        vpv<dd_real>(y,g,1,n);
+        gnorm = vecnorm<dd_real>(g,n);
 
         /* ============= QP STOPPING CRITERING =========== */
 //        snorm = vecnorm(s,n);
@@ -237,17 +237,17 @@ const int echo, void(*testFunction_dd)(dd_real*, dd_real*, dd_real*, int), const
         /* QUASINEWTON update:*/
         if (!lm) {
             /* BFGS update: */
-            update_bfgs(H,p,g,s,y,q,n);
+            update_bfgs<dd_real>(H,p,g,s,y,q,n);
             /* BFGS update end */
         }
         else {
             /* LBFGS update:*/
             if(it <= m) cs++;
             tmp = (ol-1)*n;
-            vcopy(S+tmp,s,n);
-            vcopy(Y+tmp,y,n);
-            rho[ol-1] = 1.0 / vecip(y,s,n);
-            update_lbfgs(p,S,Y,rho,a,g,cs,ol,m,n);
+            vcopy<dd_real>(S+tmp,s,n);
+            vcopy<dd_real>(Y+tmp,y,n);
+            rho[ol-1] = 1.0 / vecip<dd_real>(y,s,n);
+            update_lbfgs<dd_real>(p,S,Y,rho,a,g,cs,ol,m,n);
             ol = (ol % m) + 1;
             /* LBFGS update end */
         }

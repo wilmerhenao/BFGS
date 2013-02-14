@@ -1,3 +1,6 @@
+#ifndef _RANDNUMS_TEMPLATE_HPP_
+#define _RANDNUMS_TEMPLATE_HPP_
+
 #include <cstdlib>
 
 
@@ -24,3 +27,5 @@ void rand_real_vec(T v[], int n, T a, T b){
     v[j] = (a + tmp * ((T)rand() / (T)RAND_MAX));
   }
 }
+
+#endif // _RANDNUMS_TEMPLATE_HPP__

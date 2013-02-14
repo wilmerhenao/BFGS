@@ -1,6 +1,6 @@
-#include <math.h>
-#include "libmatrix.h"
-#include <stdio.h>
+#include <cmath>
+#include "libmatrix_template.hpp"
+#include <cstdio>
 
 double linesearch_ww 
 (double x[], double *f, double g[], double d[], double C1, double C2,
@@ -18,7 +18,7 @@ int n, void(*testFunction)(double*, double*, double*, int), int*nfeval, double f
     
     int nbisect = 0;
     int nexpand = 0;
-    double dnorm = vecnorm(d,n);
+    double dnorm = vecnorm<double>(d,n);
     
     /* MATLAB:
     nbisectmax = max(30, round(log2(1e5*dnorm))); % allows more if ||d|| big
@@ -35,7 +35,7 @@ int n, void(*testFunction)(double*, double*, double*, int), int*nfeval, double f
     double armijo_rhs_p, wwolfe_rhs, f0;
     f0 = *f;
     
-    g0td = vecip(g,d,n);	/* first gradient * search direction d (g0 in overton matlab)*/
+    g0td = vecip<double>(g,d,n);/* first gradient * search direction d (g0 in overton matlab)*/
     
     armijo_rhs_p = g0td*C1;
     wwolfe_rhs   = g0td*C2;
@@ -44,7 +44,7 @@ int n, void(*testFunction)(double*, double*, double*, int), int*nfeval, double f
         /* x = x0 + t*d   (next x to check at):
         /* this is the same as x = x + (t-tprev)*d
         /* because x is overwritten each time*/
-        vpv(x,d,(t-tprev),n);
+        vpv<double>(x,d,(t-tprev),n);
         
         testFunction(f,g,x,n);    /* evaluate f and g at new x*/
 

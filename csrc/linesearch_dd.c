@@ -1,8 +1,8 @@
-using namespace std;
-#include <math.h>
-#include "libmatrix_dd.h"
-#include <stdio.h>
+#include <cmath>
+#include "libmatrix_template.hpp"
+#include <cstdio>
 #include <iostream>
+#include <qd/dd_real.h>
 
 dd_real linesearch_ww 
 (dd_real x[], dd_real *f, dd_real g[], dd_real d[], dd_real C1, dd_real C2,
@@ -20,7 +20,7 @@ int n, void(*testFunction)(dd_real*, dd_real*, dd_real*, int), int*nfeval, dd_re
     
     dd_real nbisect = 0;
     dd_real nexpand = 0;
-    dd_real dnorm = vecnorm(d,n);
+    dd_real dnorm = vecnorm<dd_real>(d,n);
     
     /* MATLAB:
     nbisectmax = max(30, round(log2(1e5*dnorm))); % allows more if ||d|| big
@@ -37,7 +37,7 @@ int n, void(*testFunction)(dd_real*, dd_real*, dd_real*, int), int*nfeval, dd_re
     dd_real armijo_rhs_p, wwolfe_rhs, f0;
     f0 = *f;
     
-    g0td = vecip(g,d,n);	/* first gradient * search direction d (g0 in overton matlab)*/
+    g0td = vecip<dd_real>(g,d,n);	/* first gradient * search direction d (g0 in overton matlab)*/
     
     armijo_rhs_p = g0td*C1;
     wwolfe_rhs   = g0td*C2;
@@ -45,7 +45,7 @@ int n, void(*testFunction)(dd_real*, dd_real*, dd_real*, int), int*nfeval, dd_re
         /* x = x0 + t*d   (next x to check at):
         /* this is the same as x = x + (t-tprev)*d
         /* because x is overwritten each time*/
-        vpv(x,d,(t-tprev),n);
+        vpv<dd_real>(x,d,(t-tprev),n);
         
         testFunction(f,g,x,n);    /* evaluate f and g at new x*/
         *nfeval = *nfeval + 1;    /* counting number of function evaluations*/
@@ -58,7 +58,7 @@ int n, void(*testFunction)(dd_real*, dd_real*, dd_real*, int), int*nfeval, dd_re
         }
         
         /* inner product of current g and d (result is gtd):*/
-        gtd = vecip(g,d,n);
+        gtd = vecip<dd_real>(g,d,n);
         if (*f > f0 + t*armijo_rhs_p) {	/* armijo fails, gone too far*/
             beta = t;
         }
