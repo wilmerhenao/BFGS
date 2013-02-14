@@ -1,4 +1,3 @@
-export LD_LIBRARY_PATH=/home/ubuntu/Desktop/BFGS/csrc:/home/ubuntu/Desktop/BFGS/lib
 
 CC       = c++
 CFLAGS   = -O2 -fPIC -g -I../lib -ldl -lm -I../lib/qd -lqd

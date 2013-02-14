@@ -1,6 +1,6 @@
+export LD_LIBRARY_PATH=${PWD}:${PWD/'/csrc'/'/lib'}
+
 #set library paths
-BFGSHOME="/home/yo/Documents/thesis/BFGS"
-export LD_LIBRARY_PATH=$BFGSHOME/csrc:$BFGSHOME/lib
 
 make clean
 make

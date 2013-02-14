@@ -97,7 +97,8 @@ int main(int argc, char *argv[]) {
     useconds = time.tv_usec;	//pseudo-random number generator seed
 
     srand(useconds);
-    rand_real_vec<dd_real>(x0, n, -1, 1);
+    rand_real_vec<double
+>(x0, n, -1, 1);
 
 /*
     x0[0] = -1;

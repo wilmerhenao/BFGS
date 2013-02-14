@@ -1,6 +1,5 @@
-#set library paths
-BFGS_HOME=~/Documents/thesis/BFGS
-export LD_LIBRARY_PATH=$(BFGS_HOME)/BFGS/csrc:$(BFGS_HOME)/BFGS/lib
+export LD_LIBRARY_PATH=${PWD}:${PWD/'/csrc'/'/lib'}
+
 
 make clean
 make
