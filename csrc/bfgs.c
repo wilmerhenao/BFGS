@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include "linesearch.h"
+#include "linesearch_template.hpp"
 #include "math.h"
 #include "quasinewt_updates_template.hpp"
 #include "print_template.hpp"
@@ -164,7 +164,7 @@ void bfgs
         fprev = *f;
         
         /* line search:*/
-        t = linesearch_ww(x,f,g,p,C1,C2,n,testFunction,nfeval,ftarget,exitflag);
+        t = linesearch_ww<double>(x,f,g,p,C1,C2,n,testFunction,nfeval,ftarget,exitflag);
 	
         /* If f is NaN, exit with best found f,x,g so far */
         if (isnan(*f)) {

@@ -3,7 +3,7 @@
 #include <cstring>
 #include <cmath>
 #include <ctime>
-#include "linesearch_dd.h"
+#include "linesearch_template.hpp"
 #include "quasinewt_updates_template.hpp"
 #include "print_template.hpp"
 #include "libmatrix_template.hpp"
@@ -166,7 +166,7 @@ const int echo, void(*testFunction_dd)(dd_real*, dd_real*, dd_real*, int), const
         fprev = *f;
         
         /* line search:*/
-        t = linesearch_ww(x,f,g,p,C1,C2,n,testFunction_dd,nfeval,ftarget,exitflag);
+        t = linesearch_ww<dd_real>(x,f,g,p,C1,C2,n,testFunction_dd,nfeval,ftarget,exitflag);
 
         /* If f is NaN, exit with best found f,x,g so far */
         if (isnan(*f)) {
