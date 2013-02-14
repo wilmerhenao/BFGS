@@ -1,19 +1,18 @@
 #include <cstdlib>
-#include <cstdio>
+#include <stdio.h>
 #include <cstring>
 #include <cmath>
 #include <ctime>
 #include "linesearch_dd.h"
 #include "quasinewt_updates_template.hpp"
-#include "print_dd.h"
+#include "print_template.hpp"
 #include "libmatrix_template.hpp"
 #include <qd/dd_real.h>
 
 #define debug 0
 
 /* BFGS MAIN ALGORITHM: */
-void bfgs_dd
-(dd_real x[], dd_real * fopt, const int n, const int lm, const int m,
+void bfgs_dd(dd_real x[], dd_real * fopt, const int n, const int lm, const int m,
 const dd_real ftarget, const dd_real gnormtol, const int maxit,
 const int J, const dd_real taux, const dd_real taud,
 const int echo, void(*testFunction_dd)(dd_real*, dd_real*, dd_real*, int), const char * datafilename, double info[])
@@ -134,7 +133,7 @@ const int echo, void(*testFunction_dd)(dd_real*, dd_real*, dd_real*, int), const
         vcopyp<dd_real>(p, g, -1.0, n);
     }
     
-    if (echo>0) print_init_info(output,n,ftarget,gnormtol,maxit,echo,lm,outputname,testFunction_dd);
+    if (echo>0) print_init_info<dd_real>(output,n,ftarget,gnormtol,maxit,echo,lm,outputname,testFunction_dd);
     
     if (*f<ftarget) {
         done = 1;
@@ -142,7 +141,7 @@ const int echo, void(*testFunction_dd)(dd_real*, dd_real*, dd_real*, int), const
     }
     
     
-    if (echo==2) print_iter_info(output,it,f,gnorm,jcur,qpoptvalptr,x,t,n);
+    if (echo==2) print_iter_info<dd_real>(output,it,f,gnorm,jcur,qpoptvalptr,x,t,n);
     
     /* ================= MAIN LOOP: =================== */
     while (!done) {
@@ -253,7 +252,7 @@ const int echo, void(*testFunction_dd)(dd_real*, dd_real*, dd_real*, int), const
         }
         
         /* print iteration info:*/
-        if (echo==2) print_iter_info(output,it,f,gnorm,jcur,qpoptvalptr,x,t,n);
+        if (echo==2) print_iter_info<dd_real>(output,it,f,gnorm,jcur,qpoptvalptr,x,t,n);
         
         /* check convergence here*/
         if (it >= maxit) {
@@ -277,7 +276,7 @@ const int echo, void(*testFunction_dd)(dd_real*, dd_real*, dd_real*, int), const
     t2 = clock();
     double ttime = (double) ( (double)(t2-t1)/ (double)CLOCKS_PER_SEC );
     
-    if (echo>0) print_final_info(output,it,*f,gnorm,*nfeval,*exitflag,ttime);
+    if (echo>0) print_final_info<dd_real>(output,it,*f,gnorm,*nfeval,*exitflag,ttime);
     if (echo<0) fclose(output);
 
     *fopt = *f;

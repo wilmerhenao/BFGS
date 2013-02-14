@@ -5,7 +5,7 @@
 #include "linesearch.h"
 #include "math.h"
 #include "quasinewt_updates_template.hpp"
-#include "print.h"
+#include "print_template.hpp"
 #include "libmatrix_template.hpp"
 
 #define debug 0
@@ -132,7 +132,7 @@ void bfgs
         vcopyp<double>(p, g, -1.0, n);
     }
     
-    if (echo>0) print_init_info(output,n,ftarget,gnormtol,maxit,echo,lm,outputname,testFunction);
+    if (echo>0) print_init_info<double>(output,n,ftarget,gnormtol,maxit,echo,lm,outputname,testFunction);
     
     if (*f<ftarget) {
         done = 1;
@@ -140,7 +140,7 @@ void bfgs
     }
     
     
-    if (echo==2) print_iter_info(output,it,f,gnorm,jcur,qpoptvalptr,x,t,n);
+    if (echo==2) print_iter_info<double>(output,it,f,gnorm,jcur,qpoptvalptr,x,t,n);
     /* ================= MAIN LOOP: =================== */
     while (!done) {
       
@@ -250,7 +250,7 @@ void bfgs
         }
 
         /* print iteration info:*/
-        if (echo==2) print_iter_info(output,it,f,gnorm,jcur,qpoptvalptr,x,t,n);
+        if (echo==2) print_iter_info<double>(output,it,f,gnorm,jcur,qpoptvalptr,x,t,n);
         
         /* check convergence here*/
         if (it >= maxit) {
@@ -274,7 +274,7 @@ void bfgs
     t2 = clock();
     double ttime = (double) ( (double)(t2-t1)/ (double)CLOCKS_PER_SEC );
     
-    if (echo>0) print_final_info(output,it,*f,gnorm,*nfeval,*exitflag,ttime);
+    if (echo>0) print_final_info<double>(output,it,*f,gnorm,*nfeval,*exitflag,ttime);
     if (echo<0) fclose(output);
     
     *fopt = *f;

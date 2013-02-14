@@ -1,7 +1,7 @@
 using namespace std;
 #include <iostream>
-#include <string.h>
-#include <stdio.h>
+#include <cstring>
+#include <cstdio>
 #include <qd/dd_real.h>
 
 void print_iter_info(FILE *output, int it, dd_real * f, dd_real gnorm, int j, dd_real * q, dd_real * x, dd_real t,  int n) {
