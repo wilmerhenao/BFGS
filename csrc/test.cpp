@@ -44,8 +44,8 @@ algoparameters<T>::algoparameters(int k){
     J = fmin(15, ceil(2 * n / 3));
     fopt = new T;
     info = new double[4];
-    xf = new T[4];
-    x0 = new double[4];
+    xf = new T[n];
+    x0 = new double[n];
 }
 
 template <typename T> 
@@ -153,7 +153,10 @@ int main(int argc, char *argv[]){
 	xf[j] = xf_dd[j] = x0[j];
     }*/
     // Call the BFGS D and DD subroutine.
-    
+
+    doubleparameters.generateXF();
+    dd_realparameters.generateXF();
+
     bfgs<double>(doubleparameters.xf, doubleparameters.fopt, 
 		 doubleparameters.n, doubleparameters.lm, doubleparameters.m,
 		 doubleparameters.ftarget, doubleparameters.gnormtol, 
