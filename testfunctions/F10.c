@@ -14,7 +14,7 @@ void chained_CB3v1(double *f, double *g, double *x, int n)
 
 double y;
 
-*f = 0;
+*f = 0.0;
 for (int i = 0; i<n; i++) {
     g[i] = 0;
 }
