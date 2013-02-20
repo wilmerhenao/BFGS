@@ -7,7 +7,7 @@ make
 make mytest
 
 # Remove this exit 0 line later when you are compiling the whole thing
-# exit 0
+exit 0
 for n in 10 50 200
 do
 
