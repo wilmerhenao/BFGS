@@ -4,38 +4,40 @@
 #include <ctime>
 #include <sys/time.h>
 #include <iostream>
-#include <dlfcn.h>
 #include <string>
 #include "randnums_template.hpp"
 #include "bfgs_template.hpp"
-#include "F10.hpp"
+#include "../testfunctions/functions.hpp"
 #include "libmatrix_template.hpp"
-#include "T10.hpp"
-#include "yurirosen.hpp"
 #include "test.hpp"
 #include <qd/dd_real.h>
 
 int main(int argc, char *argv[]){    
-    unsigned int old_cw;
-    fpu_fix_start(&old_cw);//necessary for double-double (see Sherry's paper 
+  unsigned int old_cw;
+  fpu_fix_start(&old_cw);
     
-    std::string str;
-    for(int i = 0; argv[1][i] != 0; i++)
-	str += array[i];
+  std::string str;
+  for(int i = 0; argv[1][i] != 0; i++)
+    str += argv[1][i];
 
-    algoparameters<double> * doubleparameters = 
-	new algoparameters<double>(atoi(argv[3]), str);
-    algoparameters<dd_real> * dd_realparameters =
-	new algoparameters<dd_real>(atoi(argv[3]), str);
+  // If you want to add a new type, just:
+  // 1) declare it.  
+  // 2) Set precision.
+  // 3) Run and delete
 
-    doubleparameters->BFGSfunction();
-    dd_realparameters->BFGSfunction();
+  algoparameters<double> * doubleparameters = 
+    new algoparameters<double>(atoi(argv[3]), str);
+  algoparameters<dd_real> * dd_realparameters =
+    new algoparameters<dd_real>(atoi(argv[3]), str);
+
+  cout.precision(16);	
+  doubleparameters->BFGSfunction();
+  cout.precision(32);
+  dd_realparameters->BFGSfunction();
     
-    cout.precision(16);	
-    delete doubleparameters;
-    cout.precision(32);
-    delete dd_realparameters;
+  delete doubleparameters;
+  delete dd_realparameters;
     
-    fpu_fix_end(&old_cw);
-    return 0;
+  fpu_fix_end(&old_cw);
+  return 0;
 }
