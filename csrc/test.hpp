@@ -61,7 +61,7 @@ algoparameters<T>::algoparameters(int k, std::string locfunc){
   // elements pointed to are function pointers corresponding to the function
 
   typename std::map<std::string, void(*)(T*, T*, T*, int), 
-		    StringComparerForMap>::const_iterator it = pFunctions->tMap.find(locfunc);
+		    StringComparerForMap>::iterator it = pFunctions->tMap.find(locfunc);
 
   if(it != pFunctions->tMap.end()) 
     fun_ptr = it->second;

@@ -46,7 +46,7 @@ int n, void(*testFunction)(T*, T*, T*, int), int*nfeval, T ftarget, int*exitflag
     wwolfe_rhs   = g0td*C2;
     while (!done) {
         /* x = x0 + t*d   (next x to check at):
-        /* this is the same as x = x + (t-tprev)*d
+         this is the same as x = x + (t-tprev)*d
         /* because x is overwritten each time*/
         vpv<T>(x,d,(t-tprev),n);
         
