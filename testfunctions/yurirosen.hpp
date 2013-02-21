@@ -3,10 +3,31 @@
 
 #include<cmath>
 #include <qd/dd_real.h>
+#include <string>
+#include <iostream>
+#include <map>
+#include <../csrc/container.hpp>
 
-template<class T> void yurirosen(T *f, T *g, T *x, int n);
-template<class T> void yurirosen_ns1(T *f, T *g, T *x, int n);
-template<class T> void yurirosen_ns2(T *f, T *g, T *x, int n);
+template<class T> void yurirosen(T *, T *, T *, int);
+template<class T> void yurirosen_ns1(T *, T *, T *, int);
+template<class T> void yurirosen_ns2(T *, T *, T *, int);
+
+template<typename T>
+class allfunctionsyurirosen{
+public:
+    void (*pyurirosen)(T *f, T *g, T *x, int n) = &yurirosen<T>;
+    void (*pyurirosen_ns1)(T *f, T *g, T *x, int n) = &yurirosen_ns1<T>;
+    void (*pyurirosen_ns2)(T *f, T *g, T *x, int n) = &yurirosen_ns2<T>;
+    myMap tMap;
+    void fillMap();
+};
+    
+template<typename T>
+allfunctionsyurirosen<T>::fillMap(){
+    tMap['yurirosen'] = pyurirosen;
+    tMap['yurirosen_ns1'] = pyurirosen_ns1;
+    tMap['yurirosen_ns2'] = pyurirosen_ns2;
+}
 
 template<class T>
     void yurirosen(T *f, T *g, T *x, int n)

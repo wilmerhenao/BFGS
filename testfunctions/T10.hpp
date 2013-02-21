@@ -5,13 +5,38 @@
 #include <cstdlib>
 #include <cstdio>
 #include <qd/dd_real.h>
+#include <string>
+#include <iostream>
+#include <map>
+#include <../csrc/container.hpp>
 
-template<class T> void test29f02(T *f, T *g, T *x, int n);
-template<class T> void test29f05(T *f, T *g, T *x, int n);
-template<class T> void test29f06(T *f, T *g, T *x, int n);
-template<class T> void test29f11(T *f, T *g, T *x, int n);
-template<class T> void test29f22(T *f, T *g, T *x, int n);
-//template<class T> void test29f24(T *f, T *g, T *x, int n);
+template<class T> void test29f02(T *, T *, T *, int);
+template<class T> void test29f05(T *, T *, T *, int);
+template<class T> void test29f06(T *, T *, T *, int);
+template<class T> void test29f11(T *, T *, T *, int);
+template<class T> void test29f22(T *, T *, T *, int);
+
+template<typename T>
+class allfunctionsT10{
+public:
+    void (*ptest29f02)(T *f, T *g, T *x, int n) = &test29f02<T>;
+    void (*ptest29f05)(T *f, T *g, T *x, int n) = &test29f05<T>;
+    void (*ptest29f06)(T *f, T *g, T *x, int n) = &test29f06<T>;
+    void (*ptest29f11)(T *f, T *g, T *x, int n) = &test29f11<T>;
+    void (*ptest29f22)(T *f, T *g, T *x, int n) = &test29f22<T>;
+    myMap tMap;
+    void fillMap();
+    //void (*ptest29f24)(T *f, T *g, T *x, int n) = &test29f24<T>;
+};
+
+template<typename T>
+allfunctionsT10<T>::fillMap(){
+    tMap['test29f02'] = ptest29f02;
+    tMap['test29f05'] = ptest29f05;
+    tMap['test29f06'] = ptest29f06;
+    tMap['test29f11'] = ptest29f11;
+    tMap['test29f22'] = ptest29f22;
+}
 
 template<class T> 
 void test29f02(T *f, T *g, T *x, int n) {

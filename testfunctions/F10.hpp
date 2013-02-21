@@ -5,18 +5,54 @@
 #include <cstdlib>
 #include <cstdio>
 #include <qd/dd_real.h>
+#include <string>
+#include <iostream>
+#include <map>
+#include <../csrc/container.hpp>
 
-template<class T> void chained_CB3v1(T *f, T *g, T *x, int n);
-template<class T> void chained_CB3v2(T *f, T *g, T *x, int n);
-template<class T> void chained_crescent1(T *f, T *g, T *x, int n);
-template<class T> void chained_crescent2(T *f, T *g, T *x, int n);
-template<class T> void chained_LQ(T *f, T *g, T *x, int n);
-template<class T> void chained_mifflin2(T *f, T *g, T *x, int n);
-template<class T> void gen_brownfunc2(T *f, T *g, T *x, int n);
-template<class T> void gen_maxhilbert(T *f, T *g, T *x, int n);
-template<class T> void gen_maxq(T *f, T *g, T *x, int n);
-template<class T> void nactfaces(T *f, T *g, T  *x, int n);
+template<class T> void chained_CB3v1(T *, T *, T *, int)
+template<class T> void chained_CB3v2(T *, T *, T *, int)
+template<class T> void chained_crescent1(T *, T *, T *, int)
+template<class T> void chained_crescent2(T *, T *, T *, int)
+template<class T> void chained_LQ(T *, T *, T *, int)
+template<class T> void chained_mifflin2(T *, T *, T *, int)
+template<class T> void gen_brownfunc2(T *, T *, T *, int)
+template<class T> void gen_maxhilbert(T *, T *, T *, int)
+template<class T> void gen_maxq(T *, T *, T *, int)
+template<class T> void nactfaces(T *, T *, T *, int)
 
+template<typename T>
+class allfunctionsF10{
+public:
+    void (*pchained_CB3v1)(T *f, T *g, T *x, int n)  = &chained_CB3v<T>;
+    void (*pchained_CB3v2)(T *f, T *g, T *x, int n) = &chained_CB3v2<T>;
+    void (*pchained_crescent1)(T *f, T *g, T *x, int n) = &chained_crescent1<T>;
+    void (*pchained_crescent2)(T *f, T *g, T *x, int n) = &chained_crescent2<T>;
+    void (*pchained_LQ)(T *f, T *g, T *x, int n) = &chained_LQ<T>;
+    void (*pchained_mifflin2)(T *f, T *g, T *x, int n) = &chained_mifflin2<T>;
+    void (*pgen_brownfunc2)(T *f, T *g, T *x, int n) = &gen_brownfunc2<T>;
+    void (*pgen_maxhilbert)(T *f, T *g, T *x, int n) = &gen_maxhilbert<T>;
+    void (*pgen_maxq)(T *f, T *g, T *x, int n) = &gen_maxq<T>;
+    void (*pnactfaces)(T *f, T *g, T  *x, int n) = &nactfaces<T>;
+    myMap tMap;
+    void fillMap();
+};
+
+template<typename T>
+allfunctionsF10<T>::fillMap(){
+    tMap['chained_CB3v1'] = pchained_CB3v1;
+    tMap['chained_CB3v2'] = pchained_CB3v2;
+    tMap['chained_crescent1'] = pchained_crescent1;
+    tMap['chained_crescent2'] = pchained_crescent2;
+    tMap['chained_LQ'] = pchained_LQ;
+    tMap['chained_mifflin2'] = pchained_mifflin2;
+    tMap['gen_brownfunc2'] = pgen_brownfunc2;
+    tMap['gen_maxhilbert'] = pgen_maxhilbert;
+    tMap['gen_maxq'] = pgen_maxq;
+    tMap['nactfaces'] = pnactfaces;
+}
+
+// Implementations:
 template<class T> 
 void chained_CB3v1(T *f, T *g, T *x, int n){
     /* printthis:

@@ -1,6 +1,26 @@
 #ifndef _TEST_HPP_
 #define _TEST_HPP_
 
+#include <string>
+#include "../testfunctions/F10.hpp"
+#include "../testfunctions/T10.hpp"
+#include "../testfunctions/yurirosen.hpp"
+
+//This class contains an instantiation of all functions of the given type
+template<typename T>
+class allfunctions: public allfunctionsF10: public allfunctionsT10: 
+    public allfunctionsyurirosen {
+public:
+    allfunctions();
+}
+
+template<typename T>
+allfunctions<T>::allfunctions(){
+    allfunctionsF10.fillMap();
+    allfunctionsT10.fillMap();
+    allfunctionsyurirosen.fillMap();
+}
+
 template<typename T>
 class algoparameters{
 private:
@@ -15,15 +35,18 @@ private:
     T * xf;
     double * x0;    
     void(*fun_ptr)(T*, T*, T*, int);
+    allfunctions<T> * pFunctions;
 public:
-    algoparameters(int, char *);
+    algoparameters(int, string);
     ~algoparameters();
+    //function that gets a string and returns a pointer to that function
+    void find_function(string);
     void generateXF();
     void BFGSfunction();
 };
 
 template<typename T>
-algoparameters<T>::algoparameters(int k, char * locfunc){
+algoparameters<T>::algoparameters(int k, string locfunc){
     n = k;
     lm=0;
     m = 7;
@@ -39,8 +62,9 @@ algoparameters<T>::algoparameters(int k, char * locfunc){
     info = new double[4];
     xf = new T[n];
     x0 = new double[n];
-    void *prg_handle = dlopen("../lib/libtestfun.so", RTLD_NOW);
-    fun_ptr = (void(*)(T*, T*, T*, int)) dlsym(prg_handle, locfunc);
+    pFunctions = new allfunctions<T>;
+    //void *prg_handle = dlopen("../lib/libtestfun.so", RTLD_NOW);
+    fun_ptr = find_function(locfunc);
     generateXF();
 }
 
@@ -50,6 +74,12 @@ algoparameters<T>::~algoparameters(){
     delete [] info;
     delete [] xf;
     delete [] x0;
+    delete fun_ptr;
+}
+
+template<typename T>
+void find_function(char *){
+    fun_ptr = 
 }
 
 template <typename T> 
