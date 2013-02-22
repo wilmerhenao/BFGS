@@ -1,3 +1,5 @@
+//#define NDEBUG //Uncomment if you are not debugging (FASTER)
+
 #include <cstdlib>
 #include <cstdio>
 #include <cmath> 
@@ -5,6 +7,7 @@
 #include <sys/time.h>
 #include <iostream>
 #include <string>
+#include <cassert>
 #include "randnums_template.hpp"
 #include "bfgs_template.hpp"
 #include "../testfunctions/functions.hpp"
@@ -23,8 +26,8 @@ int main(int argc, char *argv[]){
   if (callflag){
     std::cerr << "You have called this function without any parameters." << std::endl;
     std::cerr << "Please call this function again with the name of the " << std::endl;
-    std::cerr << "function (don't use quotes) and an integer.  Example:" << std::endl;
-    std::cerr << "./mytest chained_mifflin2 10" << std::endl;
+    std::cerr << "function (don't use quotes) an int and output. Example:" << std::endl;
+    std::cerr << "./mytest chained_mifflin2 10 chained_mifflin2_10.txt" << std::endl;
     exit(EXIT_FAILURE);
   }
   
@@ -32,20 +35,24 @@ int main(int argc, char *argv[]){
   fpu_fix_start(&old_cw);
   
   std::string str;
-  for(int i = 0; argv[1][i] != 0; i++)
+  for(size_t i = 0; 0 != argv[1][i]; i++)
     str += argv[1][i];
 
+  std::string strout;
+  for(size_t i = 0; 0 != argv[3][i]; i++)
+    strout += argv[3][i];
+  assert(false);
   // If you want to add a new type, just:
   // 1) declare it.  
   // 2) Set precision.
   // 3) Run and delete
   
-  std::cout << "Running phase started" << std::endl;
-  unsigned int ninitial = static_cast<unsigned>(strtoul(argv[2], NULL, 0));
+  std::cout << "output file" << strout << std::endl;
+  unsigned int ninitial = static_cast<unsigned>(strtoul(argv[2], NULL, 0)); 
   algoparameters<double> * doubleparameters = 
-    new algoparameters<double>(ninitial, str);
+    new algoparameters<double>(ninitial, str, strout);
   algoparameters<dd_real> * dd_realparameters =
-    new algoparameters<dd_real>(ninitial, str);
+    new algoparameters<dd_real>(ninitial, str, strout);
   
   std::cout << "Objects were created safely.  Running BFGS next" << std::endl;
   std::cout.precision(16);	

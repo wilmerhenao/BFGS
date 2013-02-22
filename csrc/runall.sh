@@ -8,8 +8,8 @@ make mytest
 
 # Remove this exit 0 line later when you are running the whole thing
 
-./mytest chained_crescent1 10 >> ../testresults/F10/chained_crescent1_10.txt
-
+./mytest chained_mifflin2 10 ../testresults/F10/chained_mifflin2_10.txt 
+exit 0
 for n in 10 50 200
   do
 

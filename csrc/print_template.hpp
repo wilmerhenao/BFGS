@@ -16,7 +16,7 @@ template<class T> void print_init_info(std::ofstream&,const size_t& n, const T& 
 				       const T& gnormtol, const size_t& maxit, 
 				       const int& echo, const int& lm, 
 				       const char *& outputname);
-template<class T> void print_final_info(std::ofstream&, size_t& it, 
+template<class T> void print_final_info(std::ofstream&, size_t& it, T*& f,
 					 T& gnorm,  int& nfeval,
 					 int& exitflag,  double& ttime);
 
@@ -61,7 +61,7 @@ void print_init_info(std::ofstream& output, const size_t& n, const T& ftarget,
 }
 
 template <class T>
-void print_final_info(std::ofstream& output,  size_t& it, T& gnorm,
+void print_final_info(std::ofstream& output,  size_t& it, T*& f, T& gnorm,
 		      int& nfeval,  int& exitflag,  double& ttime) {
   const char * exitstr;
   switch (exitflag) {
@@ -121,7 +121,7 @@ void print_final_info(std::ofstream& output,  size_t& it, T& gnorm,
   output << std::scientific << ttime << std::fixed << " seconds " << std::endl;
   output.precision(ss);
   output <<"Because " << std::endl << exitstr << std::endl;
-  output <<"Found: \n" << std::endl << "f       =" << std::endl;
+  output <<"Found: \n" << std::endl << "f       =" << *f << std::endl;
   output <<"norm(g) = " << gnorm << std::endl;
   output <<"================================" << std::endl;
 }

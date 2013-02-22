@@ -6,6 +6,7 @@
 #include <cmath>
 #include <ctime>
 #include <cstdlib>
+#include <cassert>
 #include "container.hpp"
 #include "../testfunctions/functions.hpp"
 
@@ -21,7 +22,7 @@ private:
 		       size_t,  long int,  T,  T,  int, 
 		      void(*)(T*, T*, T*, size_t),  std::string , double*);
   T ftarget, gnormtol, taux, taud;
-  int echo, lm;
+  short echo, lm;
   size_t n, m, maxit;
   long J;
   std::string datafilename;
@@ -32,18 +33,16 @@ private:
   void(*fun_ptr)(T*, T*, T*, size_t);
   allfunctions<T> * pFunctions;
 public:
-  algoparameters(size_t, std::string);
+  algoparameters(size_t, std::string, std::string);
   ~algoparameters();
   void generateXF();
   void BFGSfunction();
 };
 
 template<typename T>
-algoparameters<T>::algoparameters(size_t k, std::string locfunc){
-
+algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr){
   // All the parameters initialized with the same values
   // It is very possible that we may want to do this depending on the type
-
   n = k;
   lm = 0;
   m = 7;
@@ -53,7 +52,7 @@ algoparameters<T>::algoparameters(size_t k, std::string locfunc){
   gnormtol = 0.0;
   maxit = 10e8;
   echo = 2;
-  datafilename = "stddump.txt";
+  datafilename = outstr;
   J = (long)MIN(15, ceil(2.0 * static_cast<double> (n) / 3.0));
   fopt = new T;
   info = new double[4];
