@@ -5,12 +5,12 @@
 #include <qd/dd_real.h>
 
 template <class T>
-T linesearch_ww (T x[], T *f, T g[], T d[], T C1, T C2,
-int n, void(*testFunction)(T*, T*, T*, int), int*nfeval, T ftarget,int*exitflag);
+T linesearch_ww (T*& x, T*& f, T*& g, T*& d, const T& C1, const T& C2,
+size_t& n, void(*&)(T*, T*, T*, size_t), int*&, T& ftarget,int*& exitflag);
 
 template <class T>
-T linesearch_ww (T x[], T *f, T g[], T d[], T C1, T C2,
-int n, void(*testFunction)(T*, T*, T*, int), int*nfeval, T ftarget, int*exitflag) {
+T linesearch_ww (T*& x, T*& f, T*& g, T*& d, const T& C1, const T& C2,
+size_t& n, void(*&testFunction)(T*, T*, T*, size_t), int*& nfeval, T& ftarget, int*& exitflag){
     T alpha = 0;		/* lower bound on step length*/
     T beta_max = 1e100;	/* upper bound on step length*/
     T beta  = beta_max;	
@@ -19,7 +19,6 @@ int n, void(*testFunction)(T*, T*, T*, int), int*nfeval, T ftarget, int*exitflag
     T tprev = 0;           /* variable to store prev. t*/
     
     double done = 0;
-    int j;
     
     T nbisect = 0;
     T nexpand = 0;
@@ -47,7 +46,7 @@ int n, void(*testFunction)(T*, T*, T*, int), int*nfeval, T ftarget, int*exitflag
     while (!done) {
         /* x = x0 + t*d   (next x to check at):
          this is the same as x = x + (t-tprev)*d
-        /* because x is overwritten each time*/
+         because x is overwritten each time*/
         vpv<T>(x,d,(t-tprev),n);
         
         testFunction(f,g,x,n);    /* evaluate f and g at new x*/

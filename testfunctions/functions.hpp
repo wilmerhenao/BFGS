@@ -10,47 +10,47 @@
 #include <map>
 #include "../csrc/container.hpp"
 
-template<class T> void chained_CB3v1(T *, T *, T *, int);
-template<class T> void chained_CB3v2(T *, T *, T *, int);
-template<class T> void chained_crescent1(T *, T *, T *, int);
-template<class T> void chained_crescent2(T *, T *, T *, int);
-template<class T> void chained_LQ(T *, T *, T *, int);
-template<class T> void chained_mifflin2(T *, T *, T *, int);
-template<class T> void gen_brownfunc2(T *, T *, T *, int);
-template<class T> void gen_maxhilbert(T *, T *, T *, int);
-template<class T> void gen_maxq(T *, T *, T *, int);
-template<class T> void nactfaces(T *, T *, T *, int);
-template<class T> void test29f02(T *, T *, T *, int);
-template<class T> void test29f05(T *, T *, T *, int);
-template<class T> void test29f06(T *, T *, T *, int);
-template<class T> void test29f11(T *, T *, T *, int);
-template<class T> void test29f22(T *, T *, T *, int);
-template<class T> void yurirosen(T *, T *, T *, int);
-template<class T> void yurirosen_ns1(T *, T *, T *, int);
-template<class T> void yurirosen_ns2(T *, T *, T *, int);
+template<class T> void chained_CB3v1(T *, T *, T *, size_t);
+template<class T> void chained_CB3v2(T *, T *, T *, size_t);
+template<class T> void chained_crescent1(T *, T *, T *, size_t);
+template<class T> void chained_crescent2(T *, T *, T *, size_t);
+template<class T> void chained_LQ(T *, T *, T *, size_t);
+template<class T> void chained_mifflin2(T *, T *, T *, size_t);
+template<class T> void gen_brownfunc2(T *, T *, T *, size_t);
+template<class T> void gen_maxhilbert(T *, T *, T *, size_t);
+template<class T> void gen_maxq(T *, T *, T *, size_t);
+template<class T> void nactfaces(T *, T *, T *, size_t);
+template<class T> void test29f02(T *, T *, T *, size_t);
+template<class T> void test29f05(T *, T *, T *, size_t);
+template<class T> void test29f06(T *, T *, T *, size_t);
+template<class T> void test29f11(T *, T *, T *, size_t);
+template<class T> void test29f22(T *, T *, T *, size_t);
+template<class T> void yurirosen(T *, T *, T *, size_t);
+template<class T> void yurirosen_ns1(T *, T *, T *, size_t);
+template<class T> void yurirosen_ns2(T *, T *, T *, size_t);
 
 template<typename T>
 class allfunctions{
 public:
-  void (*pchained_CB3v1)(T *f, T *g, T *x, int n)  = &chained_CB3v1<T>;
-  void (*pchained_CB3v2)(T *f, T *g, T *x, int n) = &chained_CB3v2<T>;
-  void (*pchained_crescent1)(T *f, T *g, T *x, int n) = &chained_crescent1<T>;
-  void (*pchained_crescent2)(T *f, T *g, T *x, int n) = &chained_crescent2<T>;
-  void (*pchained_LQ)(T *f, T *g, T *x, int n) = &chained_LQ<T>;
-  void (*pchained_mifflin2)(T *f, T *g, T *x, int n) = &chained_mifflin2<T>;
-  void (*pgen_brownfunc2)(T *f, T *g, T *x, int n) = &gen_brownfunc2<T>;
-  void (*pgen_maxhilbert)(T *f, T *g, T *x, int n) = &gen_maxhilbert<T>;
-  void (*pgen_maxq)(T *f, T *g, T *x, int n) = &gen_maxq<T>;
-  void (*pnactfaces)(T *f, T *g, T  *x, int n) = &nactfaces<T>;
-  void (*ptest29f02)(T *f, T *g, T *x, int n) = &test29f02<T>;
-  void (*ptest29f05)(T *f, T *g, T *x, int n) = &test29f05<T>;
-  void (*ptest29f06)(T *f, T *g, T *x, int n) = &test29f06<T>;
-  void (*ptest29f11)(T *f, T *g, T *x, int n) = &test29f11<T>;
-  void (*ptest29f22)(T *f, T *g, T *x, int n) = &test29f22<T>;
-  void (*pyurirosen)(T *f, T *g, T *x, int n) = &yurirosen<T>;
-  void (*pyurirosen_ns1)(T *f, T *g, T *x, int n) = &yurirosen_ns1<T>;
-  void (*pyurirosen_ns2)(T *f, T *g, T *x, int n) = &yurirosen_ns2<T>;
-  std::map<std::string, void(*)(T*, T*, T*, int), StringComparerForMap> tMap;
+  void (*pchained_CB3v1)(T *f, T *g, T *x, size_t n)  = &chained_CB3v1<T>;
+  void (*pchained_CB3v2)(T *f, T *g, T *x, size_t n) = &chained_CB3v2<T>;
+  void (*pchained_crescent1)(T *f, T *g, T *x, size_t n) = &chained_crescent1<T>;
+  void (*pchained_crescent2)(T *f, T *g, T *x, size_t n) = &chained_crescent2<T>;
+  void (*pchained_LQ)(T *f, T *g, T *x, size_t n) = &chained_LQ<T>;
+  void (*pchained_mifflin2)(T *f, T *g, T *x, size_t n) = &chained_mifflin2<T>;
+  void (*pgen_brownfunc2)(T *f, T *g, T *x, size_t n) = &gen_brownfunc2<T>;
+  void (*pgen_maxhilbert)(T *f, T *g, T *x, size_t n) = &gen_maxhilbert<T>;
+  void (*pgen_maxq)(T *f, T *g, T *x, size_t n) = &gen_maxq<T>;
+  void (*pnactfaces)(T *f, T *g, T  *x, size_t n) = &nactfaces<T>;
+  void (*ptest29f02)(T *f, T *g, T *x, size_t n) = &test29f02<T>;
+  void (*ptest29f05)(T *f, T *g, T *x, size_t n) = &test29f05<T>;
+  void (*ptest29f06)(T *f, T *g, T *x, size_t n) = &test29f06<T>;
+  void (*ptest29f11)(T *f, T *g, T *x, size_t n) = &test29f11<T>;
+  void (*ptest29f22)(T *f, T *g, T *x, size_t n) = &test29f22<T>;
+  void (*pyurirosen)(T *f, T *g, T *x, size_t n) = &yurirosen<T>;
+  void (*pyurirosen_ns1)(T *f, T *g, T *x, size_t n) = &yurirosen_ns1<T>;
+  void (*pyurirosen_ns2)(T *f, T *g, T *x, size_t n) = &yurirosen_ns2<T>;
+  std::map<std::string, void(*)(T*, T*, T*, size_t), StringComparerForMap> tMap;
   void fillMap();
 };
 
@@ -78,7 +78,7 @@ void allfunctions<T>::fillMap(){
 
 // Implementations:
 template<class T> 
-void chained_CB3v1(T *f, T *g, T *x, int n){
+void chained_CB3v1(T *f, T *g, T *x, size_t n){
   /* printthis:
      % Chained CB3 I (convex, non-smooth func):
      % f = 
@@ -87,18 +87,18 @@ void chained_CB3v1(T *f, T *g, T *x, int n){
   */
   T y;
   *f = 0.0;
-  for (int i = 0; i<n; i++)
+  for (size_t i = 0; i < n; i++)
     g[i] = 0.0;
 
-  for (int i = 0; i < (n-1); i++) {
-    T a = pow(x[i], 4) + pow(x[i + 1], 2);
-    T b = pow((2 - x[i]), 2) + pow((2 - x[i + 1]), 2);
+  for (size_t i = 0; i < (n-1); i++) {
+    T a = pow(x[i], 4.0) + pow(x[i + 1], 2.0);
+    T b = pow((2 - x[i]), 2.0) + pow((2 - x[i + 1]), 2.0);
     T c = 2 * exp(-x[i] + x[i + 1]);
     (a >= b) ? y = a : y = b;
     if (y < c)
       y = c;
     if (y == a) {
-      g[i]   = g[i] + 4 * pow(x[i], 3);
+      g[i]   = g[i] + 4 * pow(x[i], 3.0);
       g[i + 1] = 2 * x[i + 1];
     }
     else if (y == b) {
@@ -115,7 +115,7 @@ void chained_CB3v1(T *f, T *g, T *x, int n){
 }
 
 template<class T> 
-void chained_CB3v2(T *f, T *g, T *x, int n){
+void chained_CB3v2(T *f, T *g, T *x, size_t n){
   /* printthis:
      % Chained CB3 II (convex, non-smooth func):
      % f = 
@@ -127,11 +127,11 @@ void chained_CB3v2(T *f, T *g, T *x, int n){
   T c = 0.0;
 
   *f = 0.0;
-  for (int i = 0; i < n; i++)
+  for (size_t i = 0; i < n; i++)
     g[i] = 0.0;
-  for (int i = 0; i < (n-1); i++) {
-    a = a + pow(x[i], 4) + pow(x[i + 1], 2);
-    b = b + pow((2 - x[i]),2) + pow((2 - x[i + 1]), 2);
+  for (size_t i = 0; i < (n-1); i++) {
+    a = a + pow(x[i], 4.0) + pow(x[i + 1], 2.0);
+    b = b + pow((2 - x[i]), 2.0) + pow((2 - x[i + 1]), 2.0);
     c = c + 2 * exp(-x[i] + x[i + 1]);
   }    
   (a >= b) ? *f = a : *f = b;
@@ -139,19 +139,19 @@ void chained_CB3v2(T *f, T *g, T *x, int n){
     *f = c;
 
   if (*f == a) {
-    for (int i = 0; i < (n-1); i++) {
-      g[i]   = g[i] + 4 * pow(x[i], 3);
+    for (size_t i = 0; i < (n-1); i++) {
+      g[i]   = g[i] + 4 * pow(x[i], 3.0);
       g[i + 1] = 2 * x[i + 1];
     }
   }
   else if (*f == b) {
-    for (int i = 0; i < (n-1); i++) {
+    for (size_t i = 0; i < (n-1); i++) {
       g[i] = g[i] + 2 * x[i] - 4;
       g[i + 1] = 2 * x[i + 1] - 4;
     }
   }
   else {
-    for (int i = 0; i < (n-1); i++) {
+    for (size_t i = 0; i < (n-1); i++) {
       g[i] = g[i] - 2 * exp(-x[i] + x[i + 1]);
       g[i + 1] = 2 * exp(-x[i] + x[i + 1]);
     }
@@ -160,7 +160,7 @@ void chained_CB3v2(T *f, T *g, T *x, int n){
 }
 
 template<class T> 
-void chained_crescent1(T *f, T *g, T *x, int n)
+void chained_crescent1(T *f, T *g, T *x, size_t n)
 {
 
   /* printthis:
@@ -174,22 +174,22 @@ void chained_crescent1(T *f, T *g, T *x, int n)
   T t3 = 0.0;
 
   *f = 0.0;
-  for (int i = 0; i < n ; i++)
+  for (size_t i = 0; i < n ; i++)
     g[i] = 0.0;
 
-  for (int i = 0; i < (n - 1); i++) { 
-    t2 = t2 + pow(x[i], 2) + pow((x[i + 1] - 1), 2) + x[i + 1] - 1;
-    t3 = t3 - pow(x[i], 2) - pow((x[i + 1] - 1), 2) + x[i + 1] + 1;
+  for (size_t i = 0; i < (n - 1); i++) { 
+    t2 = t2 + pow(x[i], 2.0) + pow((x[i + 1] - 1), 2.0) + x[i + 1] - 1;
+    t3 = t3 - pow(x[i], 2.0) - pow((x[i + 1] - 1), 2.0) + x[i + 1] + 1;
   }
   (t2>=t3) ? *f = t2 : *f = t3;
   if (t2 >= t3) {
-    for (int i = 0; i < (n-1); i++) {
+    for (size_t i = 0; i < (n-1); i++) {
       g[i] = g[i] + 2 * x[i];
       g[i + 1] = 2 * (x[i + 1] - 1) + 1;
     }
   }
   else {
-    for (int i = 0; i < (n-1); i++) {
+    for (size_t i = 0; i < (n-1); i++) {
       g[i] = g[i] - 2 * x[i];
       g[i + 1] = -2 * (x[i + 1] - 1) + 1;
     }
@@ -198,7 +198,7 @@ void chained_crescent1(T *f, T *g, T *x, int n)
 }
 
 template<class T> 
-void chained_crescent2(T *f, T *g, T *x, int n){
+void chained_crescent2(T *f, T *g, T *x, size_t n){
   /* printthis:
      % Chained Crescent 2:
      % f = 
@@ -207,12 +207,12 @@ void chained_crescent2(T *f, T *g, T *x, int n){
   */
 
   *f = 0.0;
-  for (int i = 0; i<n; i++) 
+  for (size_t i = 0; i<n; i++) 
     g[i] = 0.0;
 
-  for (int i = 0; i < (n-1); i++) { 
-    T t2 = pow(x[i], 2) + pow((x[i + 1] - 1),2) + x[i + 1] - 1;
-    T t3 = -pow(x[i], 2) - pow((x[i + 1] - 1),2) + x[i + 1] + 1;
+  for (size_t i = 0; i < (n-1); i++) { 
+    T t2 = pow(x[i], 2.0) + pow((x[i + 1] - 1), 2.0) + x[i + 1] - 1;
+    T t3 = -pow(x[i], 2.0) - pow((x[i + 1] - 1), 2.0) + x[i + 1] + 1;
     if (t2 >= t3) {
       *f = *f + t2;
       g[i]   = g[i] + 2 * x[i];
@@ -228,7 +228,7 @@ void chained_crescent2(T *f, T *g, T *x, int n){
 }
 
 template<class T> 
-void chained_LQ(T *f, T *g, T *x, int n)
+void chained_LQ(T *f, T *g, T *x, size_t n)
 {
   /* printthis:
      % Chained LQ (convex func):
@@ -238,12 +238,12 @@ void chained_LQ(T *f, T *g, T *x, int n)
   */
 
   *f = 0.0;
-  for (int i = 0; i < n; i++)
+  for (size_t i = 0; i < n; i++)
     g[i] = 0.0;
 
-  for (int i = 0; i < (n-1); i++) {
+  for (size_t i = 0; i < (n-1); i++) {
     T a = -x[i] - x[i + 1];
-    T b = a + ( pow(x[i], 2) + pow(x[i + 1], 2) - 1 );
+    T b = a + ( pow(x[i], 2.0) + pow(x[i + 1], 2.0) - 1 );
     if (a >= b) {
       *f = *f + a;
       g[i]   = g[i] - 1;
@@ -259,7 +259,7 @@ void chained_LQ(T *f, T *g, T *x, int n)
 }
 
 template<class T> 
-void chained_mifflin2(T *f, T *g, T *x, int n)
+void chained_mifflin2(T *f, T *g, T *x, size_t n)
 {
 
   /* printthis:
@@ -270,10 +270,10 @@ void chained_mifflin2(T *f, T *g, T *x, int n)
   */
 
   *f = 0.0;
-  for (int i = 0; i < n; i++) 
+  for (size_t i = 0; i < n; i++) 
     g[i] = 0.0;
 
-  for (int i = 0; i < (n-1); i++) {
+  for (size_t i = 0; i < (n-1); i++) {
     T y = x[i] * x[i] + x[i + 1] * x[i + 1] - 1;
     *f = *f - x[i] + 2 * y + 1.75 * fabs(y);
     T s;
@@ -292,7 +292,7 @@ void chained_mifflin2(T *f, T *g, T *x, int n)
 }
 
 template<class T> 
-void gen_brownfunc2(T *f, T *g, T *x, int n)
+void gen_brownfunc2(T *f, T *g, T *x, size_t n)
 {
 
   /* printthis:
@@ -303,14 +303,14 @@ void gen_brownfunc2(T *f, T *g, T *x, int n)
   */
 
   *f = 0.0;
-  for (int i = 0; i < n; i++)
+  for (size_t i = 0; i < n; i++)
     g[i] = 0.0;
 
-  for (int i = 0; i < (n-1); i++) {
+  for (size_t i = 0; i < (n-1); i++) {
     T a = fabs(x[i]);
     T b = fabs(x[i+1]);
-    T c = pow(x[i], 2) + 1;
-    T d = pow(x[i+1], 2) + 1;
+    T c = pow(x[i], 2.0) + 1;
+    T d = pow(x[i+1], 2.0) + 1;
     *f = *f + pow(b, c) + pow(a, d);
     
     T p = 0.0;
@@ -344,7 +344,7 @@ void gen_brownfunc2(T *f, T *g, T *x, int n)
 }
 
 template<class T> 
-void gen_maxhilbert(T *f, T *g, T *x, int n){
+void gen_maxhilbert(T *f, T *g, T *x, size_t n){
   /*
     % printthis:
     % Max of Hilberts (convex func):
@@ -354,12 +354,12 @@ void gen_maxhilbert(T *f, T *g, T *x, int n){
   */
 
   *f = 0.0;
-  for (int i = 0; i < n; i++)
+  for (size_t i = 0; i < n; i++)
     g[i] = 0.0;
 
-  int k = 0;
-  for (int j = 0; j < n; j++)	    
-    *f = *f + x[j] / (j + 1);
+  size_t k = 0;
+  for (size_t j = 0; j < n; j++)	    
+    *f = *f + x[j] / static_cast<double> (j + 1);
 
   if (*f > 0) {
     g[0] = 1.0;
@@ -373,10 +373,10 @@ void gen_maxhilbert(T *f, T *g, T *x, int n){
 
   *f = fabs(*f);
 
-  for (int i = 1; i < n; i++) {
+  for (size_t i = 1; i < n; i++) {
     T t2 = 0;
-    for (int j = 0; j < n; j++)
-      t2 = t2 + x[j] / (i + j + 1);
+    for (size_t j = 0; j < n; j++)
+      t2 = t2 + x[j] / static_cast<double> (i + j + 1);
 	    
     if (t2 > 0) {
       g[i] = 1.0;
@@ -398,14 +398,14 @@ void gen_maxhilbert(T *f, T *g, T *x, int n){
 
   T t3 = g[k];
 
-  for (int j = 0; j < n; j++) {
-    g[j] = t3 / (k + j + 1);
+  for (size_t j = 0; j < n; j++) {
+    g[j] = t3 / static_cast<double> (k + j + 1);
   }
 
 }
 
 template<class T> 
-void gen_maxq(T *f, T *g, T *x, int n)
+void gen_maxq(T *f, T *g, T *x, size_t n)
 {
 
   /* printthis:
@@ -419,14 +419,14 @@ void gen_maxq(T *f, T *g, T *x, int n)
      take max first value along first row
   */
 
-  for (int i = 0; i<n; i++) {
+  for (size_t i = 0; i<n; i++) {
     g[i] = 0.0;
   }
 
   *f   = x[0] * x[0];
-  int k = 0;
+  size_t k = 0;
 
-  for (int j = 1; j < n; j++) {
+  for (size_t j = 1; j < n; j++) {
     T y = x[j] * x[j];
     if (y > *f) {
       *f = y;
@@ -437,7 +437,7 @@ void gen_maxq(T *f, T *g, T *x, int n)
 }
 
 template<class T> 
-void nactfaces(T *f, T *g, T *x, int n)
+void nactfaces(T *f, T *g, T *x, size_t n)
 {
 
   /* printthis:
@@ -448,16 +448,16 @@ void nactfaces(T *f, T *g, T *x, int n)
   */
 
   *f = 0.0;
-  for (int i = 0; i < n; i++)
+  for (size_t i = 0; i < n; i++)
     g[i] = 0.0;
-  int k = 0;
+  size_t k = 0;
 	
   T t3 = 1.0;
   T y  = -x[0];
   *f  = log( fabs(x[0]) + 1);
   T  t2 = *f;
 	
-  for (int i = 1; i < n; i++) {
+  for (size_t i = 1; i < n; i++) {
     
     y    = y - x[i];
     g[i] = 0.0;
@@ -475,7 +475,7 @@ void nactfaces(T *f, T *g, T *x, int n)
   if (*f > t2) {
     if (y > 0)
       t3 = -1;
-    for (int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
       g[i] = t3 * ( 1 / (fabs(y) + 1) );
   }
   else {
@@ -488,14 +488,14 @@ void nactfaces(T *f, T *g, T *x, int n)
 }
 
 template<class T> 
-void test29f02(T *f, T *g, T *x, int n) {
+void test29f02(T *f, T *g, T *x, size_t n) {
     
   T fval = 0.0;
   T tmp  = 0.0;
   T tmp2 = 1.0;
-  int idx = 0;
+  size_t idx = 0;
     
-  for (int j = 0; j < n; j++) {
+  for (size_t j = 0; j < n; j++) {
     g[j] = 0.0;
     tmp  = fabs(x[j]);        
     if (tmp > fval) {
@@ -510,40 +510,41 @@ void test29f02(T *f, T *g, T *x, int n) {
 }
 
 template<class T> 
-void test29f05(T *f, T *g, T *x, int n) {
+void test29f05(T *f, T *g, T *x, size_t n) {
+  // This function can't really handle the whole range of size_ts
     
   T fval = 0.0;
   T fa   = 0.0;
   T tmp3 = 1.0;
     
-  for (int j = 0; j < n; j++) 
+  for (size_t j = 0; j < n; j++) 
     g[j] = 0.0;	
     
-  for (int j = 0; j < n; j++) {
+  for (size_t j = 0; j < n; j++) {
     fa = 0.0;
-    for (int i = 0; i < n; i++) {
-      fa = fa + x[i] / ( ((T) (i + j + 1)) );
+    for (size_t i = 0; i < n; i++) {
+      fa = fa + x[i] / ( ((T) static_cast<int> (i + j + 1)) );
     }
     fval = fval + fabs(fa);
     tmp3 = 1.0;
     if (fa < 0) tmp3 = -1.0;
-    for (int i = 0; i < n; i++) {
-      g[i] = g[i] + tmp3 / ( ((T)( i + j + 1)) );
+    for (size_t i = 0; i < n; i++) {
+      g[i] = g[i] + tmp3 / ( ((T)static_cast<int> ( i + j + 1)) );
     }
   }
   *f = fval;  
 }
 
 template<class T> 
-void test29f06(T *f, T *g, T *x, int n) {
+void test29f06(T *f, T *g, T *x, size_t n) {
     
   T fval = 0.0;
   T tmp  = 0.0;
   T tmp2 = 0.0;
   T tmp3 = 1.0;
-  int k = 0;
+  size_t k = 0;
     
-  for (int j = 0; j < n; j++) {
+  for (size_t j = 0; j < n; j++) {
     g[j] = 0.0;
     tmp  = (3.0 - 2.0 * x[j]) * x[j] + 1;
     if (j > 0) tmp = tmp - x[j - 1];
@@ -563,17 +564,17 @@ void test29f06(T *f, T *g, T *x, int n) {
 }
 
 template<class T> 
-void test29f11(T *f, T *g, T *x, int n) {
+void test29f11(T *f, T *g, T *x, size_t n) {
     
   T fval = 0.0;
   T fa   = 0.0;
   T tmp3 = 1.0;
-  int i       = 0;
+  size_t i  = 0;
     
-  for (int j = 0; j<n; j++) 
+  for (size_t j = 0; j<n; j++) 
     g[j] = 0.0;
     
-  for (int ka = 0; ka<(2*n-2); ka++) {
+  for (size_t ka = 0; ka < (2 * n - 2); ka++) {
     i = ka / 2;
     if ((ka % 2)==0) {
       fa   = x[i] + x[i + 1] * ((5 - x[i + 1]) * x[i + 1] - 2) - 13;
@@ -595,21 +596,21 @@ void test29f11(T *f, T *g, T *x, int n) {
 }
 
 template<class T> 
-void test29f22(T *f, T *g, T *x, int n) {
+void test29f22(T *f, T *g, T *x, size_t n) {
     
   T fval = 0.0;
   T fa   = 0.0;
-  T U    = 1.0 / ((T)n + 1.0);
+  T U    = 1.0 / ((T) (static_cast<int>(n)) + 1.0);
   T V    = 0.0;
   T tmp  = 0.0;
   T tmp3 = 1.0;
-  int k  = 1;
+  size_t k  = 1;
     
-  for (int j = 0; j<n; j++)
+  for (size_t j = 0; j<n; j++)
     g[j] = 0.0;
     
-  for (int ka = 0; ka < n; ka++) {
-    V   = ( ((T)ka) + 1.0) * U;
+  for (size_t ka = 0; ka < n; ka++) {
+    V   = ( ((T) static_cast<int> (ka)) + 1.0) * U;
     tmp = (x[ka] + V + 1.0);
     fa  = 2 * x[ka] + 0.50 * U * U * tmp * tmp * tmp;
     if (ka > 0) fa = fa - x[ka - 1];
@@ -621,7 +622,7 @@ void test29f22(T *f, T *g, T *x, int n) {
       fval = fabs(fa);
     }
   }
-  V    = ((T)k) * U;
+  V    = ((T) static_cast<int>(k)) * U;
   tmp  = (x[k] + V + 1);
   g[k] = (2.0 + 1.5 * U * U * tmp * tmp) * tmp3;
   if (k > 0) g[k - 1] = -tmp3;
@@ -630,21 +631,21 @@ void test29f22(T *f, T *g, T *x, int n) {
 }
 
 template<class T>
-void yurirosen(T *f, T *g, T *x, int n)
+void yurirosen(T *f, T *g, T *x, size_t n)
 {
   // based on Chebyshev polynomials
   // x_{i+1} = 2x_i^2 - 1 = T_2(x_i) = T_{2^i}(x_1) = cos(2^i arccos(x_1))
 
-  for (int i = 0; i < n; i++) 
+  for (size_t i = 0; i < n; i++) 
     g[i] = 0.0;	
 
-  *f = pow((1 - x[0]),2)/4; // the 1/4 gives initial value 1 and prevents method
+  *f = pow((1 - x[0]), 2.0)/4; // the 1/4 gives initial value 1 and prevents method
   // skipping over the nasty prescribed path
   g[0] = (x[0] - 1) / 2;
 
-  for (int i = 0; i < (n - 1); i++) {
-    *f = *f + pow((1 + x[i + 1] - 2 * pow(x[i], 2)), 2);
-    T r = 1 + x[i + 1] - 2 * pow(x[i], 2);
+  for (size_t i = 0; i < (n - 1); i++) {
+    *f = *f + pow((1 + x[i + 1] - 2 * pow(x[i], 2.0)), 2.0);
+    T r = 1 + x[i + 1] - 2 * pow(x[i], 2.0);
     g[i+1] = g[i + 1] + 2 * r;
     g[i] = g[i] - 8 * x[i] * r;
   }
@@ -662,7 +663,7 @@ void yurirosen(T *f, T *g, T *x, int n)
 */
 
 template<class T>
-void yurirosen_ns1(T *f, T *g, T *x, int n)
+void yurirosen_ns1(T *f, T *g, T *x, size_t n)
 {
   /*n = pars.nvar;
     % this is version 1 of Yuri's nonsmooth Chebyshev Rosenbrock, but there are
@@ -675,15 +676,15 @@ void yurirosen_ns1(T *f, T *g, T *x, int n)
     % U space and it takes a long time to traverse along it
   */
 	
-  for (int i = 0; i < n; i++) 
+  for (size_t i = 0; i < n; i++) 
     g[i] = 0.0;	
 	
-  *f = pow((1 - x[0]), 2) / 4;  // in this case the U and V spaces both have dim 1
+  *f = pow((1 - x[0]), 2.0) / 4;  // in this case the U and V spaces both have dim 1
   g[0] = -(1 - x[0]) / 2;      // problem is much more difficult: cannot solve n=4
   // accurately, probabaly because of rounding
 	
-  for (int i = 0; i < (n - 1); i++) {
-    T y = 1 + x[i + 1] - 2 * pow(x[i], 2);
+  for (size_t i = 0; i < (n - 1); i++) {
+    T y = 1 + x[i + 1] - 2 * pow(x[i], 2.0);
     *f = *f + fabs(y);
     T r;
     if (y > 0) {
@@ -721,13 +722,13 @@ void yurirosen_ns1(T *f, T *g, T *x, int n)
 */
 
 template<class T>
-void yurirosen_ns2(T *f, T *g, T *x, int n){
+void yurirosen_ns2(T *f, T *g, T *x, size_t n){
   /*%%%% NOTE THE 2, MORE INTERESING OF THE TWO,
     % because for this version, there are 2^(n-1) Clarke stationary
     % points, all of which are attractors for BFGS
   */
 	
-  for (int i = 0; i < n; i++) 
+  for (size_t i = 0; i < n; i++) 
     g[i] = 0.0;	
 	
   *f = fabs(1 - x[0]) / 4;	
@@ -740,7 +741,7 @@ void yurirosen_ns2(T *f, T *g, T *x, int n){
     k = 0.0;
   g[0] = k / 4;
 
-  for (int i = 0; i < (n - 1); i++) {
+  for (size_t i = 0; i < (n - 1); i++) {
     T y = 1 + x[i + 1] - 2 * fabs(x[i]);
     *f = *f + fabs(y);
     T r;

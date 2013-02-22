@@ -1,9 +1,9 @@
 
 CC       = c++
-CFLAGS   = -O2 -fPIC -Werror -pedantic-errors -Wall -Wextra -Wdouble-promotion -Wunused -Wuninitialized -Wstrict-overflow=5 -Wsuggest-attribute=const -Wfloat-equal -Wshadow -Wconversion -Wsign-conversion -Winline -Wuseless-cast -g -I../lib -ldl -lm -I../lib/qd -lqd -std=c++11
+CFLAGS   = -O2 -fPIC -Wl,-V -Werror -pedantic-errors -Wall -Wextra -Wdouble-promotion -Wunused -Wuninitialized -Wstrict-overflow=5 -Wsuggest-attribute=const -Wshadow -Wconversion -Wsign-conversion -g -I../lib -ldl -lm -I../lib/qd -lqd -std=c++11
 TESTFUNINCLUDE = -I../testfunctions/
 
-all: subsystem
+all:
 
 
 .cpp.o: 

@@ -7,7 +7,8 @@ make
 make mytest
 
 # Remove this exit 0 line later when you are running the whole thing
-exit 0
+
+./mytest chained_crescent1 10 >> ../testresults/F10/chained_crescent1_10.txt
 
 for n in 10 50 200
   do

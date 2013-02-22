@@ -6,31 +6,35 @@
 #include <cstring>
 #include <cmath>
 #include <ctime>
+#include <iostream>
+#include <fstream>
 #include "linesearch_template.hpp"
 #include "quasinewt_updates_template.hpp"
 #include "print_template.hpp"
 #include "libmatrix_template.hpp"
-//#include <qd/dd_real.h>
 
-#define debug 0
+template<class T>
+void bfgs(T *, T * fopt, size_t n, int lm, size_t m, 
+           T ftarget,  T gnormtol,  size_t maxit,  long J,
+           T taux,  T taud,  int echo, 
+          void(*testFunction)(T*, T*, T*, size_t),  std::string datafilename, 
+          double info[]);
 
 /* BFGS MAIN ALGORITHM: */
 template<class T>
-void bfgs(T x[], T * fopt, const int n, const int lm, const int m, 
-          const T ftarget, const T gnormtol, const int maxit, const int J,
-          const T taux, const T taud, const int echo, 
-          void(*testFunction_dd)(T*, T*, T*, int), const std::string datafilename, 
+void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m, 
+           T ftarget,  T gnormtol,  size_t maxit,  long J,
+           T taux,  T taud,  int echo, 
+          void(*testFunction)(T*, T*, T*, size_t),  std::string datafilename, 
           double info[]){
-    
+  
   /* ============ INITIALIZATION =================== */
-    
+  
   const double C1 = 0.0001;
   const double C2 = 0.9;
     
   clock_t t1, t2;
   t1 = clock();
-    
-  int absecho = abs(echo);
     
   /*
     echo   = 0: no output, no file dump
@@ -41,28 +45,27 @@ void bfgs(T x[], T * fopt, const int n, const int lm, const int m,
     where + is the screen and - is the datafile
   */
     
-  FILE *output = stdout;
+  std::ofstream output;
   const char *outputname = "stdout";
 
   if (echo < 0) {
-    output = fopen(datafilename.c_str(), "a" );
+    output.open(datafilename.c_str(), std::ios::app);
     outputname = datafilename.c_str();
   }
   else {
-    output = stdout;
+    //output = stdout;
     outputname = "stdout";
   }
 
   /* ============= ALLOCATE memory: ================= */
     
-  int n1, n2, nm, m1;
+  size_t n1, n2, nm, m1;
     
   /* Common to both BFGS and LBFGS */
   T *g = new T[n];
   T *p = new T[n];
   T *s = new T[n];
   T *y = new T[n];
-  T *d = new T[n];
     
   /* Only allocate what is actually needed: */
   if (!lm) {
@@ -89,42 +92,33 @@ void bfgs(T x[], T * fopt, const int n, const int lm, const int m,
   T *a   = new T[m1];
     
   //floating point
-  T t, gnorm, bgnorm, gtp, fval, fprev, dtmp;
+  T t, gnorm, gtp, fval, fprev;
   T *f;
   f = &(fval);
     
   /* integers:*/
-  int it = 0, done = 0, j, ol = 1, cs = 0, tmp, bgnormidx = 1;
+  size_t it = 0, done = 0, ol = 1, cs = 0, tmp;
   /* integer pointers: */
   int nfevalval = 0, exitflagval = 0;
   int *nfeval    = &(nfevalval);
   int *exitflag  = &(exitflagval);
-    
-  /* VARS FOR QP STOPPING CRITERION */
-  const T R = 10;
-  int qpmaxit    = 100;
-  int jcur       = 0;
-  int oldestg    = 2;
-  T snorm   = 0;
 
   T qpoptval = taud + 100;
   T * qpoptvalptr;
   qpoptvalptr = &(qpoptval);
     
-  T * G      = new T[J * n];
-  T * qpx0   = new T[J];
-  T * qpinfo = new T[3];
+
+
     
   /* ============ INITIALIZATION END ===============*/
     
   /* ============ BEFORE MAIN LOOP: ================ */
-  testFunction_dd(f, g, x, n);
+  testFunction(f, g, x, n);
 
   *nfeval = *nfeval + 1;
     
   /* calculate gnorm:*/
   gnorm  = vecnorm<T>(g, n);
-  bgnorm = gnorm;
 
   /* first search direction  p = -H*g (BFGS) and p = -g (LBFGS) */
   if(!lm) {
@@ -137,16 +131,15 @@ void bfgs(T x[], T * fopt, const int n, const int lm, const int m,
   }
     
   if (echo > 0) 
-    print_init_info<T>(output, n, ftarget, gnormtol, maxit, echo, lm, 
-		       outputname, testFunction_dd);
+    print_init_info<T>(output, n, ftarget, gnormtol, maxit, echo, lm, outputname);
     
   if (*f < ftarget) {
     done = 1;
     *exitflag = 3;
   }
-    
-  if (echo==2) 
-    print_iter_info<T>(output, it, f, gnorm, jcur, qpoptvalptr, x, t, n);
+  int jcur = 0; 
+  if (2 == echo) 
+    print_iter_info<T>(output, it, f, gnorm, jcur, qpoptvalptr, t);
     
   /* ================= MAIN LOOP: =================== */
   while (!done) {
@@ -168,7 +161,7 @@ void bfgs(T x[], T * fopt, const int n, const int lm, const int m,
     fprev = *f;
         
     /* line search:*/
-    t = linesearch_ww<T>(x, f, g, p, C1, C2, n, testFunction_dd, nfeval, 
+    t = linesearch_ww<T>(x, f, g, p, C1, C2, n, testFunction, nfeval, 
 			 ftarget, exitflag);
 
     /* If f is NaN, exit with best found f,x,g so far */
@@ -185,21 +178,33 @@ void bfgs(T x[], T * fopt, const int n, const int lm, const int m,
       *f = fprev;
        
     /* calculate s and y:
-       /* before these calls, s and y contain
-       /* previous -x and prev. -g, so e.g. s = x - xprev is s = s + x */
+        before these calls, s and y contain
+        previous -x and prev. -g, so e.g. s = x - xprev is s = s + x */
     vpv<T>(s,x,1,n);
     vpv<T>(y,g,1,n);
     gnorm = vecnorm<T>(g,n);
 
-    /* ============= QP STOPPING CRITERING =========== */
+    std::cout << taux << J << std::endl;//Remove this line if you're using QP Stopping!
+    /* ============= QP STOPPING CRITERING ===========
+    // VARS FOR QP STOPPING CRITERION
+    T * qpx0   = new T[J];
+    T * qpinfo = new T[3];    
+    T * G      = new T[J * n];
+    int qpmaxit    = 100;
+    int oldestg    = 2;
+    T snorm   = 0;
+    T bgnorm = gnorm;
+    // float dtmp;  //Not sure what the type here was
+    // int bgnormidx = 1, j;
+    // const T R = 10;
     //        snorm = vecnorm(s,n);
 
     //        if (snorm > taux) {
     //            jcur = 1;
-    //            /* set first row in G equal to g: */
+    //            // set first row in G equal to g:
     //            vcopy(G, g, n);
             
-    /* for initial point: */
+     // for initial point: 
     //            bgnorm    = gnorm;
     //            bgnormidx = 1;
     //        }
@@ -207,33 +212,33 @@ void bfgs(T x[], T * fopt, const int n, const int lm, const int m,
     //            jcur = jcur + 1;
     //            if (jcur > J) jcur = J;
             
-    /* write new g in row of oldest g here */
+    // write new g in row of oldest g here 
     //            vcopy(G+(oldestg-1)*n, g, n);
             
-    /* for initial point: */
+    // for initial point: 
     //            if (gnorm < bgnorm) {
     //                bgnorm    = gnorm; 
     //                bgnormidx = oldestg;
     //            }
             
-    /* change oldestg to new location of oldest g: */
+    // change oldestg to new location of oldest g: 
     //            oldestg = (oldestg % J) + 1;            
     //        }
     //        if (jcur > 1) {
-    /* set initial point: */
+    // set initial point:
     //            dtmp = 1 / (jcur-1+R);
     //            for(j=0;j<jcur;j++) qpx0[j] = dtmp;
     //            qpx0[bgnormidx-1] = R*dtmp;
             
-    /* call qpsolv here. General call is
-     * qpsubprob(G[jcur*n], x[jcur], double * q, info[2], maxit, jcur, n)
-     * so in this case: */
+    // call qpsolv here. General call is
+    //  qpsubprob(G[jcur*n], x[jcur], double * q, info[2], maxit, jcur, n)
+    //  so in this case: 
     //            qpsubprob(G, qpx0, d, qpoptvalptr, qpinfo, qpmaxit, jcur, n);
             
     //            if (qpinfo[0] > 0) *qpoptvalptr = taud+100;
              
     //        }
-    /* ========== END QP STOPPING CRITERION ========== */
+     ========== END QP STOPPING CRITERION ========== */
         
         
     /* QUASINEWTON update:*/
@@ -245,18 +250,17 @@ void bfgs(T x[], T * fopt, const int n, const int lm, const int m,
     else {
       /* LBFGS update:*/
       if(it <= m) cs++;
-      tmp = (ol-1) * n;
+      tmp = (ol - 1) * n;
       vcopy<T>(S + tmp, s, n);
       vcopy<T>(Y + tmp, y, n);
-      rho[ol-1] = 1.0 / vecip<T>(y, s, n);
+      rho[ol - 1] = 1.0 / vecip<T>(y, s, n);
       update_lbfgs<T>(p, S, Y, rho, a, g, cs, ol, m, n);
       ol = (ol % m) + 1;
       /* LBFGS update end */
     }
-        
+    //int jcur = 0;
     /* print iteration info:*/
-    if (echo==2) print_iter_info<T>(output, it, f, gnorm, jcur, qpoptvalptr,
-				    x,t,n);
+    if (2 == echo) print_iter_info<T>(output, it, f, gnorm, jcur, qpoptvalptr, t);
         
     /* check convergence here*/
     if (it >= maxit) {
@@ -280,11 +284,10 @@ void bfgs(T x[], T * fopt, const int n, const int lm, const int m,
   t2 = clock();
   double ttime = (double) ((double)(t2 - t1)/ (double)CLOCKS_PER_SEC );
     
-  if (echo>0) 
-    print_final_info<T>(output, it, *f, gnorm, *nfeval, *exitflag, ttime);
-  if (echo<0) 
-    fclose(output);
-
+  if (echo > 0) 
+    print_final_info<T>(output, it, gnorm, *nfeval, *exitflag, ttime);
+  if (echo < 0) 
+    output.close();
   *fopt = *f;
     
   /* Gather rundata in the double array 'info' */

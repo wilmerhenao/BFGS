@@ -3,9 +3,13 @@
 
 #include <iostream>
 #include <string>
+#include <cmath>
+#include <ctime>
+#include <cstdlib>
 #include "container.hpp"
 #include "../testfunctions/functions.hpp"
 
+#define MIN(x, y) ((x) < (y) ? (x) : (y));
 
 // This class contains all of the parameters.  It was created as a template class
 // in order to initialize all the parameters with the correct type at once
@@ -13,33 +17,35 @@
 template<typename T>
 class algoparameters{
 private:
-  friend void bfgs<T>(T [], T * , const int, const int, const int, const T, const T, 
-		      const int, const int, const T, const T, const int, 
-		      void(*)(T*, T*, T*, int), const std::string , double[]);
+  friend void bfgs<T>(T *, T * , size_t, int, size_t, T, T, 
+		       size_t,  long int,  T,  T,  int, 
+		      void(*)(T*, T*, T*, size_t),  std::string , double*);
   T ftarget, gnormtol, taux, taud;
-  int J, maxit, echo, n, lm, m;
+  int echo, lm;
+  size_t n, m, maxit;
+  long J;
   std::string datafilename;
   T * fopt;
   double * info;
   T * xf;
   double * x0;    
-  void(*fun_ptr)(T*, T*, T*, int);
+  void(*fun_ptr)(T*, T*, T*, size_t);
   allfunctions<T> * pFunctions;
 public:
-  algoparameters(int, std::string);
+  algoparameters(size_t, std::string);
   ~algoparameters();
   void generateXF();
   void BFGSfunction();
 };
 
 template<typename T>
-algoparameters<T>::algoparameters(int k, std::string locfunc){
+algoparameters<T>::algoparameters(size_t k, std::string locfunc){
 
   // All the parameters initialized with the same values
   // It is very possible that we may want to do this depending on the type
 
   n = k;
-  lm=0;
+  lm = 0;
   m = 7;
   taud = 1e-14;
   taux = 1e-16;
@@ -48,7 +54,7 @@ algoparameters<T>::algoparameters(int k, std::string locfunc){
   maxit = 10e8;
   echo = 2;
   datafilename = "stddump.txt";
-  J = fmin(15, ceil(2 * n / 3));
+  J = (long)MIN(15, ceil(2.0 * static_cast<double> (n) / 3.0));
   fopt = new T;
   info = new double[4];
   xf = new T[n];
@@ -60,7 +66,7 @@ algoparameters<T>::algoparameters(int k, std::string locfunc){
   // the keys are the names of the non-smooth functions (std::strings) and the
   // elements pointed to are function pointers corresponding to the function
 
-  typename std::map<std::string, void(*)(T*, T*, T*, int), 
+  typename std::map<std::string, void(*)(T*, T*, T*, size_t), 
 		    StringComparerForMap>::iterator it = pFunctions->tMap.find(locfunc);
 
   if(it != pFunctions->tMap.end()) 
@@ -74,6 +80,7 @@ algoparameters<T>::algoparameters(int k, std::string locfunc){
 template<typename T>
 algoparameters<T>::~algoparameters(){
   // Destructor is probably not necessary, but is implemented here for the future
+  std::cout << "Destructor called" << std::endl;
   delete fopt;
   delete [] info;
   delete [] xf;
@@ -82,14 +89,10 @@ algoparameters<T>::~algoparameters(){
   
 template <typename T> 
 void algoparameters<T>::generateXF(){
-  struct timeval time;
-  long useconds;
-  gettimeofday(&time, NULL);
-  useconds = time.tv_usec; //pseudo-randon number generator seed
-  srand(useconds);
+  srand(static_cast<unsigned> (time(NULL)));
   rand_real_vec<double>(x0, n, -1, 1);
-  for (int j = 0 ; j < n; j++)
-    xf[j] = (T)x0[j];
+  for (size_t j = 0 ; j < n; j++)
+    xf[j] = (T) x0[j];
 }
 
 // The next function will be explicitly called by the user.  But if we want

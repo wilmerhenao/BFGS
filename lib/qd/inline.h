@@ -114,8 +114,6 @@ inline double two_sqr(double a, double &err) {
 
 /* Computes the nearest integer to d. */
 inline double nint(double d) {
-  if (d == std::floor(d))
-    return d;
   return std::floor(d + 0.5);
 }
 
