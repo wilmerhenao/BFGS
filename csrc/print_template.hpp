@@ -9,9 +9,8 @@
 #include <cstdlib>
 #include <qd/dd_real.h>
 
-template<class T> void print_iter_info(std::ofstream&, size_t& it, T*& f, 
-				       T& gnorm, int& j, 
-				       T *& q, T& t);
+template<class T> void print_iter_info(std::ofstream&, size_t& it, T*& f, T& gnorm,
+				       int& j, T *& q, T& t);
 template<class T> void print_init_info(std::ofstream&,const size_t& n, const T& ftarget,
 				       const T& gnormtol, const size_t& maxit, 
 				       const int& echo, const int& lm, 
