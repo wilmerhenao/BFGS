@@ -20,17 +20,17 @@ class algoparameters{
 private:
   friend void bfgs<T>(T *, T * , size_t, int, size_t, T, T, 
 		       size_t,  long int,  T,  T,  int, 
-		      void(*)(T*, T*, T*, size_t),  std::string , double*);
+		      int(*)(T*, T*, T*, size_t),  std::string , double*);
   T ftarget, gnormtol, taux, taud;
   short echo, lm;
   size_t n, m, maxit;
-  long J;
   std::string datafilename;
+  long J;
   T * fopt;
   double * info;
   T * xf;
   double * x0;    
-  void(*fun_ptr)(T*, T*, T*, size_t);
+  int(*fun_ptr)(T*, T*, T*, size_t);
   allfunctions<T> * pFunctions;
 public:
   algoparameters(size_t, std::string, std::string);
@@ -40,32 +40,41 @@ public:
 };
 
 template<typename T>
-algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr){
+algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr):
+  ftarget(-1e100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(0), n(k), m(7),
+  maxit(10e8), datafilename(outstr){
   // All the parameters initialized with the same values
   // It is very possible that we may want to do this depending on the type
-  n = k;
-  lm = 0;
-  m = 7;
-  taud = 1e-14;
-  taux = 1e-16;
-  ftarget = -1e100;
-  gnormtol = 0.0;
-  maxit = 10e8;
-  echo = 2;
-  datafilename = outstr;
-  J = (long)MIN(15, ceil(2.0 * static_cast<double> (n) / 3.0));
-  fopt = new T;
-  info = new double[4];
-  xf = new T[n];
-  x0 = new double[n];
-  pFunctions = new allfunctions<T>;
-  pFunctions->fillMap();
-  
+  try{
+    J = (long)MIN(15, ceil(2.0 * static_cast<double> (n) / 3.0));
+  } catch(std::exception ex){
+    std::cerr << "issue with casting? " << ex.what() << std::endl;
+  }
+  try{
+    fopt = new T;
+    info = new double[4];
+    xf = new T[n];
+    x0 = new double[n];
+  } catch(std::bad_alloc& ex){
+    std::cerr << "Issues allocating inside algoparameters constructor: " << 
+      ex.what() << std::endl;
+    assert(false);
+  }
+  try{
+    pFunctions = new allfunctions<T>;
+  } catch(std::bad_alloc& ex){
+    std::cerr << "Problem allocating function map in algoparameters constructor" << 
+      ex.what() << std::endl;
+    assert(false);  
+  }
+  int asserter = 1;
+  asserter = pFunctions->fillMap();
+  assert(0 == asserter); ++asserter;
   // The next line declares and initializes an iterator to the map container
   // the keys are the names of the non-smooth functions (std::strings) and the
   // elements pointed to are function pointers corresponding to the function
 
-  typename std::map<std::string, void(*)(T*, T*, T*, size_t), 
+  typename std::map<std::string, int(*)(T*, T*, T*, size_t), 
 		    StringComparerForMap>::iterator it = pFunctions->tMap.find(locfunc);
 
   if(it != pFunctions->tMap.end()) 
@@ -78,12 +87,14 @@ algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string out
 
 template<typename T>
 algoparameters<T>::~algoparameters(){
-  // Destructor is probably not necessary, but is implemented here for the future
-  std::cout << "Destructor called" << std::endl;
-  delete fopt;
-  delete [] info;
-  delete [] xf;
-  delete [] x0;
+  try{
+    delete fopt;
+    delete [] info;
+    delete [] xf;
+    delete [] x0;
+  } catch(std::exception ex){
+    std::cerr << ex.what() << std::endl;
+  }
 }
   
 template <typename T> 

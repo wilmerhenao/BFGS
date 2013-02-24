@@ -37,11 +37,13 @@ int main(int argc, char *argv[]){
   std::string str;
   for(size_t i = 0; 0 != argv[1][i]; i++)
     str += argv[1][i];
-
+  assert(str.length());
+  
   std::string strout;
   for(size_t i = 0; 0 != argv[3][i]; i++)
     strout += argv[3][i];
-  assert(false);
+  assert(str.length());
+
   // If you want to add a new type, just:
   // 1) declare it.  
   // 2) Set precision.
@@ -49,20 +51,37 @@ int main(int argc, char *argv[]){
   
   std::cout << "output file" << strout << std::endl;
   unsigned int ninitial = static_cast<unsigned>(strtoul(argv[2], NULL, 0)); 
-  algoparameters<double> * doubleparameters = 
-    new algoparameters<double>(ninitial, str, strout);
-  algoparameters<dd_real> * dd_realparameters =
-    new algoparameters<dd_real>(ninitial, str, strout);
-  
-  std::cout << "Objects were created safely.  Running BFGS next" << std::endl;
-  std::cout.precision(16);	
-  doubleparameters->BFGSfunction();
-  std::cout.precision(32);
-  dd_realparameters->BFGSfunction();
+  algoparameters<double> * doubleparameters;
+  algoparameters<dd_real> * dd_realparameters;
+  try{
+     doubleparameters =  new algoparameters<double>(ninitial, str, strout);
+     dd_realparameters =  new algoparameters<dd_real>(ninitial, str, strout);
+  } catch(std::bad_alloc& ex){
+    std::cerr << "Problem allocating memory in the stack" << ex.what() << std::endl;
+    assert(false);
+  }
+  assert(sizeof(doubleparameters));
+  assert(sizeof(dd_realparameters));
 
-  delete doubleparameters;
-  delete dd_realparameters;
-    
+  std::cout << "Objects were created safely.  Running BFGS next" << std::endl;
+  try{
+    std::cout.precision(16);	
+    doubleparameters->BFGSfunction();
+    std::cout.precision(32);
+    dd_realparameters->BFGSfunction();
+  } catch(std::exception ex){
+    std::cerr << "General Problem during execution. " << ex.what() << std::endl;
+    assert(false);
+  }
+
+  try{
+    delete doubleparameters;
+    delete dd_realparameters;
+  } catch(std::exception ex){
+    std::cerr << "Issues with delete: " << ex.what() << std::endl;
+    assert(false);
+  }
+
   fpu_fix_end(&old_cw);
   return 0;
 }

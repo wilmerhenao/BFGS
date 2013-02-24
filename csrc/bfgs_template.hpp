@@ -17,7 +17,7 @@ template<class T>
 void bfgs(T *, T * fopt, size_t n, int lm, size_t m, 
            T ftarget,  T gnormtol,  size_t maxit,  long J,
            T taux,  T taud,  int echo, 
-          void(*testFunction)(T*, T*, T*, size_t),  std::string datafilename, 
+          int(*testFunction)(T*, T*, T*, size_t),  std::string datafilename, 
           double info[]);
 
 /* BFGS MAIN ALGORITHM: */
@@ -25,7 +25,7 @@ template<class T>
 void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m, 
            T ftarget,  T gnormtol,  size_t maxit,  long J,
            T taux,  T taud,  int echo, 
-          void(*testFunction)(T*, T*, T*, size_t),  std::string datafilename, 
+          int(*testFunction)(T*, T*, T*, size_t),  std::string datafilename, 
           double info[]){
   
   /* ============ INITIALIZATION =================== */
@@ -44,7 +44,12 @@ void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m,
   
   std::ofstream output;
   std::cout << "echo is: "<< echo << " datafilename is: " << datafilename << std::endl;
-  output.open(datafilename.c_str(), std::ios::app);
+  try{
+    output.open(datafilename.c_str(), std::ios::app);
+  }
+  catch(std::ofstream::failure e){
+    std::cout << "Exception opening " << datafilename << " file" << std::endl;
+  }  
   const char * outputname = datafilename.c_str();
   
   /* ============= ALLOCATE memory: ================= */
@@ -52,35 +57,29 @@ void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m,
   size_t n1, n2, nm, m1;
     
   /* Common to both BFGS and LBFGS */
-  T *g = new T[n];
-  T *p = new T[n];
-  T *s = new T[n];
-  T *y = new T[n];
-    
+  T *g, *p, *s, *y;
+  g = new T[n];
+  p = new T[n];
+  s = new T[n];
+  y = new T[n];
   /* Only allocate what is actually needed: */
   if (!lm) {
-    n1 = n;
-    n2 = n * n;
-    nm = 1;
-    m1 = 1;
+    n1 = n; n2 = n * n; nm = 1; m1 = 1;
   }
   else {
-    n1 = 1;
-    n2 = 1;
-    nm = n*m;
-    m1 = m;
+    n1 = 1; n2 = 1; nm = n * m; m1 = m;
   }
     
   /* BFGS specific arrays: */
-  T *q = new T[n1];
-  T *H = new T[n2];
-    
+  T *q, *H;
   /* LBFGS specific arrays: */
-  T *S   = new T[nm];
-  T *Y   = new T[nm];
-  T *rho = new T[m1];
-  T *a   = new T[m1];
-    
+  T *S, *Y, *rho, *a;
+  rho = new T[m1];
+  q   = new T[n1];
+  H   = new T[n2];
+  S   = new T[nm];
+  Y   = new T[nm];
+  a   = new T[m1];
   //floating point
   T t, gnorm, gtp, fval, fprev;
   T *f;
@@ -100,7 +99,9 @@ void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m,
   /* ============ INITIALIZATION END ===============*/
   
   /* ============ BEFORE MAIN LOOP: ================ */
-  testFunction(f, g, x, n);
+  int asserter = 1;
+  asserter = testFunction(f, g, x, n);
+  assert(0 == asserter); asserter += 1;
   
   *nfeval = *nfeval + 1;
   

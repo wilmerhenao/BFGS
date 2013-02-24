@@ -6,11 +6,11 @@
 
 template <class T>
 T linesearch_ww (T*& x, T*& f, T*& g, T*& d, const T& C1, const T& C2,
-size_t& n, void(*&)(T*, T*, T*, size_t), int*&, T& ftarget,int*& exitflag);
+size_t& n, int(*&)(T*, T*, T*, size_t), int*&, T& ftarget,int*& exitflag);
 
 template <class T>
 T linesearch_ww (T*& x, T*& f, T*& g, T*& d, const T& C1, const T& C2,
-size_t& n, void(*&testFunction)(T*, T*, T*, size_t), int*& nfeval, T& ftarget, int*& exitflag){
+size_t& n, int(*&testFunction)(T*, T*, T*, size_t), int*& nfeval, T& ftarget, int*& exitflag){
     T alpha = 0;		/* lower bound on step length*/
     T beta_max = 1e100;	/* upper bound on step length*/
     T beta  = beta_max;	
