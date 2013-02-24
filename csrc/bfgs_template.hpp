@@ -14,109 +14,58 @@
 #include "libmatrix_template.hpp"
 
 template<class T>
-void bfgs(T *, T * fopt, size_t n, int lm, size_t m, 
-           T ftarget,  T gnormtol,  size_t maxit,  long J,
-           T taux,  T taud,  int echo, 
-          void(*testFunction)(T*, T*, T*, size_t),  std::string datafilename, 
+void bfgs(T *, T * fopt, size_t n, int lm, size_t m, T ftarget, T gnormtol, 
+	  size_t maxit,  long J, T taux,  T taud,  int echo, 
+	  void(*testFunction)(T*, T*, T*, size_t),  std::string datafilename, 
           double info[]);
 
-/* BFGS MAIN ALGORITHM: */
-template<class T>
-void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m, 
-           T ftarget,  T gnormtol,  size_t maxit,  long J,
-           T taux,  T taud,  int echo, 
-          void(*testFunction)(T*, T*, T*, size_t),  std::string datafilename, 
-          double info[]){
-  
-  /* ============ INITIALIZATION =================== */
-  
-  const double C1 = 0.0001;
+template<typename T>
+class quasinewton{
+protected:
+  const double Claudia = 0.0001;
   const double C2 = 0.9;
-    
   clock_t t1, t2;
-  t1 = clock();
-    
-  /* echo
-     = 0: Don't print anything
-     = 1: print init and final data to file
-     = 2: print iter info to file
-  */
-  
-  std::ofstream output;
-  std::cout << "echo is: "<< echo << " datafilename is: " << datafilename << std::endl;
-  output.open(datafilename.c_str(), std::ios::app);
-  const char * outputname = datafilename.c_str();
-  
-  /* ============= ALLOCATE memory: ================= */
-    
-  size_t n1, n2, nm, m1;
-    
-  /* Common to both BFGS and LBFGS */
-  T *g = new T[n];
-  T *p = new T[n];
-  T *s = new T[n];
-  T *y = new T[n];
-    
-  /* Only allocate what is actually needed: */
-  if (!lm) {
-    n1 = n;
-    n2 = n * n;
-    nm = 1;
-    m1 = 1;
-  }
-  else {
-    n1 = 1;
-    n2 = 1;
-    nm = n*m;
-    m1 = m;
-  }
-    
-  /* BFGS specific arrays: */
-  T *q = new T[n1];
-  T *H = new T[n2];
-    
-  /* LBFGS specific arrays: */
-  T *S   = new T[nm];
-  T *Y   = new T[nm];
-  T *rho = new T[m1];
-  T *a   = new T[m1];
-    
-  //floating point
-  T t, gnorm, gtp, fval, fprev;
-  T *f;
-  f = &(fval);
-    
-  /* integers:*/
-  size_t it = 0, done = 0, ol = 1, cs = 0, tmp;
-  /* integer pointers: */
-  int nfevalval = 0, exitflagval = 0;
-  int *nfeval    = &(nfevalval);
-  int *exitflag  = &(exitflagval);
+  size_t n1, n2, nm, m1, tmp;
+  size_t it = 0, done = 0, ol = 1, cs = 0, nfevalval = 0, exitflagval = 0;
+  T *g, *p, *s, *y, *f, *qpoptvalptr;
+  T t, gnorm, gtp, fval, fprev, qpoptval;
+  /* integer pointers: */  
+  int* nfeval, *exitflag;
+  void(*testFunction)(T*, T*, T*, size_t);
+public:
+  quasinewton(size_t n, T, void(*)(T*, T*, T*, size_t), std::ofstream&, T, T, size_t,
+	      int, const char *);
+  void finish(){t2 = clock();};
+  void beforemainloop();
+  virtual befmainloopspecific() = 0;
+  void printbefmainloop();
+};
 
-  T qpoptval = taud + 100;
-  T * qpoptvalptr;
-  qpoptvalptr = &(qpoptval);
-  
-  /* ============ INITIALIZATION END ===============*/
-  
-  /* ============ BEFORE MAIN LOOP: ================ */
+template<typename T>
+quasinewton<T>::quasinewton(size_t n, T taud, void(*tF)(T*, T*, T*, size_t), 
+			    std::ofstream& output, T ftarget, T gnormtol, size_t maxit,
+			    int echo, const char * outputname){
+  g        = new T[n];
+  p        = new T[n];
+  s        = new T[n];
+  y        = new T[n];
+  t1       = clock();  
+  nfeval   = &(nfevalval);  
+  exitflag = &(exitflagval);
+  qpoptval = taud + 100;
+  qpoptvalptr  = &(qpoptval);
+  testFunction = &tF; 
+}
+
+template<typename T>
+void quasinewton<T>::beforemainloop(){
   testFunction(f, g, x, n);
-  
   *nfeval = *nfeval + 1;
-  
-  /* calculate gnorm:*/
   gnorm  = vecnorm<T>(g, n);
-  
-  /* first search direction  p = -H*g (BFGS) and p = -g (LBFGS) */
-  if(!lm) {
-    /* initialize H to the identity matrix:*/
-    mat_set_eye(H, n, n);
-    mxv<T>(p, H, g, -1.0, 0.0, n, n);
-  }
-  else {
-    vcopyp<T>(p, g, -1.0, n);
-  }
-    
+}
+
+template<typename T>
+void quasinewton::printbefmainloop(){
   if (echo > 0) 
     print_init_info<T>(output, n, ftarget, gnormtol, maxit, echo, lm, outputname);
   
@@ -127,7 +76,85 @@ void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m,
   int jcur = 0; 
   if (2 == echo) 
     print_iter_info<T>(output, it, f, gnorm, jcur, qpoptvalptr, t);
+}
+
+template<typename T>
+class BFGS: public quasinewton{
+protected:
+  T *q, *H;
+public:
+  BFGS(size_t)
+  f = &(fval);
+};
+
+template<typename T>
+BFGS<T>::BFGS(size_t n): quasinewton(n, taud, tF, output, ftarget, gnormtol, maxit, 
+				     echo, outputname){
+    n1 = n;
+    n2 = n * n;
+    nm = 1;
+    m1 = 1;
+    q = new T[n1];
+    H = new T[n2];
+}
+
+template<typename T>
+BFGS<T>::befmainloopspecific(){
+  beforemainloop();
+  // p = -H*g (BFGS)
+  mat_set_eye(H, n, n);
+  mxv<T>(p, H, g, -1.0, 0.0, n, n);
+}
+
+template<typename T>
+class LBFGS: public quasinewton{
+protected:
+  T *S, *Y, *rho, *a;
+public:
+  LBFGS(size_t );
+};
+
+template<typename T>
+LBFGS<T>:LBFGS(size_t n): quasinewton(n, taud, tF, output, ftarget, gnormtol, maxit, 
+				      echo, outputname){
+    n1 = 1;
+    n2 = 1;
+    nm = n * m;
+    m1 = m;
+    S  = new T[nm];
+    Y  = new T[nm];
+    rho = new T[m1];
+    a  = new T[m1];
+}
+
+template<typename T>
+LBFGS<T>::befmainloopspecific(){
+  beforemainloop();
+  // p = -g (LBFGS)
+  vcopyp<T>(p, g, -1.0, n);
+}
+
+/* BFGS MAIN ALGORITHM: */
+template<class T>
+void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m, T ftarget,  T gnormtol,  
+	  size_t maxit,  long J, T taux,  T taud,  int echo, 
+	  void(*testFunction)(T*, T*, T*, size_t),  std::string datafilename, 
+          double info[]){
+  /* echo
+     = 0: Don't print anything
+     = 1: print init and final data to file
+     = 2: print iter info to file
+  */
+  
+  std::ofstream output;
+  std::cout << "echo is: "<< echo << " datafilename is: " << datafilename << std::endl;
+  output.open(datafilename.c_str(), std::ios::app);
+  const char * outputname = datafilename.c_str();
     
+  /* ============ INITIALIZATION END ===============*/
+  BFGS(n, taud, testFunction, output, ftarget, gnormtol, maxit, echo, outputname);
+  LBFGS(n, taud, testFunction, output, ftarget, gnormtol, maxit, echo, outputname);
+  /* ============ BEFORE MAIN LOOP: ================ */  
 
   std::cout << taux << J << std::endl;//Remove this line if you're using QP Stopping!
   /* ================= MAIN LOOP: =================== */
@@ -150,7 +177,7 @@ void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m,
     fprev = *f;
         
     /* line search:*/
-    t = linesearch_ww<T>(x, f, g, p, C1, C2, n, testFunction, nfeval, 
+    t = linesearch_ww<T>(x, f, g, p, Claudia, C2, n, testFunction, nfeval, 
 			 ftarget, exitflag);
 
     /* If f is NaN, exit with best found f,x,g so far */
