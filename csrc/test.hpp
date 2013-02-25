@@ -12,6 +12,8 @@
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y));
 
+void printhowtodoit(); // implemented on the cpp
+
 // This class contains all of the parameters.  It was created as a template class
 // in order to initialize all the parameters with the correct type at once
 
@@ -41,8 +43,8 @@ public:
 
 template<typename T>
 algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr):
-  ftarget(-1e100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(0), n(k), m(7),
-  maxit(10e8), datafilename(outstr){
+  ftarget(-1e100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(0), n(k), 
+  m(7), maxit(10e8), datafilename(outstr){
   // All the parameters initialized with the same values
   // It is very possible that we may want to do this depending on the type
   try{
@@ -75,7 +77,8 @@ algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string out
   // elements pointed to are function pointers corresponding to the function
 
   typename std::map<std::string, int(*)(T*, T*, T*, size_t), 
-		    StringComparerForMap>::iterator it = pFunctions->tMap.find(locfunc);
+		    StringComparerForMap>::iterator it = 
+    pFunctions->tMap.find(locfunc);
 
   if(it != pFunctions->tMap.end()) 
     fun_ptr = it->second;

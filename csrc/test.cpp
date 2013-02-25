@@ -21,16 +21,18 @@ int main(int argc, char *argv[]){
   std::cout << "BFGS called with " << (argc - 1) << "arguments" << std::endl;
 
   // If the user uses no arguments.  Teach him how to use this tool
-  bool callflag = 0;
+  bool callflag = false;
   (1 == argc) ? callflag = true: callflag = false;
   if (callflag){
     std::cerr << "You have called this function without any parameters." << std::endl;
-    std::cerr << "Please call this function again with the name of the " << std::endl;
-    std::cerr << "function (don't use quotes) an int and output. Example:" << std::endl;
-    std::cerr << "./mytest chained_mifflin2 10 chained_mifflin2_10.txt" << std::endl;
-    exit(EXIT_FAILURE);
+    printhowtodoit();  
   }
-  
+  (1 == argc) ? callflag = true: callflag = false;
+  if (callflag) {
+    std::cerr<<"You have called this function without enough parameters "<<std::endl;
+    printhowtodoit();
+  }
+
   unsigned int old_cw;
   fpu_fix_start(&old_cw);
   
@@ -54,8 +56,8 @@ int main(int argc, char *argv[]){
   algoparameters<double> * doubleparameters;
   algoparameters<dd_real> * dd_realparameters;
   try{
-     doubleparameters =  new algoparameters<double>(ninitial, str, strout);
-     dd_realparameters =  new algoparameters<dd_real>(ninitial, str, strout);
+    doubleparameters =  new algoparameters<double>(ninitial, str, strout);
+    dd_realparameters =  new algoparameters<dd_real>(ninitial, str, strout);
   } catch(std::bad_alloc& ex){
     std::cerr << "Problem allocating memory in the stack" << ex.what() << std::endl;
     assert(false);
@@ -84,4 +86,12 @@ int main(int argc, char *argv[]){
 
   fpu_fix_end(&old_cw);
   return 0;
+}
+
+
+void printhowtodoit(){
+  std::cerr << "Please call this function again with the name of the " << std::endl;
+  std::cerr <<"function (don't use quotes) an int and output. Example:"<< std::endl;
+  std::cerr << "./mytest chained_mifflin2 10 chained_mifflin2_10.txt" << std::endl;
+  exit(EXIT_FAILURE);
 }

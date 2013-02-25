@@ -9,15 +9,22 @@
 #include <cstdlib>
 #include <qd/dd_real.h>
 
+/*
+  These first three functions output directly to the txt files where all the results
+  of each of the iterations are stored.  The values of _init_ and _final_ should
+  always be printed, the values of print_iter_info are optional, since these record
+  step by step after each of the iterations
+*/
+
 template<class T> void print_iter_info(std::ofstream&, size_t& it, T*& f, T& gnorm,
 				       int& j, T *& q, T& t);
-template<class T> void print_init_info(std::ofstream&,const size_t& n, const T& ftarget,
-				       const T& gnormtol, const size_t& maxit, 
-				       const int& echo, const int& lm, 
-				       const char *& outputname);
+template<class T> void print_init_info(std::ofstream&,const size_t& n, 
+				       const T& ftarget, const T& gnormtol, 
+				       const size_t& maxit, const int& echo, 
+				       const int& lm, const char *& outputname);
 template<class T> void print_final_info(std::ofstream&, size_t& it, T*& f,
-					 T& gnorm,  int& nfeval,
-					 int& exitflag,  double& ttime);
+					T& gnorm,  size_t& nfeval,
+					int& exitflag,  double& ttime);
 
 template<class T> void print_mat(T A[], int m, int n, char * str);
 template<class T> void print_vec(T * v, int n, char * str);
@@ -34,6 +41,9 @@ template<class T> void print_gs5(T f, double info[]);
 template<class T>
 void print_iter_info(std::ofstream& output, size_t& it,  T *& f,  T& gnorm,
 		     int& j,  T *& q, T& t) {
+
+  // Prints each step of the iteration
+
   output << "it=" << it << ", f=" << *f << ", |g|=" << gnorm << ", t=" << t << 
     ", j=" << j << ", q=" << *q << std::endl << std::endl;
 }
@@ -42,7 +52,9 @@ template<class T>
 void print_init_info(std::ofstream& output, const size_t& n, const T& ftarget, 
 		     const T& gnormtol, const size_t& maxit, const int& echo,
 		     const int& lm, const char*& outputname) {
-    
+  // Prints the initial conditions of the problem, before any of the iterations take
+  // place
+
   output << "================================\n" << std::endl;
   if (!lm) {
     output << "BFGS DD on Test Function with" << std::endl;
@@ -61,7 +73,10 @@ void print_init_info(std::ofstream& output, const size_t& n, const T& ftarget,
 
 template <class T>
 void print_final_info(std::ofstream& output,  size_t& it, T*& f, T& gnorm,
-		      int& nfeval,  int& exitflag,  double& ttime) {
+		      size_t& nfeval,  int& exitflag,  double& ttime) {
+  
+  // Prints the final conditions after the program has finalized running
+
   const char * exitstr;
   switch (exitflag) {
   case 1:
@@ -127,7 +142,9 @@ void print_final_info(std::ofstream& output,  size_t& it, T*& f, T& gnorm,
 
 template<class T>
 void print_mat(T A[], int m, int n, char * str) {
+  
   // prints matrix A
+  
   std::cout << str << std::endl;
   int i, j;
   for (i = 0; i < m; i++) {
@@ -139,7 +156,9 @@ void print_mat(T A[], int m, int n, char * str) {
 
 template <class T>
 void print_vec(T * v, int n, char * str) {
+
   // prints vector v
+
   std::cout << str << std::endl;
   for (int j = 0; j < n; j++)
     std::cout << "     " << v[j] << std::endl;

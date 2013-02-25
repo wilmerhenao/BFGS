@@ -10,7 +10,7 @@ make mytest
 # Remove this exit 0 line later when you are running the whole thing
 
 ./mytest chained_mifflin2 10 ../testresults/F10/chained_mifflin2_10.txt 
-
+./mytest nactfaces 50 ../testresults/F10/nactfaces_50.txt
 exit 0
 
 for n in 10 50 200

@@ -3,7 +3,8 @@
 
 #include "libmatrix_template.hpp"
 
-template <class T> void update_bfgs (T [], T p[], T g[], T s[], T y[], T q[], size_t n);
+template <class T> void update_bfgs (T [], T p[], T g[], T s[], T y[], T q[], 
+				     size_t n);
 template <class T> void update_lbfgs (T p[], T S[],T Y[], T rho[], T a[], T g[], 
 				      int cs, int ne, size_t m, size_t n);
 
@@ -49,16 +50,16 @@ void update_lbfgs (T p[], T S[],T Y[], T rho[], T a[], T g[],
     
   /* FIRST RECURSION: */
   for (j = 1; j <= cs; j++) {
-      i  = (ne + m - j) % m + 1;
-      ci = (i - 1) * n;
+    i  = (ne + m - j) % m + 1;
+    ci = (i - 1) * n;
         
-      /* a(i) = rho(i)*S(:,i)*p */
-      a[i - 1] = rho[i - 1] * vecip<T>(S + ci, p, n);
+    /* a(i) = rho(i)*S(:,i)*p */
+    a[i - 1] = rho[i - 1] * vecip<T>(S + ci, p, n);
         
-      /* p = p - a(i)*Y(:,i) */
-      vpv<T>(p, Y + ci, -a[i - 1], n);
+    /* p = p - a(i)*Y(:,i) */
+    vpv<T>(p, Y + ci, -a[i - 1], n);
         
-    } 
+  } 
   /* FIRST RECURSION END */
     
   /* SCALING OF P: */
