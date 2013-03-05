@@ -35,15 +35,15 @@ private:
   int(*fun_ptr)(T*, T*, T*, size_t);
   allfunctions<T> * pFunctions;
 public:
-  algoparameters(size_t, std::string, std::string);
+  algoparameters(size_t, std::string, std::string, short);
   ~algoparameters();
   void generateXF();
   void BFGSfunction();
 };
 
 template<typename T>
-algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr):
-  ftarget(-1e100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(0), n(k), 
+algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr, short lmprm):
+  ftarget(-1e100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(lmprm), n(k), 
   m(7), maxit(10e8), datafilename(outstr){
   // All the parameters initialized with the same values
   // It is very possible that we may want to do this depending on the type

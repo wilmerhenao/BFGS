@@ -33,6 +33,12 @@ int main(int argc, char *argv[]){
     printhowtodoit();
   }
 
+  (argc > 4) ? callflag = true: callflag = false;
+  if (callflag) {
+    std::cerr<<"You have called this function with too many parameters "<<std::endl;
+    printhowtodoit();
+  }
+
   unsigned int old_cw;
   fpu_fix_start(&old_cw);
   
@@ -55,15 +61,18 @@ int main(int argc, char *argv[]){
   unsigned int ninitial = static_cast<unsigned>(strtoul(argv[2], NULL, 0)); 
   algoparameters<double> * doubleparameters;
   algoparameters<dd_real> * dd_realparameters;
+  algoparameters<dd_real> * dd_realparLBFGS;
   try{
-    doubleparameters =  new algoparameters<double>(ninitial, str, strout);
-    dd_realparameters =  new algoparameters<dd_real>(ninitial, str, strout);
+    doubleparameters =  new algoparameters<double>(ninitial, str, strout, 0);
+    dd_realparameters =  new algoparameters<dd_real>(ninitial, str, strout, 0);
+    dd_realparLBFGS = new algoparameters<dd_real>(ninitial, str, strout, 1);
   } catch(std::bad_alloc& ex){
     std::cerr << "Problem allocating memory in the stack" << ex.what() << std::endl;
     assert(false);
   }
   assert(sizeof(doubleparameters));
   assert(sizeof(dd_realparameters));
+  assert(sizeof(dd_realparLBFGS));
 
   std::cout << "Objects were created safely.  Running BFGS next" << std::endl;
   try{
@@ -71,14 +80,16 @@ int main(int argc, char *argv[]){
     doubleparameters->BFGSfunction();
     std::cout.precision(32);
     dd_realparameters->BFGSfunction();
+    dd_realparLBFGS->BFGSfunction();  // This one redirects to the right LBFGS
   } catch(std::exception ex){
     std::cerr << "General Problem during execution. " << ex.what() << std::endl;
     assert(false);
   }
-
+  
   try{
     delete doubleparameters;
     delete dd_realparameters;
+    delete dd_realparLBFGS;
   } catch(std::exception ex){
     std::cerr << "Issues with delete: " << ex.what() << std::endl;
     assert(false);

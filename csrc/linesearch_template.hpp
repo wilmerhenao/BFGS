@@ -29,11 +29,17 @@ T linesearch_ww (T*& x, T*& f, T*& g, T*& d, const T& C1, const T& C2, size_t& n
      nbisectmax = max(30, round(log2(1e5*dnorm))); % allows more if ||d|| big
      nexpandmax = max(10, round(log2(1e5/dnorm))); % allows more if ||d|| small
   */
-  T nbisectmax = ceil( log( 100000*dnorm )/log(2.0) );
+  T nbisectmax, nexpandmax;
+  if (0 == dnorm){
+    nbisectmax = 100;
+    nexpandmax = 1000;
+  }
+  else{
+  nbisectmax = ceil( log( 100000*dnorm )/log(2.0) );
   if (nbisectmax < 100) nbisectmax = 100;
-
-  T nexpandmax = ceil( log( 100000 / dnorm )/log(2.0) );    
+  nexpandmax = ceil( log( 100000 / dnorm )/log(2.0) );    
   if (nexpandmax < 100) nexpandmax = 100;
+  }
 
   T gtd  = 0;
   T g0td;

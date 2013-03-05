@@ -73,6 +73,7 @@ quasinewton<T>::quasinewton(T x0[], T* fopt0, size_t n0,  T taud0,
   outputname = outputname0;
   output   = &output0;
   done     = false;
+  quasinewton<T>::f = &(quasinewton<T>::fval);
   g        = new T[n];
   p        = new T[n];
   s        = new T[n];
@@ -133,11 +134,9 @@ void quasinewton<T>::mainloop(){
   vcopyp<T>(y, g, -1.0, n);
   /* Copy f before overwritten by linesearch in case of NaN */
   fprev = *f;
-
   /* line search:*/
   t = linesearch_ww<T>(x, f, g, p, C1, C2, n, testFunction, nfeval, 
 		       ftarget, exitflag);
-
   /* If f is NaN, exit with best found f,x,g so far */
   if (::isnan(*f)) {
     *exitflag = -8;
@@ -149,7 +148,6 @@ void quasinewton<T>::mainloop(){
   }
   if (*f > fprev)
     *f = fprev;
-
   /* calculate s and y:
      before these calls, s and y contain
      previous -x and prev. -g, so e.g. s = x - xprev is s = s + x */
@@ -162,8 +160,9 @@ void quasinewton<T>::mainloop(){
   /* print iteration info:*/
   if (2 == echo)
     print_iter_info<T>(*output, it, f, gnorm, jcur, qpoptvalptr, t);
-        
+  
   /* check convergence here*/
+
   if (it >= maxit)
     *exitflag = -1;
   if (*f < ftarget)
@@ -172,7 +171,7 @@ void quasinewton<T>::mainloop(){
     *exitflag = 2;
   if (*qpoptvalptr < taud)
     *exitflag = 7;
-        
+
   /* if exitflag was changed: exit main loop: */
   if (*exitflag != 0) done = true;
 }
@@ -234,10 +233,9 @@ BFGS<T>::BFGS(T*& x0, T*& fopt0, size_t& n0,  T& taud0,
   quasinewton<T>::n1 = quasinewton<T>::n;
   quasinewton<T>::n2 = quasinewton<T>::n * quasinewton<T>::n;
   quasinewton<T>::nm = 1;
-  quasinewton<T>::m1 = 1;
+  quasinewton<T>::m1 = 1; // on LBFGS this variable is m (the history)
   q = new T[quasinewton<T>::n1];
   H = new T[quasinewton<T>::n2];
-  quasinewton<T>::f = &(quasinewton<T>::fval);
 }
 
 template<typename T>

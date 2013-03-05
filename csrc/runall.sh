@@ -11,12 +11,12 @@ make mytest
 
 ./mytest chained_mifflin2 10 ../testresults/F10/chained_mifflin2_10.txt 
 ./mytest nactfaces 50 ../testresults/F10/nactfaces_50.txt
-exit 0
 
-for n in 10 50 200
+
+for n in 10 #50 200
   do
     
-  for i in {1..10}
+  for i in {1..1}
     do
     ./mytest chained_crescent1 $n ../testresults/F10/chained_crescent1_$n.txt
     ./mytest gen_brownfunc2 $n ../testresults/F10/gen_brownfunc2_$n.txt
@@ -31,6 +31,8 @@ for n in 10 50 200
   done
   echo $n
 done
+
+exit 0
 
 for n in {2..10}
   do
