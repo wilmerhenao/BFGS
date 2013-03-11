@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <cassert>
+#include "../lib/qpspecial/qpobject.hpp"
 #include "randnums_template.hpp"
 #include "bfgs_template.hpp"
 #include "../testfunctions/functions.hpp"
