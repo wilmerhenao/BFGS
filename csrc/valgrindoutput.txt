@@ -1,0 +1,7 @@
+BFGS called with 3arguments
+output file../testresults/F10/chained_mifflin2_10.txt
+Objects were created safely.  Running BFGS next
+echo is: 2 datafilename is: ../testresults/F10/chained_mifflin2_10.txt
+valor final: -6.514614210677587
+echo is: 2 datafilename is: ../testresults/F10/chained_mifflin2_10.txt
+valor final: -6.51461421067764171433379113012843e+00
