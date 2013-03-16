@@ -22,10 +22,10 @@ class algoparameters{
 private:
   friend void bfgs<T>(T *, T * , size_t, int, size_t, T, T, 
 		       size_t,  long int,  T,  T,  int, 
-		      int(*)(T*, T*, T*, size_t),  std::string , double*);
+		      int(*)(T*, T*, T*, size_t),  std::string , double*, size_t);
   T ftarget, gnormtol, taux, taud;
   short echo, lm;
-  size_t n, m, maxit;
+  size_t n, m, maxit, gradientsamplingN;
   std::string datafilename;
   long J;
   T * fopt;
@@ -43,8 +43,8 @@ public:
 
 template<typename T>
 algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr, short lmprm):
-  ftarget(-1e100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(lmprm), n(k), 
-  m(7), maxit(10e8), datafilename(outstr){
+  ftarget(1e-100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(lmprm), n(k), 
+  m(7), maxit(10e8), gradientsamplingN(1000), datafilename(outstr){
   // All the parameters initialized with the same values
   // It is very possible that we may want to do this depending on the type
   try{
@@ -115,7 +115,7 @@ void algoparameters<T>::generateXF(){
 template<typename T>
 void algoparameters<T>::BFGSfunction(){
   bfgs<T>(xf, fopt, n, lm, m, ftarget, gnormtol, maxit, J, taux, taud, 
-	  echo, fun_ptr, datafilename, info);
+	  echo, fun_ptr, datafilename, info, gradientsamplingN);
 }
 
 #endif // _TEST_HPP_

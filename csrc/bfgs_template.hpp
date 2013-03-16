@@ -12,18 +12,20 @@
 #include "quasinewt_updates_template.hpp"
 #include "print_template.hpp"
 #include "libmatrix_template.hpp"
+#include "gradsamp.hpp"
 
 template<class T>
 void bfgs(T *, T * fopt, size_t n, int lm, size_t m, T ftarget,  T gnormtol,  
 	  size_t maxit,  long J, T taux,  T taud,  int echo, 
 	  int(*testFunction)(T*, T*, T*, size_t),  std::string datafilename, 
-          double info[]);
+          double info[], size_t);
 
 // Quasinewton class declaration
 
 template<typename T>
 class quasinewton{
 protected:
+  friend void gradsamp<T>(); // A few more iterations.  Defined only for double types
   const double C1 = 0.0001;
   const double C2 = 0.9;
   bool done;
@@ -31,7 +33,7 @@ protected:
   size_t n, n1, n2, nm, m1, tmp, maxit, m;
   size_t it = 0, ol = 1, cs = 0, nfevalval = 0;
   T *g, *p, *s, *y, *f, *qpoptvalptr, *x, *fopt;
-  T t, gnorm, gtp, fval, fprev, qpoptval, taud, ftarget, gnormtol;
+  T t, gnorm, gtp, fval, fprev, qpoptval, taud, ftarget, gnormtol, gradientsamplingN;
   /* integer pointers: */  
   size_t* nfeval;
   int *exitflag;
@@ -61,7 +63,8 @@ template<typename T>
 quasinewton<T>::quasinewton(T x0[], T* fopt0, size_t n0,  T taud0,  
 			    int(*tF)(T*, T*, T*, size_t), std::ofstream& output0,  
 			    T ftarget0,  T gnormtol0,  size_t maxit0, int echo0, 
-			    int lm0, const char * outputname0, size_t m0){
+			    int lm0, const char * outputname0, size_t m0,
+			    size_t gradientsamplingN0){
   x        = x0;
   fopt     = fopt0;
   n        = n0;
@@ -88,6 +91,7 @@ quasinewton<T>::quasinewton(T x0[], T* fopt0, size_t n0,  T taud0,
   testFunction = tF;
   m        = m0;
   alloutput.open("../alloutput.txt", std::ios::app);
+  gradientsamplingN = gradientsamplingN0;
 }
 
 template<typename T>
@@ -171,7 +175,11 @@ void quasinewton<T>::mainloop(){
     *exitflag = 2;
   if (*qpoptvalptr < taud)
     *exitflag = 7;
-
+  
+  if(-1 == *exitflag){
+    gradsamp();
+  }
+  
   /* if exitflag was changed: exit main loop: */
   if (*exitflag != 0) done = true;
 }
@@ -218,7 +226,7 @@ protected:
 
 public:
   BFGS(T*& x0, T*& fopt0, size_t&, T&, int(*&)(T*, T*, T*, size_t), 
-       std::ofstream&, T&, T&, size_t&, int&, int&, const char *&, size_t&);
+       std::ofstream&, T&, T&, size_t&, int&, int&, const char *&, size_t&, size_t&);
   virtual void befmainloopspecific();
   virtual void mainloopspecific();
 };
@@ -227,9 +235,9 @@ template<typename T>
 BFGS<T>::BFGS(T*& x0, T*& fopt0, size_t& n0,  T& taud0,  
 	      int(*&tF)(T*, T*, T*, size_t), std::ofstream& output0,  T& ftarget0,  
 	      T& gnormtol0,  size_t& maxit0, int& echo0, int& lm0, 
-	      const char *& outputname0, size_t& m0):
+	      const char *& outputname0, size_t& m0, size_t& gradientsamplingN):
   quasinewton<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
-		 echo0, lm0, outputname0, m0){
+		 echo0, lm0, outputname0, m0, gradientsamplingN){
   quasinewton<T>::n1 = quasinewton<T>::n;
   quasinewton<T>::n2 = quasinewton<T>::n * quasinewton<T>::n;
   quasinewton<T>::nm = 1;
@@ -258,7 +266,7 @@ protected:
   T *S, *Y, *rho, *a;
 public:
   LBFGS(T*& x0, T*& fopt0, size_t&, T&, int(*&)(T*, T*, T*, size_t), 
-	std::ofstream&, T&, T&, size_t&, int&, int&, const char *&, size_t&);
+	std::ofstream&, T&, T&, size_t&, int&, int&, const char *&, size_t&, size_t&);
   virtual void befmainloopspecific();
   virtual void mainloopspecific();
 };
@@ -267,9 +275,9 @@ template<typename T>
 LBFGS<T>::LBFGS(T*& x0, T*& fopt0, size_t& n0,  T& taud0,  
 		int(*&tF)(T*, T*, T*, size_t), std::ofstream& output0,  T& ftarget0,
 		T& gnormtol0, size_t& maxit0, int& echo0, int& lm0, 
-		const char *& outputname0, size_t& m0):
+		const char *& outputname0, size_t& m0, size_t& gradientsamplingN):
   quasinewton<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
-		 echo0, lm0, outputname0, m0){
+		 echo0, lm0, outputname0, m0, gradientsamplingN){
   quasinewton<T>::n1 = 1;
   quasinewton<T>::n2 = 1;
   quasinewton<T>::nm = quasinewton<T>::n * quasinewton<T>::m;
@@ -307,7 +315,7 @@ template<class T>
 void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m, T ftarget,  T gnormtol,  
 	  size_t maxit,  long J, T taux,  T taud,  int echo, 
 	  int(*testFunction)(T*, T*, T*, size_t),  std::string datafilename, 
-          double info[]){
+          double info[], size_t gradientsamplingN){
   
   std::ofstream output;
   std::cout <<"echo is: "<< echo << " datafilename is: " << datafilename << std::endl;
@@ -316,12 +324,12 @@ void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m, T ftarget,  T gnormtol
   if(!lm){
     BFGS<T>* mybfgs;
     mybfgs = new BFGS<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol, 
-			 maxit, echo, lm, outputname, m);
+			 maxit, echo, lm, outputname, m, gradientsamplingN);
     mybfgs->runallsteps();
   } else {
     LBFGS<T>* mylbfgs;
     mylbfgs = new LBFGS<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol,
-			   maxit, echo, lm, outputname, m);  
+			   maxit, echo, lm, outputname, m, gradientsamplingN);
     mylbfgs->runallsteps();
   }
   taux = taux + 1; J++; info[0] = info[0] + 1;
