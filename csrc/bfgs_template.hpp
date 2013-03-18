@@ -177,7 +177,9 @@ void quasinewton<T>::mainloop(){
     *exitflag = 7;
   
   if(-1 == *exitflag){
-    gradsamp();
+    bool gradsampresult;
+    gradsampresult = gradsamp();
+    gradsampresult ? *exitflag = 1 : *exitflag = -1;
   }
   
   /* if exitflag was changed: exit main loop: */

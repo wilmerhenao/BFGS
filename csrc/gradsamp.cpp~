@@ -1,22 +1,16 @@
-#ifndef _GRADSAMP_HPP_
-#define _GRADSAMP_HPP_
 
-#include <cmath>
-#include <iostream>
-#include "../lib/qpspecial/qpobject.hpp"
-
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-
-using std::endl;
-
-bool themin(double *, double *, size_t, const size_t);
-
-template<typename T>
-void gradsamp(){
-  std::cout << "gradsamp doesn't do anything for the current type.  Try doubles"<< endl;
-  //Do nothing unless T is a double type
-};
-
+bool themin(double * x, double * gradpoints, size_t i, const size_t n){
+  // This function calculates the minimum coordinate distance from x to gradpoints
+  // in a certain gradpoints segment
+  double valmin = 1.0;
+  for (size_t j; j < n; j++){
+    valmin MIN(valmin, std::abs(x[j] - gradpoints[j + (i * n)]));
+  }
+  if (valmin < 1e-14)
+    return false
+  else
+    return true;
+}
 
 template <> //template specialization for double (only doubles work with lapack)
 void gradsamp<double>{
@@ -56,13 +50,5 @@ void gradsamp<double>{
   }
   
   // Next step call qpspecial
-  std::cout << "calling qpspecial" << std::endl;
-  qpclass<double> * myopt = new qpclass<double>(n, gradientsamplingN, gradgrads, 100);
-  myopt->optimization();
   
-  double * solution = new double[n];
-  myopt->fetchSolution(solution);
-  return(true);
 }
-
-#endif // _GRADSAMP_HPP_
