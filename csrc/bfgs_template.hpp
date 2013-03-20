@@ -8,6 +8,10 @@
 #include <ctime>
 #include <iostream>
 #include <fstream>
+#include <vector>
+#include <map>
+#include <algorithm>
+#include <limits>
 #include "linesearch_template.hpp"
 #include "quasinewt_updates_template.hpp"
 #include "print_template.hpp"
@@ -21,7 +25,6 @@ void bfgs(T *, T * fopt, size_t n, int lm, size_t m, T ftarget,  T gnormtol,
           double info[], size_t);
 
 // Quasinewton class declaration
-
 template<typename T>
 class quasinewton{
 protected:
@@ -42,7 +45,8 @@ protected:
   std::ofstream* output;
   std::ofstream alloutput;
   const char * outputname;
-
+  std::vector<T> breakpoints; //Contains the breakpoints to be ordered
+  std::multimap<T, size_t> bpmemory; //Breakpoints but will stay unordered to rem. crds
 public:
   quasinewton(T [], T *, size_t ,  T,  int(*)(T*, T*, T*, size_t), std::ofstream&,  
 	      T,  T,  size_t, int, int, const char *, size_t );
@@ -52,11 +56,12 @@ public:
   void beforemainloop();
   virtual void befmainloopspecific() = 0; //To be implemented by each child
   void printbefmainloop(); // These parts are commong to both BFGS and LBFGS
-  void mainloop();
+  virtual void mainloop();
   virtual void mainloopspecific() = 0;
   void postmainloop();
   void runallsteps();
   void printallfinalinfo();
+  void gettis();
 };
 
 template<typename T>
@@ -220,6 +225,28 @@ void quasinewton<T>::runallsteps(){
   postmainloop();
 }
 
+template<typename T>
+quasinewtor<T>::gettis(){
+  // This function gets all the Ti points described in (4.1) of 8limited**
+  // It also sorts them at the end
+  for(size_t i = 0; i < n; i++){
+    if(0 == g[i]){
+      breakpoints.push_back(numeric_limits<T>::max()); // Assign \Infty if g == 0
+      bpmemory.insert(std::pair<T, size_t>(numeric_limits<T>::max(), i));
+    } else {
+      if(g[i] < 0) {
+	breakpoints.push_back( (x[i] - u[i]) / g[i]);
+	bpmemory.insert(std::pair<T, size_t>((x[i] - u[i]) / g[i], i));
+      } else {
+	breakpoints.push_back((x[i] - l[i]) / g[i]);
+	bpmemory.insert(std::pair<T, size_t>((x[i] - l[i]) / g[i], i));
+      }
+    }
+  }
+  std::make_heap(breakpoints.begin(), breakpoints.end());
+  std::sort_heap(breakpoints.begin(), breakpoints.end());
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
 class BFGS: public quasinewton<T>{
@@ -250,7 +277,6 @@ BFGS<T>::BFGS(T*& x0, T*& fopt0, size_t& n0,  T& taud0,
 
 template<typename T>
 void BFGS<T>::befmainloopspecific(){
-  // p = -H*g (BFGS)
   mat_set_eye(H, quasinewton<T>::n, quasinewton<T>::n);
   mxv<T>(quasinewton<T>::p, H, quasinewton<T>::g, -1.0, 0.0, quasinewton<T>::n, 
 	 quasinewton<T>::n);
@@ -261,6 +287,40 @@ void BFGS<T>::mainloopspecific(){
   update_bfgs<T>(H, quasinewton<T>::p, quasinewton<T>::g, quasinewton<T>::s, 
 		 quasinewton<T>::y, q, quasinewton<T>::n);
 }
+/////////////////////////////////////////////////////////////////////////////////////
+template<typename T>
+class BFGSB: public BFGS<T>{
+protected:
+  std::vector<T> breakpoints; //Contains the breakpoints to be ordered
+public:
+  BFGSB(T*& x0, T*& fopt0, size_t&, T&, int(*&)(T*, T*, T*, size_t), 
+       std::ofstream&, T&, T&, size_t&, int&, int&, const char *&, size_t&, size_t&);
+  void findGeneralizedCauchyPoint();
+  void findMinimum2ndApproximation();
+  void lineSearchSurface():
+};
+
+template<typename T>
+BFGSB<T>::BFGSB(T*& x0, T*& fopt0, size_t& n0,  T& taud0,  
+		int(*&tF)(T*, T*, T*, size_t), std::ofstream& output0,  T& ftarget0,  
+		T& gnormtol0,  size_t& maxit0, int& echo0, int& lm0, 
+		const char *& outputname0, size_t& m0, size_t& gradientsamplingN):
+  BFGSB<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
+	   echo0, lm0, outputname0, m0, gradientsamplingN){
+}
+
+template<typename T>
+BFGSB<T>::findGeneralizedCauchyPoint(){
+  gettis();
+}
+
+template<typename T>
+BFGSB<T>::mainloop(){
+  findGeneralizedCauchyPoint();
+  findMinimum2ndApproximation();
+  lineSearchSurface();
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
 class LBFGS: public quasinewton<T>{
@@ -324,15 +384,25 @@ void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m, T ftarget,  T gnormtol
   output.open(datafilename.c_str(), std::ios::app);
   const char * outputname = datafilename.c_str();
   if(!lm){
-    BFGS<T>* mybfgs;
-    mybfgs = new BFGS<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol, 
-			 maxit, echo, lm, outputname, m, gradientsamplingN);
-    mybfgs->runallsteps();
-  } else {
-    LBFGS<T>* mylbfgs;
-    mylbfgs = new LBFGS<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol,
+    if(boundedProblem){
+      BFGS<T>* mybfgs;
+      mybfgs = new BFGSB<T>...
+    } else {
+      BFGS<T>* mybfgs;
+      mybfgs = new BFGS<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol, 
 			   maxit, echo, lm, outputname, m, gradientsamplingN);
-    mylbfgs->runallsteps();
+      mybfgs->runallsteps();
+    }
+  } else {
+    if(boundedProblem){
+      LBFGS<T>* mylbfgs;
+      mylbfgs = new LBFGSB<T>...
+    } else{
+      LBFGS<T>* mylbfgs;
+      mylbfgs = new LBFGS<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol,
+			     maxit, echo, lm, outputname, m, gradientsamplingN);
+      mylbfgs->runallsteps();
+    }
   }
   taux = taux + 1; J++; info[0] = info[0] + 1;
   output.close();
@@ -340,58 +410,4 @@ void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m, T ftarget,  T gnormtol
 
 #endif // _BFGS_TEMPLATE_HPP_
 
-
-/* ============= QP STOPPING CRITERING ===========
-// VARS FOR QP STOPPING CRITERION
-T * qpx0   = new T[J];
-T * qpinfo = new T[3];    
-T * G      = new T[J * n];
-int qpmaxit    = 100;
-int oldestg    = 2;
-T snorm   = 0;
-T bgnorm = gnorm;
-// float dtmp;  //Not sure what the type here was
-// int bgnormidx = 1, j;
-// const T R = 10;
-//        snorm = vecnorm(s,n);
-
-//        if (snorm > taux) {
-//            jcur = 1;
-//            // set first row in G equal to g:
-//            vcopy(G, g, n);
-            
-// for initial point: 
-//            bgnorm    = gnorm;
-//            bgnormidx = 1;
-//        }
-//        else {
-//            jcur = jcur + 1;
-//            if (jcur > J) jcur = J;
-            
-// write new g in row of oldest g here 
-//            vcopy(G+(oldestg-1)*n, g, n);
-            
-// for initial point: 
-//            if (gnorm < bgnorm) {
-//                bgnorm    = gnorm; 
-//                bgnormidx = oldestg;
-//            }
-            
-// change oldestg to new location of oldest g: 
-//            oldestg = (oldestg % J) + 1;            
-//        }
-//        if (jcur > 1) {
-// set initial point:
-//            dtmp = 1 / (jcur-1+R);
-//            for(j=0;j<jcur;j++) qpx0[j] = dtmp;
-//            qpx0[bgnormidx-1] = R*dtmp;
-            
-// call qpsolv here. General call is
-//  qpsubprob(G[jcur*n], x[jcur], double * q, info[2], maxit, jcur, n)
-//  so in this case: 
-//            qpsubprob(G, qpx0, d, qpoptvalptr, qpinfo, qpmaxit, jcur, n);
-            
-//            if (qpinfo[0] > 0) *qpoptvalptr = taud+100;
-             
-//        }
-========== END QP STOPPING CRITERION ========== */
+// ** This is the paper: "A limited memory algorithm for bound constrained optimization"

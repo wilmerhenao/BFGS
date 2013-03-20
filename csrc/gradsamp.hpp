@@ -12,14 +12,15 @@ using std::endl;
 bool themin(double *, double *, size_t, const size_t);
 
 template<typename T>
-void gradsamp(){
+bool gradsamp(){
   std::cout << "gradsamp doesn't do anything for the current type.  Try doubles"<< endl;
   //Do nothing unless T is a double type
+  return(false);
 };
 
 
 template <> //template specialization for double (only doubles work with lapack)
-void gradsamp<double>{
+bool gradsamp<double>(){
   // n is the size of x and gradientsamplingN is the number of gradient samples 
   // assigned in algoparameters.  Gradpoints contains all the points to be evaluated
   size_t j = 0;

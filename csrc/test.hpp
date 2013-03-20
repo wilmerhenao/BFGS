@@ -28,7 +28,7 @@ private:
   size_t n, m, maxit, gradientsamplingN;
   std::string datafilename;
   long J;
-  T * fopt;
+  T * fopt, * u, *l;
   double * info;
   T * xf;
   double * x0;    
@@ -36,15 +36,17 @@ private:
   allfunctions<T> * pFunctions;
 public:
   algoparameters(size_t, std::string, std::string, short);
+  algoparameters(size_t, std::string, std::string, short, double*, double*);
+  initializationcode(size_t, std::string, std::string, short);
   ~algoparameters();
   void generateXF();
   void BFGSfunction();
+  bool boundedProblem;
 };
 
 template<typename T>
-algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr, short lmprm):
-  ftarget(1e-100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(lmprm), n(k), 
-  m(7), maxit(10e8), gradientsamplingN(1000), datafilename(outstr){
+algoparameters<T>::initializationcode(size_t k, std::string locfunc, 
+				      std::string outstr, short lmprm){
   // All the parameters initialized with the same values
   // It is very possible that we may want to do this depending on the type
   try{
@@ -54,6 +56,8 @@ algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string out
   }
   try{
     fopt = new T;
+    u = new T[n];
+    l = new T[n];
     info = new double[4];
     xf = new T[n];
     x0 = new double[n];
@@ -84,14 +88,37 @@ algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string out
     fun_ptr = it->second;
   else
     std::cerr << "This function was not found!" << std::endl;
-
+  boundedProblem = false;
   generateXF();
+}
+
+template<typename T>
+algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr, 
+				  short lmprm, double * u0, double * l0):
+  ftarget(1e-100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(lmprm), n(k), 
+  m(7), maxit(10e8), gradientsamplingN(1000), datafilename(outstr){
+  initializationcode(k, locfunc, outstr, lmprm);
+  for(size_t i; i < n; i++){
+    u[i] = u0[i]; l[i] = l0[i];
+  }
+  // turn on the boundedProblem flag variable
+  boundedProblem = true;
+}
+
+template<typename T>
+algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr, 
+				  short lmprm):
+  ftarget(1e-100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(lmprm), n(k), 
+  m(7), maxit(10e8), gradientsamplingN(1000), datafilename(outstr){
+  initializationcode(k, locfunc, outstr, lmprm);
 }
 
 template<typename T>
 algoparameters<T>::~algoparameters(){
   try{
     delete fopt;
+    delete [] u;
+    delete [] l;
     delete [] info;
     delete [] xf;
     delete [] x0;
@@ -99,7 +126,7 @@ algoparameters<T>::~algoparameters(){
     std::cerr << ex.what() << std::endl;
   }
 }
-  
+
 template <typename T> 
 void algoparameters<T>::generateXF(){
   srand(static_cast<unsigned> (time(NULL)));

@@ -18,10 +18,9 @@
 #include "gradsamp.hpp"
 
 // Executable will return 1 if there are wrong set of arguments
-
 int main(int argc, char *argv[]){
   std::cout << "BFGS called with " << (argc - 1) << "arguments" << std::endl;
-
+  
   // If the user uses no arguments.  Teach him how to use this tool
   bool callflag = false;
   (1 == argc) ? callflag = true: callflag = false;
@@ -97,10 +96,35 @@ int main(int argc, char *argv[]){
     assert(false);
   }
 
+  // This is for simple bounded problems.
+  
+  double * u = new double[static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ];
+  double * l = new double[static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ];
+  // dummy initialization just to have something to work with...
+  for(size_t counter = 0; counter < static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ;
+      counter++){
+    u[counter] = 1.0; l[counter = -1.0];
+  }
+
+  algoparameters<double> * constrainedproblem;
+  try{
+    constrainedproblem = new algoparameters<double>(ninitial, str, strout, 0, u, l);
+  } catch(std::exception ex) {
+    std::cerr << "Problem assigning memory to constrained" << ex.what() << std::endl;
+    assert(false);
+  }
+  std::cout.precision(16);
+  
+  try{
+    delete [] u;
+    delete [] l;
+  } catch(std::exception ex){
+    std::cerr << "Issues deleting mem. constrd. Problem" << ex.what() << std::endl;
+    assert(false);
+  }
   fpu_fix_end(&old_cw);
   return 0;
 }
-
 
 void printhowtodoit(){
   std::cerr << "Please call this function again with the name of the " << std::endl;
