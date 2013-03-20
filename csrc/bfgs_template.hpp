@@ -229,7 +229,7 @@ void quasinewton<T>::runallsteps(){
 }
 
 template<typename T>
-quasinewtor<T>::gettis(){
+quasinewton<T>::gettis(){
   // This function gets all the Ti points described in (4.1) of 8limited**
   // It also sorts them at the end
   for(size_t i = 0; i < n; i++){
