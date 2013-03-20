@@ -46,7 +46,9 @@ protected:
   std::ofstream alloutput;
   const char * outputname;
   std::vector<T> breakpoints; //Contains the breakpoints to be ordered
-  std::multimap<T, size_t> bpmemory; //Breakpoints but will stay unordered to rem. crds
+  std::vector<T> breakpointsNOorder; 
+std::multimap<T, size_t> bpmemory; //Breakpoints but will stay unordered to rem. crds
+  
 public:
   quasinewton(T [], T *, size_t ,  T,  int(*)(T*, T*, T*, size_t), std::ofstream&,  
 	      T,  T,  size_t, int, int, const char *, size_t );
@@ -62,6 +64,7 @@ public:
   void runallsteps();
   void printallfinalinfo();
   void gettis();
+  size findDimension(size_t);
 };
 
 template<typename T>
@@ -243,8 +246,24 @@ quasinewtor<T>::gettis(){
       }
     }
   }
+  breakpointsNOorder = breakpoints;
   std::make_heap(breakpoints.begin(), breakpoints.end());
   std::sort_heap(breakpoints.begin(), breakpoints.end());
+}
+
+template<typename T>
+size_t quasinewton::findDimension(size_t i){
+  //This function finds the correct dimension that we should work with and pops the
+  // the corresponding element in the multimap container
+  // receives the current cardinal dimension I'm working with.  Returns the real
+  // dimension to work with
+  T ti;
+  size_t thisdimension;
+  ti =  breakpoints[i];
+  std::multimap<T, size_t>::iterator it = bpmemory.find(ti);
+  thisdimension = it->second;
+  bpmemory.erase(it);
+  return(thisdimension);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -291,7 +310,7 @@ void BFGS<T>::mainloopspecific(){
 template<typename T>
 class BFGSB: public BFGS<T>{
 protected:
-  std::vector<T> breakpoints; //Contains the breakpoints to be ordered
+
 public:
   BFGSB(T*& x0, T*& fopt0, size_t&, T&, int(*&)(T*, T*, T*, size_t), 
        std::ofstream&, T&, T&, size_t&, int&, int&, const char *&, size_t&, size_t&);
@@ -312,7 +331,19 @@ BFGSB<T>::BFGSB(T*& x0, T*& fopt0, size_t& n0,  T& taud0,
 template<typename T>
 BFGSB<T>::findGeneralizedCauchyPoint(){
   gettis();
-}
+  T tj;
+  T* di;
+  di = new T[n];
+  // the j steps next represent the segments
+  for(size_t j; j < n; j++){
+    tj = breakpoints[j];
+    for(size_t i = 0; i < n; i++){
+      if(tj < breakpointsNOorder[i])
+	di[i] = -g[i];
+      else
+	di[i] = 0;
+    }
+  }
 
 template<typename T>
 BFGSB<T>::mainloop(){
