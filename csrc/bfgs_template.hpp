@@ -334,16 +334,23 @@ BFGSB<T>::findGeneralizedCauchyPoint(){
   T tj;
   T* di;
   di = new T[n];
+  for(size_t i = 0; i < n; i++){
+    di[i] = 0.0;
+  }
+  // bear in mind that the following multimap is already ordered
+  typename std::multimap<T, size_t>::iterator it = bpmemory.begin();
+
   // the j steps next represent the segments
   for(size_t j; j < n; j++){
     tj = breakpoints[j];
-    for(size_t i = 0; i < n; i++){
-      if(tj < breakpointsNOorder[i])
-	di[i] = -g[i];
-      else
-	di[i] = 0;
-    }
+    size_t b;
+    b = (*it).second;
+    di[b] = -g[b];  // This is equation 4.2 (minus?)
+
+
+    it++;
   }
+}
 
 template<typename T>
 BFGSB<T>::mainloop(){
