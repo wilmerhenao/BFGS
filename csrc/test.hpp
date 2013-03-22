@@ -28,10 +28,11 @@ private:
   size_t n, m, maxit, gradientsamplingN;
   std::string datafilename;
   long J;
-  T * fopt, * u, *l;
+  T * fopt; 
+  double * u, *l;
   double * info;
   T * xf;
-  double * x0;    
+  double * x0;
   int(*fun_ptr)(T*, T*, T*, size_t);
   allfunctions<T> * pFunctions;
 public:

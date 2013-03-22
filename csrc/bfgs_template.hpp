@@ -18,6 +18,12 @@
 #include "libmatrix_template.hpp"
 #include "gradsamp.hpp"
 
+extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*, 
+		       double*, int*, double*, double*, int*);
+
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+
 template<class T>
 void bfgs(T *, T * fopt, size_t n, int lm, size_t m, T ftarget,  T gnormtol,  
 	  size_t maxit,  long J, T taux,  T taud,  int echo, 
@@ -271,12 +277,14 @@ template<typename T>
 class BFGS: public quasinewton<T>{
 protected:
   T *q, *H;
+  double* Hdouble;
 
 public:
   BFGS(T*& x0, T*& fopt0, size_t&, T&, int(*&)(T*, T*, T*, size_t), 
        std::ofstream&, T&, T&, size_t&, int&, int&, const char *&, size_t&, size_t&);
   virtual void befmainloopspecific();
   virtual void mainloopspecific();
+  void createDoubleH();
 };
 
 template<typename T>
@@ -292,6 +300,7 @@ BFGS<T>::BFGS(T*& x0, T*& fopt0, size_t& n0,  T& taud0,
   quasinewton<T>::m1 = 1; // on LBFGS this variable is m (the history)
   q = new T[quasinewton<T>::n1];
   H = new T[quasinewton<T>::n2];
+  Hdouble = new double[quasinewton<T>::n];
 }
 
 template<typename T>
@@ -305,6 +314,14 @@ template<typename T>
 void BFGS<T>::mainloopspecific(){
   update_bfgs<T>(H, quasinewton<T>::p, quasinewton<T>::g, quasinewton<T>::s, 
 		 quasinewton<T>::y, q, quasinewton<T>::n);
+}
+
+template<typename T>
+void createDoubleH(){
+  for(size_t i; i < quasinewton<T>::n; i++){
+    for(size_t j; j < quasinewton<T>::n; j++)
+      Hdouble[i * quasinewton<T>::n + j] = H[i * quasinewton<T>::n + j];
+  }
 }
 /////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
@@ -330,25 +347,74 @@ BFGSB<T>::BFGSB(T*& x0, T*& fopt0, size_t& n0,  T& taud0,
 
 template<typename T>
 BFGSB<T>::findGeneralizedCauchyPoint(){
-  gettis();
-  T tj;
-  T* di;
-  di = new T[n];
+  quasinewton<T>::gettis();
+  BFGS<T>::createDoubleH();
+  char yTrans = 'T';
+  char nTrans = 'N';
+  double alpha = 1.0, beta = 0.0;
+  int ndouble = static_cast<double>n;
+  int one = 1;
+  double tj, fj, fpj, fppj, deltatj, oldtj;
+  double* di = new double[quasinewton<T>::n];
+  double* xnew = new double[quasinewton<T>::n];
+  double* z = new double[quasinewton<T>::n];
+  double* C = new double[quasinewton<T>::n];
+  double adouble;
+  double dtstar;
   for(size_t i = 0; i < n; i++){
-    di[i] = 0.0;
+    di[i] = z[i] = 0.0;
   }
   // bear in mind that the following multimap is already ordered
   typename std::multimap<T, size_t>::iterator it = bpmemory.begin();
-
-  // the j steps next represent the segments
-  for(size_t j; j < n; j++){
-    tj = breakpoints[j];
-    size_t b;
+  // First of all.  Run the zeroeth step from the multistep gradient projection
+  it = bpmemory.begin();
+  size_t b = (*it).second;
+  deltatj = static_cast<double>((*it).first); // Change from zero
+  oldtj = deltatj;
+  // Find the new x position
+  for(size_t i = 0; i < n; i++){
+    xnew[i] = static_cast<double>((x[i]) - (*it).first * g[i]);
+    xnew[i] = MIN(xnew[i], u[i]);
+    xnew[i] = MAX(xnew[i], l[i]);
+    z[i] = xnew[i] - x[i];
+  }
+  // Update new d_i coordinate
+  di[b] = -g[b];
+  
+  // z^T*B*z
+  dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, &ndouble,
+	 z, &ndouble, &beta, C, &LDC);
+  dgemm_(&yTrans, $nTrans, &one, &ndouble, &ndouble, &alpha, di, &ndouble, C, &ndouble, 
+	 &beta, &adouble, &one);
+  fpj = static_cast<double>(vecip<T>(g, di, n)) + adouble; //g^Td +  z^T*B*z
+  
+  // d^T*B*z
+  dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, &ndouble,
+	 di, &ndouble, &beta, C, &LDC);
+  dgemm_(&yTrans, $nTrans, &one, &ndouble, &ndouble, &alpha, di, &ndouble, C, &ndouble, 
+	 &beta, &adouble, &one);
+  fppj = adouble;
+  dtstar = -fpj / fppj;
+  
+  for(it++; it != bpmemory.end(); it++){
     b = (*it).second;
+    deltatj = static_cast<double>((*it).first) - oldtj;
     di[b] = -g[b];  // This is equation 4.2 (minus?)
+    for(size_t i = 0; i < n; i++){
+      xnew[i] = static_cast<double>((x[i]) - (*it).first * g[i]);
+      xnew[i] = MIN(xnew[i], u[i]);
+      xnew[i] = MAX(xnew[i], l[i]);
+      z[i] = xnew[i] - x[i];
+    }
+    dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, 
+	   &ndouble, z, &ndouble, &beta, C, &LDC); //C = B^T * z
 
-
-    it++;
+    fpj = fpj + deltatj * fppj + std::pow(static_double<double>(g[b]), 2) +
+      static_cast<double>(g[b]) * C[b];
+    dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, 
+	   &ndouble, di, &ndouble, &beta, C, &LDC); //C = B^T * d
+    fppj = fppj + 2 * static_cast<double>(g[b]) * C[b] + 
+      std::pow(static_cast<double>(g[b]), 2) * H[b * quasinewton<T>::n + b];
   }
 }
 
