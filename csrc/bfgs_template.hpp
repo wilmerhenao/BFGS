@@ -41,7 +41,8 @@ protected:
   clock_t t1, t2;
   size_t n, n1, n2, nm, m1, tmp, maxit, m;
   size_t it = 0, ol = 1, cs = 0, nfevalval = 0;
-  T *g, *p, *s, *y, *f, *qpoptvalptr, *x, *fopt;
+  T *g, *p, *s, *y, *f, *qpoptvalptr, *x, *fopt, *xcauchy;
+  bool *freeVariable;
   T t, gnorm, gtp, fval, fprev, qpoptval, taud, ftarget, gnormtol, gradientsamplingN;
   /* integer pointers: */  
   size_t* nfeval;
@@ -53,7 +54,7 @@ protected:
   const char * outputname;
   std::vector<T> breakpoints; //Contains the breakpoints to be ordered
   std::vector<T> breakpointsNOorder; 
-std::multimap<T, size_t> bpmemory; //Breakpoints but will stay unordered to rem. crds
+  std::multimap<T, size_t> bpmemory; //Breakpoints but will stay unordered to rem. crds
   
 public:
   quasinewton(T [], T *, size_t ,  T,  int(*)(T*, T*, T*, size_t), std::ofstream&,  
@@ -106,6 +107,8 @@ quasinewton<T>::quasinewton(T x0[], T* fopt0, size_t n0,  T taud0,
   m        = m0;
   alloutput.open("../alloutput.txt", std::ios::app);
   gradientsamplingN = gradientsamplingN0;
+  xcauchy = new double[n];
+  freeVariable = new bool[n];
 }
 
 template<typename T>
@@ -115,6 +118,8 @@ quasinewton<T>::~quasinewton(){
   delete [] p;
   delete [] s;
   delete [] y;
+  delete [] xcauchy;
+  delete [] freeVariable;
 }
 
 template<typename T>
@@ -331,7 +336,7 @@ protected:
 public:
   BFGSB(T*& x0, T*& fopt0, size_t&, T&, int(*&)(T*, T*, T*, size_t), 
        std::ofstream&, T&, T&, size_t&, int&, int&, const char *&, size_t&, size_t&);
-  void findGeneralizedCauchyPoint();
+  double findGeneralizedCauchyPoint();
   void findMinimum2ndApproximation();
   void lineSearchSurface():
 };
@@ -346,7 +351,7 @@ BFGSB<T>::BFGSB(T*& x0, T*& fopt0, size_t& n0,  T& taud0,
 }
 
 template<typename T>
-BFGSB<T>::findGeneralizedCauchyPoint(){
+double BFGSB<T>::findGeneralizedCauchyPoint(){
   quasinewton<T>::gettis();
   BFGS<T>::createDoubleH();
   char yTrans = 'T';
@@ -356,13 +361,13 @@ BFGSB<T>::findGeneralizedCauchyPoint(){
   int one = 1;
   double tj, fj, fpj, fppj, deltatj, oldtj;
   double* di = new double[quasinewton<T>::n];
-  double* xnew = new double[quasinewton<T>::n];
   double* z = new double[quasinewton<T>::n];
   double* C = new double[quasinewton<T>::n];
   double adouble;
-  double dtstar;
+  double dtstar, tstar;
   for(size_t i = 0; i < n; i++){
     di[i] = z[i] = 0.0;
+    freeVariable[i] = true;
   }
   // bear in mind that the following multimap is already ordered
   typename std::multimap<T, size_t>::iterator it = bpmemory.begin();
@@ -370,16 +375,17 @@ BFGSB<T>::findGeneralizedCauchyPoint(){
   it = bpmemory.begin();
   size_t b = (*it).second;
   deltatj = static_cast<double>((*it).first); // Change from zero
-  oldtj = deltatj;
+  oldtj = tj = deltatj;
   // Find the new x position
   for(size_t i = 0; i < n; i++){
-    xnew[i] = static_cast<double>((x[i]) - (*it).first * g[i]);
-    xnew[i] = MIN(xnew[i], u[i]);
-    xnew[i] = MAX(xnew[i], l[i]);
-    z[i] = xnew[i] - x[i];
+    quadinewton::xcauchy[i] = static_cast<double>((x[i]) - (*it).first * g[i]);
+    quadinewton::xcauchy[i] = MIN(quadinewton::xcauchy[i], u[i]);
+    quadinewton::xcauchy[i] = MAX(quadinewton::xcauchy[i], l[i]);
+    z[i] = quadinewton::xcauchy[i] - x[i];
   }
   // Update new d_i coordinate
   di[b] = -g[b];
+  freeVariable[b] = false;
   
   // z^T*B*z
   dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, &ndouble,
@@ -395,27 +401,69 @@ BFGSB<T>::findGeneralizedCauchyPoint(){
 	 &beta, &adouble, &one);
   fppj = adouble;
   dtstar = -fpj / fppj;
+  tstar = dtstar + oldtj;
+  tj = static_cast<double>(bpmemory[1].first);
+  if (tstar < tj){
+    if (tstar > 0)
+      return(tstar);
+  }
   
   for(it++; it != bpmemory.end(); it++){
+    tj = static_cast<double>((*it).first);
     b = (*it).second;
     deltatj = static_cast<double>((*it).first) - oldtj;
     di[b] = -g[b];  // This is equation 4.2 (minus?)
+    freeVariable[b] = false;
     for(size_t i = 0; i < n; i++){
-      xnew[i] = static_cast<double>((x[i]) - (*it).first * g[i]);
-      xnew[i] = MIN(xnew[i], u[i]);
-      xnew[i] = MAX(xnew[i], l[i]);
-      z[i] = xnew[i] - x[i];
+      quadinewton::xcauchy[i] = static_cast<double>((x[i]) - (*it).first * g[i]);
+      quadinewton::xcauchy[i] = MIN(quadinewton::xcauchy[i], u[i]);
+      quadinewton::xcauchy[i] = MAX(quadinewton::xcauchy[i], l[i]);
+      z[i] = quadinewton::xcauchy[i] - x[i];
     }
     dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, 
 	   &ndouble, z, &ndouble, &beta, C, &LDC); //C = B^T * z
-
+    
     fpj = fpj + deltatj * fppj + std::pow(static_double<double>(g[b]), 2) +
       static_cast<double>(g[b]) * C[b];
     dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, 
 	   &ndouble, di, &ndouble, &beta, C, &LDC); //C = B^T * d
     fppj = fppj + 2 * static_cast<double>(g[b]) * C[b] + 
       std::pow(static_cast<double>(g[b]), 2) * H[b * quasinewton<T>::n + b];
+    dtstar = fpj / fppj;
+    tstar = oldtj + dtstar;
+    if (tstar >= oldtj){
+      if (tstar <= tj)
+	return(tstar);
+    }
+    if (fpj >= 0)
+      return(oldtj);
+
+    oldtj = tj; // Update the time to the new end of the time frame
   }
+
+  // In case nothing was found.  Return the last point
+  return(tj);
+  // I still need to implement the last segment to locate xcauchy correctly.
+}
+
+template<typename T>
+void BFGSB<T>::findMinimum2ndApproximation(){
+  // Assuming xcauchy has been correctly found.  This function runs a minimization of
+  // the quadratic approximation to the goal function
+  size_t numfree = 0;
+  double* Z;
+  for(size_t i = 0; i < quasinewton<T>::n; i++){
+      if(freeVariable[i])
+	numfree += 1;
+    }
+	
+	for(size_t i = 0; i < quasinewton<T>::n; i++){
+	  for(size_t j = 0; j < numfree; j++)
+	    Z[i, j] = 0.0;
+	  b = bpmemory[i].second; //position of the ith. crossed boundary
+	  Z[b, j] = 1.0;
+	}
+  
 }
 
 template<typename T>
