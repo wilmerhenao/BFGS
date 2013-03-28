@@ -462,19 +462,48 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // Assuming xcauchy has been correctly found.  This function runs a minimization of
   // the quadratic approximation to the goal function
   size_t numfree = 0;
-  double* Z;
+  double* Z, *r, *dx;
+  char yTrans = 'T', nTrans = 'N';
+  int ndouble = static_cast<double>n;
+  int one = 1;
+  double alpha = 1.0, double beta = 0.0;
+  double* C = new double[quasinewton<T>::n];
+  dx = new double[quasinewton<T>::n];
+  r = new double[quasinewton<T>::n];
+
   for(size_t i = 0; i < quasinewton<T>::n; i++){
-      if(freeVariable[i])
-	numfree += 1;
-    }
-	
-	for(size_t i = 0; i < quasinewton<T>::n; i++){
-	  for(size_t j = 0; j < numfree; j++)
-	    Z[i, j] = 0.0;
-	  b = bpmemory[i].second; //position of the ith. crossed boundary
-	  Z[b, j] = 1.0;
-	}
-  
+    if(freeVariable[i])
+      numfree++;
+  }
+  Z = new double[quasinewton<T>::n * numfree];
+
+  for(size_t i = 0; i < quasinewton<T>::n; i++){
+    for(size_t j = 0; j < numfree; j++)
+      Z[i, j] = 0.0;
+    b = bpmemory[i].second; //position of the ith. crossed boundary
+    Z[b, j] = 1.0;
+  }
+
+  // Now let's define the r vector 
+  for(size_t i = 0; i < quasinewton<T>::n; i++)
+    dx[i] = xnew[i] - x[i];
+  dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, 
+	 &ndouble, dx, &ndouble, &beta, C, &LDC);
+  for(size_t i = 0; i < quasinewton<T>::n; i++)
+    C[i] += g[i];
+  dgemm_(&yTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, Z,
+       &ndouble, C, &ndouble, &beta, r, &LDC);
+
+// Find Bhat = Z^TBZ
+  double* BZ, *BHAT;
+  BZ = new double[quasinewton<T>::n * numfree];
+  BHAT = new double[numfree * numfree];
+  dgemm_(&nTrans, &nTrans, &ndouble, &numfree, &ndouble, &alpha, BFGS<T>::Hdouble,
+	 &ndouble, Z, &numfree, &beta, BZ, &LDC);
+  dgemm_(&yTrans, &nTrans, &numfree, &ndouble, &ndouble, &alpha, Z,
+	 &numfree, BZ, &ndouble, &beta, BHAT, &LDC);
+// Solve the system
+
 }
 
 template<typename T>
