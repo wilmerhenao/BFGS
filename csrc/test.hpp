@@ -20,7 +20,8 @@ class algoparameters{
 private:
   friend void bfgs<T>(T *, T * , size_t, int, size_t, T, T, 
 		       size_t,  long int,  T,  T,  int, 
-		      int(*)(T*, T*, T*, size_t),  std::string , double*, size_t);
+		      int(*)(T*, T*, T*, size_t),  std::string , double*, size_t, T*,
+		      T*, bool);
   T ftarget, gnormtol, taux, taud;
   short echo, lm;
   size_t n, m, maxit, gradientsamplingN;
@@ -149,7 +150,7 @@ void algoparameters<T>::generateXF(){
 template<typename T>
 void algoparameters<T>::BFGSfunction(){
   bfgs<T>(xf, fopt, n, lm, m, ftarget, gnormtol, maxit, J, taux, taud, 
-	  echo, fun_ptr, datafilename, info, gradientsamplingN, u, l);
+	  echo, fun_ptr, datafilename, info, gradientsamplingN, u, l, boundedProblem);
 }
 
 #endif // _TEST_HPP_
