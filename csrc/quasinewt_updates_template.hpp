@@ -52,10 +52,10 @@ void update_lbfgs (T p[], T S[],T Y[], T rho[], T a[], T g[],
   for (j = 1; j <= cs; j++) {
     i  = (ne + m - j) % m + 1;
     ci = (i - 1) * n;
-        
+    
     /* a(i) = rho(i)*S(:,i)*p */
     a[i - 1] = rho[i - 1] * vecip<T>(S + ci, p, n);
-        
+    
     /* p = p - a(i)*Y(:,i) */
     vpv<T>(p, Y + ci, -a[i - 1], n);
         

@@ -1,6 +1,8 @@
 #ifndef _LAPACKSTUFF_HPP_
 #define _LAPACKSTUFF_HPP_
 
+#include <vector>
+
 //Index must be defined in column major orderA
 #define INDEXCM(i, j)     field_start + i * m + j
 #define G(i, j)           G[INDEXCM(i, j)]
@@ -13,7 +15,7 @@
 // LAPACK function declarations
 extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*, 
 		       double*, int*, double*, double*, int*);
-extern "C" void sgemm_(char *, char *, int*, int*,int*, float*, float*, int*, 
+extern "C" void sgemm_(char *, char *, int*, int*, int*, float*, float*, int*, 
 		       float*, int*, float*, float*, int*);
 extern "C" double dlange_(char*, int*, int*, double*, int*, double* );
 extern "C" float slange_(char*, int*, int*, float*, int*, float*);

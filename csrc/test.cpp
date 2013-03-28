@@ -15,7 +15,6 @@
 #include "libmatrix_template.hpp"
 #include "test.hpp"
 #include <qd/dd_real.h>
-#include "gradsamp.hpp"
 
 // Executable will return 1 if there are wrong set of arguments
 int main(int argc, char *argv[]){

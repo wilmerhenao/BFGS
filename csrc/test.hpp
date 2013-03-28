@@ -10,8 +10,6 @@
 #include "container.hpp"
 #include "../testfunctions/functions.hpp"
 
-#define MIN(x, y) ((x) < (y) ? (x) : (y));
-
 void printhowtodoit(); // implemented on the cpp
 
 // This class contains all of the parameters.  It was created as a template class
@@ -35,6 +33,7 @@ private:
   double * x0;
   int(*fun_ptr)(T*, T*, T*, size_t);
   allfunctions<T> * pFunctions;
+  bool boundedProblem;
 public:
   algoparameters(size_t, std::string, std::string, short);
   algoparameters(size_t, std::string, std::string, short, double*, double*);
@@ -42,7 +41,6 @@ public:
   ~algoparameters();
   void generateXF();
   void BFGSfunction();
-  bool boundedProblem;
 };
 
 template<typename T>
@@ -93,6 +91,8 @@ algoparameters<T>::initializationcode(size_t k, std::string locfunc,
   generateXF();
 }
 
+
+// There are two initializers.  The first one initializes when there are u, l vectors
 template<typename T>
 algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr, 
 				  short lmprm, double * u0, double * l0):
@@ -106,12 +106,18 @@ algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string out
   boundedProblem = true;
 }
 
+// The second initializer initializes when there are no u, l vectors
 template<typename T>
 algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr, 
 				  short lmprm):
   ftarget(1e-100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(lmprm), n(k), 
   m(7), maxit(10e8), gradientsamplingN(1000), datafilename(outstr){
   initializationcode(k, locfunc, outstr, lmprm);
+  // This for loop is just here for consistency and won't be implemented
+  for(size_t i; i < n; i++){
+    u[i] = l[i] = 0.0;  // 
+  }
+  boundedProblem = false;
 }
 
 template<typename T>
@@ -143,7 +149,7 @@ void algoparameters<T>::generateXF(){
 template<typename T>
 void algoparameters<T>::BFGSfunction(){
   bfgs<T>(xf, fopt, n, lm, m, ftarget, gnormtol, maxit, J, taux, taud, 
-	  echo, fun_ptr, datafilename, info, gradientsamplingN);
+	  echo, fun_ptr, datafilename, info, gradientsamplingN, u, l);
 }
 
 #endif // _TEST_HPP_
