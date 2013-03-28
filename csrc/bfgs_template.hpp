@@ -678,13 +678,15 @@ bool quasinewton<double>::gradsamp(){
   gradgrads = new double[static_cast<size_t>(gradientsamplingN) * 
     static_cast<size_t>(n)];
 for(size_t i = 0; i < static_cast<size_t>(gradientsamplingN); i++){
-  testFunction(*f, g +(i * n), gradpoints + (i * n), n);
+  testFunction(f, g +(i * n), gradpoints + (i * n), n);
  }
   
-  // Next step call qpspecial
-  std::cout << "calling qpspecial" << std::endl;
-  qpclass<double> * myopt = new qpclass<double>(n, gradientsamplingN, gradgrads, 100);
-  myopt->optimization();
+// Next step call qpspecial
+ std::cout << "calling qpspecial" << std::endl;
+ qpclass<double> * myopt = new qpclass<double>(static_cast<int>(n), 
+					       static_cast<int>(gradientsamplingN), 
+					       gradgrads, 100);
+ myopt->optimization();
   
   double * solution = new double[n];
   myopt->fetchSolution(solution);
