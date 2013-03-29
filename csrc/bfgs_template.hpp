@@ -22,10 +22,10 @@ extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*,
 		       double*, int*, double*, double*, int*);
 
 template<class T>
-void bfgs(T *, T * fopt, size_t n, int lm, size_t m, T ftarget,  T gnormtol,  
-	  size_t maxit,  long J, T taux,  T taud,  int echo, 
-	  int(*testFunction)(T*, T*, T*, size_t),  std::string datafilename, 
-          double info[], size_t, T*, T*, bool);
+void bfgs(T *&, T *& fopt, size_t& n, short& lm, size_t& m, T& ftarget,  T& gnormtol,  
+	  size_t& maxit,  long& J, T& taux,  T& taud, short& echo, 
+	  int(*&testFunction)(T*, T*, T*, size_t),  std::string& datafilename, 
+          double*&, size_t&, T*&, T*&, bool&);
 
 // Quasinewton class declaration
 template<typename T>
@@ -592,10 +592,10 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, size_t& n0,  T& taud0,
 /////////////////////////////////////////////////////////////////////////////////////
 /* BFGS MAIN ALGORITHM: */
 template<class T>
-void bfgs(T x[], T * fopt,  size_t n,  int lm,  size_t m, T ftarget,  T gnormtol,  
-	  size_t maxit,  long J, T taux,  T taud, int echo, 
-	  int(*testFunction)(T*, T*, T*, size_t), std::string datafilename, 
-          double info[], size_t gradientsamplingN, T* u, T* l, bool boundedProblem){
+void bfgs(T *& x, T *& fopt,  size_t& n,  short& lm,  size_t& m, T& ftarget, 
+	  T& gnormtol, size_t& maxit,  long& J, T& taux,  T& taud, short echo, 
+	  int(*&testFunction)(T*, T*, T*, size_t), std::string& datafilename, 
+          double*& info, size_t& gradientsamplingN, T*& u, T*& l, bool& boundedProblem){
   
   std::ofstream output;
   std::cout <<"echo is: "<< echo << " datafilename is: " << datafilename << std::endl;

@@ -73,7 +73,7 @@ int main(int argc, char *argv[]){
   assert(sizeof(doubleparameters));
   assert(sizeof(dd_realparameters));
   assert(sizeof(dd_realparLBFGS));
-
+  
   std::cout << "Objects were created safely.  Running BFGS next" << std::endl;
   try{
     std::cout.precision(16);	
@@ -94,7 +94,7 @@ int main(int argc, char *argv[]){
     std::cerr << "Issues with delete: " << ex.what() << std::endl;
     assert(false);
   }
-
+  
   // This is for simple bounded problems.
   
   double * u = new double[static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ];
@@ -102,9 +102,9 @@ int main(int argc, char *argv[]){
   // dummy initialization just to have something to work with...
   for(size_t counter = 0; counter < static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ;
       counter++){
-    u[counter] = 1.0; l[counter = -1.0];
+    u[counter] = 1.0; l[counter] = -1.0;
   }
-
+  
   algoparameters<double> * constrainedproblem;
   try{
     constrainedproblem = new algoparameters<double>(ninitial, str, strout, 0, u, l);
@@ -112,8 +112,18 @@ int main(int argc, char *argv[]){
     std::cerr << "Problem assigning memory to constrained" << ex.what() << std::endl;
     assert(false);
   }
-  std::cout.precision(16);
-  
+  assert(sizeof(constrainedproblem));
+
+  std::cout  << "Constrained problem was created safely" << std::endl;
+  try{
+    std::cout.precision(16);
+    constrainedproblem->BFGSfunction();
+  } catch(std::exception ex){
+    std::cerr << "General Problem during execution. " << ex.what() << std::endl;
+    assert(false);
+  }
+
+
   try{
     delete [] u;
     delete [] l;

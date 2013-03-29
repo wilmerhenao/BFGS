@@ -18,10 +18,10 @@ void printhowtodoit(); // implemented on the cpp
 template<typename T>
 class algoparameters{
 private:
-  friend void bfgs<T>(T *, T * , size_t, int, size_t, T, T, 
-		       size_t,  long int,  T,  T,  int, 
-		      int(*)(T*, T*, T*, size_t),  std::string , double*, size_t, T*,
-		      T*, bool);
+  friend void bfgs<T>(T*&, T *& , size_t&, short&, size_t&, T&, T&, 
+		       size_t&,  long&, T&, T&,  short&, 
+		      int(*&)(T*, T*, T*, size_t),  std::string& , double*&, size_t&, 
+		      T*&, T*&, bool&);
   T ftarget, gnormtol, taux, taud;
   short echo, lm;
   size_t n, m, maxit, gradientsamplingN;
@@ -38,14 +38,14 @@ private:
 public:
   algoparameters(size_t, std::string, std::string, short);
   algoparameters(size_t, std::string, std::string, short, double*, double*);
-  initializationcode(size_t, std::string, std::string, short);
+  void initializationcode(size_t, std::string, std::string, short);
   ~algoparameters();
   void generateXF();
   void BFGSfunction();
 };
 
 template<typename T>
-algoparameters<T>::initializationcode(size_t k, std::string locfunc, 
+void algoparameters<T>::initializationcode(size_t k, std::string locfunc, 
 				      std::string outstr, short lmprm){
   // All the parameters initialized with the same values
   // It is very possible that we may want to do this depending on the type
