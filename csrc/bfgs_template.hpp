@@ -29,6 +29,11 @@ void bfgs(T*&, T*& fopt, size_t& n, short& lm, size_t& m, T& ftarget,  T& gnormt
 	  int(*&testFunction)(T*, T*, T*, size_t),  std::string& datafilename, 
           double*&, size_t&, double*&, double*&, bool&);
 
+/* copy */
+double qdtodouble(double *b) {
+  return(b[0]);
+}
+
 // Quasinewton class declaration
 template<typename T>
 class quasinewton{
@@ -369,7 +374,7 @@ double BFGSB<T>::findGeneralizedCauchyPoint(){
   double alpha = 1.0, beta = 0.0;
   int ndouble = static_cast<int> (quasinewton<T>::n);
   int one = 1;
-  double tj, fj, fpj, fppj, deltatj, oldtj;
+  double tj, fpj, fppj, deltatj, oldtj;
   double* di = new double[quasinewton<T>::n];
   double* z = new double[quasinewton<T>::n];
   double* C = new double[quasinewton<T>::n];
@@ -384,19 +389,19 @@ double BFGSB<T>::findGeneralizedCauchyPoint(){
   // First of all.  Run the zeroeth step from the multistep gradient projection
   iter = quasinewton<T>::bpmemory.begin();
   size_t b = (*iter).second;
-  deltatj = static_cast<double>((*iter).first); // Change from zero
+  deltatj = to_double((*iter).first); // Change from zero
   oldtj = tj = deltatj;
   // Find the new x position
   for(size_t i = 0; i < quasinewton<T>::n; i++){
-    quasinewton<T>::xcauchy[i] = (static_cast<double>(quasinewton<T>::x[i]) - 
-				  static_cast<double>((*iter).first) * 
-				  static_cast<double>(quasinewton<T>::g[i]));
+    quasinewton<T>::xcauchy[i] = (to_double(quasinewton<T>::x[i]) - 
+				  to_double((*iter).first) * 
+				  to_double(quasinewton<T>::g[i]));
     quasinewton<T>::xcauchy[i] = MIN(quasinewton<T>::xcauchy[i], quasinewton<T>::u[i]);
     quasinewton<T>::xcauchy[i] = MAX(quasinewton<T>::xcauchy[i], quasinewton<T>::l[i]);
-    z[i] = static_cast<double>(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
+    z[i] = to_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
   }
   // Update new d_i coordinate
-  di[b] = -quasinewton<T>::g[b];
+  di[b] = -to_double(quasinewton<T>::g[b]);
   quasinewton<T>::freeVariable[b] = false;
   
   // z^T*B*z
@@ -404,7 +409,7 @@ double BFGSB<T>::findGeneralizedCauchyPoint(){
 	 z, &ndouble, &beta, C, &ndouble);
   dgemm_(&yTrans, &nTrans, &one, &ndouble, &ndouble, &alpha, di, &ndouble, C, &ndouble, 
 	 &beta, &adouble, &one);
-  fpj = static_cast<double>(vecip<T>(quasinewton<T>::g, di, quasinewton<T>::n)) + 
+  fpj = to_double(veciptd<T>(quasinewton<T>::g, di, quasinewton<T>::n)) + 
     adouble; 
   //g^Td +  z^T*B*z
   
@@ -416,39 +421,41 @@ double BFGSB<T>::findGeneralizedCauchyPoint(){
   fppj = adouble;
   dtstar = -fpj / fppj;
   tstar = dtstar + oldtj;
-  tj = static_cast<double>(quasinewton<T>::bpmemory[1].first);
+  typename std::multimap<T, size_t>::iterator titer = quasinewton<T>::bpmemory.begin();
+  titer++;
+  tj = to_double((*titer).first);
   if (tstar < tj){
     if (tstar > 0)
       return(tstar);
   }
   
   for(iter++; iter != quasinewton<T>::bpmemory.end(); iter++){
-    tj = static_cast<double>((*iter).first);
+    tj = to_double((*iter).first);
     b = (*iter).second;
-    deltatj = static_cast<double>((*iter).first) - oldtj;
-    di[b] = -quasinewton<T>::g[b];  // This is equation 4.2 (minus?)
+    deltatj = to_double((*iter).first) - oldtj;
+    di[b] = -to_double(quasinewton<T>::g[b]);  // This is equation 4.2 (minus?)
     quasinewton<T>::freeVariable[b] = false;
     for(size_t i = 0; i < quasinewton<T>::n; i++){
-      quasinewton<T>::xcauchy[i] = static_cast<double> ((quasinewton<T>::x[i]) - 
+      quasinewton<T>::xcauchy[i] = to_double((quasinewton<T>::x[i]) - 
 							(*iter).first * 
 							quasinewton<T>::g[i]);
       quasinewton<T>::xcauchy[i] = MIN(quasinewton<T>::xcauchy[i], 
 				       quasinewton<T>::u[i]);
       quasinewton<T>::xcauchy[i] = MAX(quasinewton<T>::xcauchy[i], 
 				       quasinewton<T>::l[i]);
-      z[i] = quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i];
+      z[i] = to_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
     }
     dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, 
 	   &ndouble, z, &ndouble, &beta, C, &ndouble); //C = B^T * z
     
-    fpj = fpj + deltatj * fppj + std::pow(static_cast<double>(quasinewton<T>::g[b]), 
+    fpj = fpj + deltatj * fppj + std::pow(to_double(quasinewton<T>::g[b]), 
 					  2) + 
-      static_cast<double>(quasinewton<T>::g[b]) * C[b];
+      to_double(quasinewton<T>::g[b]) * C[b];
     dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, 
 	   &ndouble, di, &ndouble, &beta, C, &ndouble); //C = B^T * d
-    fppj = fppj + 2 * static_cast<double>(quasinewton<T>::g[b]) * C[b] + 
-      std::pow(static_cast<double>(quasinewton<T>::g[b]), 2) * 
-      BFGS<T>::H[b * quasinewton<T>::n + b];
+    fppj = fppj + 2 * to_double(quasinewton<T>::g[b]) * C[b] + 
+      std::pow(to_double(quasinewton<T>::g[b]), 2) * 
+      to_double(BFGS<T>::H[b * quasinewton<T>::n + b]);
     dtstar = fpj / fppj;
     tstar = oldtj + dtstar;
     if (tstar >= oldtj){
@@ -473,7 +480,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   int numfree = 0, b = 0;
   double* Z, *r, *dx;
   char yTrans = 'T', nTrans = 'N';
-  int ndouble = static_cast<double>(quasinewton<T>::n);
+  int ndouble = static_cast<int>(quasinewton<T>::n);
   int one = 1;
   double alpha = 1.0, beta = 0.0;
   double* C = new double[quasinewton<T>::n];
@@ -484,28 +491,29 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     if(quasinewton<T>::freeVariable[i])
       numfree++;
   }
-  Z = new double[quasinewton<T>::n * numfree];
+  Z = new double[static_cast<int>(quasinewton<T>::n) * numfree];
 
-  for(size_t i = 0; i < quasinewton<T>::n; i++){
-    for(size_t j = 0; j < numfree; j++)
-      Z[i, j] = 0.0;
-    b = quasinewton<T>::bpmemory[i].second; //position of the ith. crossed boundary
-    Z[b, i] = 1.0;
+  typename std::multimap<T, size_t>::iterator titer = quasinewton<T>::bpmemory.begin();
+  for(size_t i = 0; i < quasinewton<T>::n; i++, titer++){
+    for(int j = 0; j < numfree; j++)
+      Z[i * numfree + j] = 0.0;
+    b = (*titer).second; //position of the ith. crossed boundary
+    Z[b * numfree + i] = 1.0;
   }
-
+  
   // Now let's define the r vector 
   for(size_t i = 0; i < quasinewton<T>::n; i++)
-    dx[i] = quasinewton<T>::xnew[i] - quasinewton<T>::x[i];
+    dx[i] = quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i];
   dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, 
 	 &ndouble, dx, &ndouble, &beta, C, &ndouble);
   for(size_t i = 0; i < quasinewton<T>::n; i++)
     C[i] += quasinewton<T>::g[i];
   dgemm_(&yTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, Z,
-       &ndouble, C, &ndouble, &beta, r, &ndouble);
-
+	 &ndouble, C, &ndouble, &beta, r, &ndouble);
+  
 // Find Bhat = Z^TBZ
   double* BZ, *BHAT;
-  BZ = new double[quasinewton<T>::n * numfree];
+  BZ = new double[static_cast<int>(quasinewton<T>::n) * numfree];
   BHAT = new double[numfree * numfree];
   dgemm_(&nTrans, &nTrans, &ndouble, &numfree, &ndouble, &alpha, BFGS<T>::Hdouble,
 	 &ndouble, Z, &numfree, &beta, BZ, &ndouble);
