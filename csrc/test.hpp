@@ -21,7 +21,7 @@ private:
   friend void bfgs<T>(T*&, T *& , size_t&, short&, size_t&, T&, T&, 
 		       size_t&,  long&, T&, T&,  short&, 
 		      int(*&)(T*, T*, T*, size_t),  std::string& , double*&, size_t&, 
-		      T*&, T*&, bool&);
+		      double*&, double*&, bool&);
   T ftarget, gnormtol, taux, taud;
   short echo, lm;
   size_t n, m, maxit, gradientsamplingN;
@@ -38,26 +38,25 @@ private:
 public:
   algoparameters(size_t, std::string, std::string, short);
   algoparameters(size_t, std::string, std::string, short, double*, double*);
-  void initializationcode(size_t, std::string, std::string, short);
+  void initializationcode(std::string);
   ~algoparameters();
   void generateXF();
   void BFGSfunction();
 };
 
 template<typename T>
-void algoparameters<T>::initializationcode(size_t k, std::string locfunc, 
-				      std::string outstr, short lmprm){
+void algoparameters<T>::initializationcode(std::string locfunc){
   // All the parameters initialized with the same values
   // It is very possible that we may want to do this depending on the type
   try{
-    J = (long)MIN(15, ceil(2.0 * static_cast<double> (n) / 3.0));
+    J = static_cast<long>(MIN(15, ceil(2.0 * static_cast<double>(n) / 3.0)));
   } catch(std::exception ex){
     std::cerr << "issue with casting? " << ex.what() << std::endl;
   }
   try{
     fopt = new T;
-    u = new T[n];
-    l = new T[n];
+    u = new double[n];
+    l = new double[n];
     info = new double[4];
     xf = new T[n];
     x0 = new double[n];
@@ -99,7 +98,7 @@ algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string out
 				  short lmprm, double * u0, double * l0):
   ftarget(1e-100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(lmprm), n(k), 
   m(7), maxit(10e8), gradientsamplingN(1000), datafilename(outstr){
-  initializationcode(k, locfunc, outstr, lmprm);
+  initializationcode(locfunc);
   for(size_t i; i < n; i++){
     u[i] = u0[i]; l[i] = l0[i];
   }
@@ -113,7 +112,7 @@ algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string out
 				  short lmprm):
   ftarget(1e-100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(lmprm), n(k), 
   m(7), maxit(10e8), gradientsamplingN(1000), datafilename(outstr){
-  initializationcode(k, locfunc, outstr, lmprm);
+  initializationcode(locfunc);
   // This for loop is just here for consistency and won't be implemented
   for(size_t i; i < n; i++){
     u[i] = l[i] = 0.0;  // 
