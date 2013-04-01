@@ -20,6 +20,16 @@
 #include <qd/dd_real.h>
 #include <qd/qd_real.h>
 
+extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*, 
+		       double*, int*, double*, double*, int*);
+extern "C" int sgesv_(int*, int*, float*, int*, int*, float*, int*, int*);
+
+template<class T>
+void bfgs(T*&, T*& fopt, size_t& n, short& lm, size_t& m, T& ftarget,  T& gnormtol,  
+	  size_t& maxit,  long& J, T& taux,  T& taud, short& echo, 
+	  int(*&testFunction)(T*, T*, T*, size_t),  std::string& datafilename, 
+          double*&, size_t&, double*&, double*&, bool&);
+
 /* Cast to double. */
 inline double t_double(const dd_real &a) {
   return a.x[0];
@@ -31,20 +41,6 @@ inline double t_double(const qd_real &a) {
 
 inline double t_double(const double &a){
   return a;
-}
-
-extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*, 
-		       double*, int*, double*, double*, int*);
-
-template<class T>
-void bfgs(T*&, T*& fopt, size_t& n, short& lm, size_t& m, T& ftarget,  T& gnormtol,  
-	  size_t& maxit,  long& J, T& taux,  T& taud, short& echo, 
-	  int(*&testFunction)(T*, T*, T*, size_t),  std::string& datafilename, 
-          double*&, size_t&, double*&, double*&, bool&);
-
-/* copy */
-double qdtodouble(double *b) {
-  return(b[0]);
 }
 
 // Quasinewton class declaration
@@ -489,7 +485,7 @@ template<typename T>
 void BFGSB<T>::findMinimum2ndApproximation(){
   // Assuming xcauchy has been correctly found.  This function runs a minimization of
   // the quadratic approximation to the goal function
-  int numfree = 0; 
+  int numfree = 0; // number of free variables
   size_t b = 0;
   double* Z, *r, *dx;
   char yTrans = 'T', nTrans = 'N';
@@ -514,7 +510,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     Z[static_cast<int>(b) * numfree + static_cast<int>(i)] = 1.0;
   }
   
-  // Now let's define the r vector
+  // Now let's define the r vector.  r = Z(g + H(Xcauchy - X))
   for(size_t i = 0; i < quasinewton<T>::n; i++)
     dx[i] = t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
   dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble,
@@ -531,8 +527,16 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   dgemm_(&nTrans, &nTrans, &ndouble, &numfree, &ndouble, &alpha, BFGS<T>::Hdouble,
 	 &ndouble, Z, &numfree, &beta, BZ, &ndouble);
   dgemm_(&yTrans, &nTrans, &numfree, &ndouble, &ndouble, &alpha, Z,
-	 &numfree, BZ, &ndouble, &beta, BHAT, &one);//Warning  Check that &one
-// Solve the system
+	 &numfree, BZ, &ndouble, &beta, BHAT, &one); //Warning  Check that &one
+  // Solve the system 5.5 and 5.6
+  
+  // Notice that BHAT will be completely overwritten with an L and U decomposition...
+  int info = 11;
+  int* ipiv = new int[numfree];
+  sgesv_(&numfree, &one, BHAT, &numfree, ipiv, r, &numfree, info);
+  // The solution is now on variable r
+  
+  
 }
 
 template<typename T>
