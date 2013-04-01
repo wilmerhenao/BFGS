@@ -533,7 +533,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // Notice that BHAT will be completely overwritten with an L and U decomposition...
   int info = 11;
   int* ipiv = new int[numfree];
-  sgesv_(&numfree, &one, BHAT, &numfree, ipiv, r, &numfree, info);
+  dgesv_(&numfree, &one, BHAT, &numfree, ipiv, r, &numfree, &info);
   // The solution is now on variable r
   
   
