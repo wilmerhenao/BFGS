@@ -20,7 +20,6 @@
 #include <qd/dd_real.h>
 #include <qd/qd_real.h>
 
-
 /* Cast to double. */
 inline double t_double(const dd_real &a) {
   return a.x[0];
@@ -90,7 +89,7 @@ public:
   void runallsteps();
   void printallfinalinfo();
   void gettis();
-  //size_t findDimension(size_t);
+  bool themin(double*, size_t);
   bool gradsamp(); // A few more iterations.  Defined only for double types
 };
 
@@ -657,14 +656,24 @@ void bfgs(T*& x, T*& fopt,  size_t& n,  short& lm,  size_t& m, T& ftarget,
   output.close();
 }
 
-// This part is for the gradient sampling method
-using std::endl;
-
-bool themin(double *, double *, size_t, const size_t);
+template<typename T>
+bool quasinewton<T>::themin(double *gradpoints, size_t i1){
+  double mindist = 1.0;
+  size_t mybase = i1 * n;
+  size_t loc = 0;
+  bool threshold = false;
+  for(size_t i = 0; i < n; i++){
+    loc = mybase + i;
+    mindist = MIN((x[i] - gradpoints[loc]), mindist);
+  }
+  (mindist < 1e-14) ? threshold = true : threshold = false;
+  return(threshold);
+}
 
 template<typename T>
 bool quasinewton<T>::gradsamp(){
-  std::cout << "gradsamp doesn't do anything for the current type.  Try doubles"<< endl;
+  std::cout << "gradsamp doesn't do anything for the current type.  Try doubles"<< 
+    std::endl;
   //Do nothing unless T is a double type
   return(false);
 }
@@ -680,7 +689,7 @@ bool quasinewton<double>::gradsamp(){
   // Assign original x point to the gradpoints store
   for (size_t i = 0; i < n; i++)
     gradpoints[i] = x[i];
-
+  
   // Assign random numbers to the rest of variables.
   for (size_t i = n; i < static_cast<size_t>(gradientsamplingN) * 
 	 static_cast<size_t>(n); i++, j++){
@@ -695,7 +704,7 @@ bool quasinewton<double>::gradsamp(){
     do {
       for(size_t k = 0; k < n; k++)
 	gradpoints[i + k] = (gradpoints[i + k] + x[i]) / 2;      
-    } while (themin(x, gradpoints, i, n));
+    } while (themin(gradpoints, i));
   }
   
   // found the x's now. Let's find the gradients
