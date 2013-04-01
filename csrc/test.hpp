@@ -99,7 +99,7 @@ algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string out
   ftarget(1e-100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(lmprm), n(k), 
   m(7), maxit(10e8), gradientsamplingN(1000), datafilename(outstr){
   initializationcode(locfunc);
-  for(size_t i; i < n; i++){
+  for(size_t i =0; i < n; i++){
     u[i] = u0[i]; l[i] = l0[i];
   }
   // turn on the boundedProblem flag variable
@@ -114,7 +114,7 @@ algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string out
   m(7), maxit(10e8), gradientsamplingN(1000), datafilename(outstr){
   initializationcode(locfunc);
   // This for loop is just here for consistency and won't be implemented
-  for(size_t i; i < n; i++){
+  for(size_t i = 0; i < n; i++){
     u[i] = l[i] = 0.0;  // 
   }
   boundedProblem = false;

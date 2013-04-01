@@ -3,10 +3,14 @@
 
 #include <cstdlib>
 #include <cmath>
+#include <qd/dd_real.h>
+#include <qd/qd_real.h>
 
 template<class T> void mxv(T y[], T [], T x[], T alpha, T beta, size_t m, size_t n);
 template <class T> T vecip(T x[], T y[], size_t n);
-template <class T> T veciptd(T*&, double*&, size_t&);
+template <class T> double veciptd(double*&, double*&, size_t&);
+template <class T> double veciptd(dd_real*&, double*&, size_t&);
+template <class T> double veciptd(qd_real*&, double*&, size_t&);
 template <class T> T vecnorm(T v[], size_t n);
 template <class T> void mat_set_eye(T A[], size_t m, size_t n);
 template <class T> void vpv(T y[], T x[], T a, size_t n);
@@ -16,21 +20,39 @@ template <class T> void vscal(T x[], T a, size_t n);
 template <class T> void mat_r1update(T A[], T x[], T y[], T alpha, size_t n);
 
 template <class T> 
+double veciptd(double*& x, double*& y, size_t& n){
+// Dot product between x and y vectors
+  double ip = 0;
+  for(size_t i=0; i < n; i++)
+    ip += x[i] * y[i];
+  return ip;  
+}
+
+template <class T> 
+double veciptd(dd_real*& x, double*& y, size_t& n){
+// Dot product between x and y vectors
+  double ip = 0;
+  for(size_t i=0; i < n; i++)
+    ip += (x[i].x[0]) * y[i];
+  return ip;  
+}
+
+template <class T> 
+double veciptd(qd_real*& x, double*& y, size_t& n){
+// Dot product between x and y vectors
+  double ip = 0;
+  for(size_t i=0; i < n; i++)
+    ip += (x[i][0]) * y[i];
+  return ip;  
+}
+
+template <class T> 
 T vecip(T x[], T y[], size_t n) {
   // Dot product between x and y vectors
   T ip = 0;
   for(size_t i=0; i < n; i++)
     ip += x[i] * y[i];
   return ip;
-}
-
-template <class T> 
-T veciptd(T*& x, double*& y, size_t& n){
-// Dot product between x and y vectors
-  T ip = 0;
-  for(size_t i=0; i < n; i++)
-    ip += to_double(x[i]) * y[i];
-  return ip;  
 }
 
 template <class T> 
