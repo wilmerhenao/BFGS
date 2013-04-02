@@ -67,7 +67,7 @@ protected:
   const char * outputname;
   std::vector<T> breakpoints; //Contains the breakpoints to be ordered
   std::vector<T> breakpointsNOorder; 
-  std::multimap<T, size_t> bpmemory; //Breakpoints but will stay unordered to rem. crds
+  std::multimap<T, size_t> bpmemory; //Breakpoints automatically ordered
   
 public:
   quasinewton(T [], T *, size_t ,  T,  int(*)(T*, T*, T*, size_t), std::ofstream&,  
@@ -487,15 +487,15 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // the quadratic approximation to the goal function
   int numfree = 0; // number of free variables
   size_t b = 0;
-  double* Z, *r, *dx;
+  double* Z, *r, *dx, *d;
   char yTrans = 'T', nTrans = 'N';
   int ndouble = static_cast<int>(quasinewton<T>::n);
   int one = 1;
   double alpha = 1.0, beta = 0.0;
   double* C = new double[quasinewton<T>::n];
   dx = new double[quasinewton<T>::n];
-  r = new double[quasinewton<T>::n];
-
+  r = new double[numfree];
+  d = new double[numfree];
   for(size_t i = 0; i < quasinewton<T>::n; i++){
     if(quasinewton<T>::freeVariable[i])
       numfree++;
@@ -511,6 +511,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   }
   
   // Now let's define the r vector.  r = Z(g + H(Xcauchy - X))
+  // is it maybe worth representing r as in equation 5.4 instead?
   for(size_t i = 0; i < quasinewton<T>::n; i++)
     dx[i] = t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
   dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble,
@@ -528,15 +529,30 @@ void BFGSB<T>::findMinimum2ndApproximation(){
 	 &ndouble, Z, &numfree, &beta, BZ, &ndouble);
   dgemm_(&yTrans, &nTrans, &numfree, &ndouble, &ndouble, &alpha, Z,
 	 &numfree, BZ, &ndouble, &beta, BHAT, &one); //Warning  Check that &one
-  // Solve the system 5.5 and 5.6
   
+  // Solve the system 5.5 and 5.6
+  // Notice that this system could easily be solved by inverting the matrix *BHAT
   // Notice that BHAT will be completely overwritten with an L and U decomposition...
   int info = 11;
   int* ipiv = new int[numfree];
   dgesv_(&numfree, &one, BHAT, &numfree, ipiv, r, &numfree, &info);
   // The solution is now on variable r
-  
-  
+  double alpha = 0.0;
+  double alphacandidate = 0.0;
+  // Define the new boundaries which appear on 5.6
+  double* lbf = new double[numfree];
+  double* ubf = new double[numbree];
+  size_t ind = 0;
+  for(titer = quasinewton<T>::bpmemory.begin(); titer != bpmemory.end(); titer++, ind++)
+    {
+      b = (*titer).second;
+      lbf[ind] = l[b] - xcauchy[b]; ubf[ind] = u[b] - xcauchy[b];
+      alphacandidate = MAX(ubf[ind] / r[ind], lbf[ind] / r[ind]); //WARNING: r is d here
+      alpha = MAX(alpha, alphacandidate);
+    }
+  for(size_t i = 0; i < numfree; i++){
+    d[i] = alpha * r[i] // Move back to vector d since it is less confusing
+  }
 }
 
 template<typename T>

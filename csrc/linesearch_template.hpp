@@ -24,7 +24,7 @@ T linesearch_ww (T*& x, T*& f, T*& g, T*& d, const T& C1, const T& C2, size_t& n
   T nbisect = 0;
   T nexpand = 0;
   T dnorm = vecnorm<T>(d,n);
-    
+  
   /* MATLAB:
      nbisectmax = max(30, round(log2(1e5*dnorm))); % allows more if ||d|| big
      nexpandmax = max(10, round(log2(1e5/dnorm))); % allows more if ||d|| small
