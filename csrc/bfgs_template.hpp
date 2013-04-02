@@ -359,7 +359,6 @@ public:
 	size_t&, double*&, double*&);
   double findGeneralizedCauchyPoint();
   void findMinimum2ndApproximation();
-  void lineSearchSurface();
   void mainloop();
 };
 
@@ -487,7 +486,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // the quadratic approximation to the goal function
   int numfree = 0; // number of free variables
   size_t b = 0;
-  double* Z, *r, *dx, *d;
+  double* Z, *r, *dx, *d, *dnsize;
   char yTrans = 'T', nTrans = 'N';
   int ndouble = static_cast<int>(quasinewton<T>::n);
   int one = 1;
@@ -496,6 +495,8 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   dx = new double[quasinewton<T>::n];
   r = new double[numfree];
   d = new double[numfree];
+  dnsize = new double[quasinewton<T>::n];
+
   for(size_t i = 0; i < quasinewton<T>::n; i++){
     if(quasinewton<T>::freeVariable[i])
       numfree++;
@@ -518,7 +519,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
 	 &ndouble, dx, &ndouble, &beta, C, &ndouble);
   for(size_t i = 0; i < quasinewton<T>::n; i++)
     C[i] += t_double(quasinewton<T>::g[i]);
-  dgemm_(&yTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, Z,
+  dgemm_(&yTrans, &nTrans, &ndouble, &one, &numfree, &alpha, Z,
 	 &ndouble, C, &ndouble, &beta, r, &ndouble);
   
   // Find Bhat = Z^TBZ
@@ -550,8 +551,20 @@ void BFGSB<T>::findMinimum2ndApproximation(){
       alphacandidate = MAX(ubf[ind] / r[ind], lbf[ind] / r[ind]); //WARNING: r is d here
       alpha = MAX(alpha, alphacandidate);
     }
+  alpha = MIN(alpha, 1.0);
   for(size_t i = 0; i < numfree; i++){
     d[i] = alpha * r[i] // Move back to vector d since it is less confusing
+  }
+  // Find the new solution
+  titer = quasinewton<T>::bpmemory.begin();
+  // Z_k * d
+  dgemm_(&nTrans, &nTrans, &ndouble, &one, &numfree, &alpha, Z,
+	 &ndouble, d, &ndouble, &beta, dnsize, &ndouble);  
+  for(size_t i = 0; i < quasinewton<T>::n; i++){
+    quasinewton<T>::x[i] = quasinewton::xcauchy[i];
+    if((*titer).second == i){
+      quasinewton<T>::x[i] += dnsize[i];
+    }
   }
 }
 
@@ -559,7 +572,6 @@ template<typename T>
 void BFGSB<T>::mainloop(){
   findGeneralizedCauchyPoint();
   findMinimum2ndApproximation();
-  lineSearchSurface();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
