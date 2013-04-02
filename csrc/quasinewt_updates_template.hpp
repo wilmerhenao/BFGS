@@ -11,31 +11,29 @@ template <class T> void update_lbfgs (T p[], T S[],T Y[], T rho[], T a[], T g[],
 /* BFGS update */
 template<class T>
 void update_bfgs (T H[], T p[], T g[], T s[], T y[], T q[], size_t n)  {    
-	
+  
   T rho;
-    
   rho = 1 / vecip<T>(s, y, n);
   mxv<T>(q, H, y, 1.0, 0.0, n, n);
-    
+  
   T a = rho * vecip<T>(y, q, n) + 1.0;
-    
+  
   /* reuse y to save memory and precompute a*s-q to save flops: */
   vcopyp<T>(y, q, -1.0, n); /* y := -q */
   vpv<T>(y, s, a, n);       /* y := a*s + y */
   /* so now: y = a*s - q */
-    
+  
   /* save flops by multiplying s by rho before the two rank one updates */
   vscal<T>(s, rho, n);
-    
+  
   /* the two rank one updates (in total a rank two update): */
   /* NB: THERE IS ALSO A DIRECT RANK 2 UPDATE IN BLAS!! */
   mat_r1update<T>(H, s, y, 1.0, n);
   mat_r1update<T>(H, q, s, -1.0, n);
-    
+  
   /* compute next search dir p = -H*g: */
   mxv<T>(p, H, g, -1.0, 0.0, n, n);
 }
-
 
 /* LBFGS update */
 template <class T>
