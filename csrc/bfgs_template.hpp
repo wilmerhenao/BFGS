@@ -488,7 +488,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   size_t b = 0;
   double* Z, *r, *dx, *d, *dnsize;
   char yTrans = 'T', nTrans = 'N';
-  int ndouble = static_cast<int>(quasinewton<T>::n);
+  int ndouble = (int)(quasinewton<T>::n);
   int one = 1;
   double alpha = 1.0, beta = 0.0;
   double* C = new double[quasinewton<T>::n];
