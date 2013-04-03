@@ -545,16 +545,16 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   double* ubf = new double[numfree];
   size_t ind = 0;
   titer = quasinewton<T>::bpmemory.begin();
-  for(; titer != bpmemory.end(); titer++, ind++)
+  for(; titer != quasinewton<T>::bpmemory.end(); titer++, ind++)
     {
       b = (*titer).second;
-      lbf[ind] = quasinewton<T>::l[b] - xcauchy[b]; 
-      ubf[ind] = quasinewton<T>::u[b] - xcauchy[b];
+      lbf[ind] = quasinewton<T>::l[b] - quasinewton<T>::xcauchy[b]; 
+      ubf[ind] = quasinewton<T>::u[b] - quasinewton<T>::xcauchy[b];
       alphacandidate = MAX(ubf[ind] / r[ind], lbf[ind] / r[ind]); //WARNING: r is d here
       alpha0 = MAX(alpha0, alphacandidate);
     }
   alpha0 = MIN(alpha0, 1.0);
-  for(size_t i = 0; i < numfree; i++){
+  for(int i = 0; i < numfree; i++){
     d[i] = alpha0 * r[i];   // Move back to vector d since it is less confusing
   }
   // Find the new solution
@@ -563,7 +563,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   dgemm_(&nTrans, &nTrans, &ndouble, &one, &numfree, &alpha, Z,
 	 &ndouble, d, &ndouble, &beta, dnsize, &ndouble);  
   for(size_t i = 0; i < quasinewton<T>::n; i++){
-    quasinewton<T>::x[i] = quasinewton::xcauchy[i];
+    quasinewton<T>::x[i] = quasinewton<T>::xcauchy[i];
     if((*titer).second == i){
       quasinewton<T>::x[i] += dnsize[i];
     }
@@ -577,20 +577,24 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1, quasinewton<T>::n);
   // Here's a question.  Do I use the new g or the previous one before the update
   // My guess is that it's probably similar
-  update_bfgs<T>(H, dnsize, quasinewton<T>::g, quasinewton<T>::s, 
-		 quasinewton<T>::y, q, quasinewton<T>::n);
+  T* dnsizeT = new T[quasinewton<T>::n];
+  for(size_t i = 0; i < quasinewton<T>::n; i++)
+	dnsizeT[i] = dnsize[i];
+  update_bfgs<T>(BFGS<T>::H, dnsizeT, quasinewton<T>::g, 
+		 quasinewton<T>::s, quasinewton<T>::y, BFGS<T>::q, quasinewton<T>::n);
+  T alpha1 = static_cast<T>(alpha0);
   if (2 == quasinewton<T>::echo)
-    print_iter_info<T>(*output, quasinewton<T>::it, quasinewton<T>::f, 
+    print_iter_info<T>(*quasinewton<T>::output, quasinewton<T>::it, quasinewton<T>::f, 
 		       quasinewton<T>::gnorm, quasinewton<T>::jcur, 
-		       quasinewton<T>::qpoptvalptr, alpha);
+		       quasinewton<T>::qpoptvalptr, alpha1);
   if (quasinewton<T>::it >= quasinewton<T>::maxit)
-    quasinewton<T>::*exitflag = -1;
-  if (quasinewton<T>::*f < quasinewton<T>::ftarget)
-    quasinewton<T>::*exitflag = 1;
+    *quasinewton<T>::exitflag = -1;
+  if (*quasinewton<T>::f < quasinewton<T>::ftarget)
+    *quasinewton<T>::exitflag = 1;
   if (quasinewton<T>::gnorm < quasinewton<T>::gnormtol)
-    quasinewton<T>::*exitflag = 2;
-  if (quasinewton<T>::*qoptvalptr < quasinewton<T>::taud)
-    quasinewton<T>::*exitflag = 7;
+    *quasinewton<T>::exitflag = 2;
+  if (*quasinewton<T>::qpoptvalptr < quasinewton<T>::taud)
+    *quasinewton<T>::exitflag = 7;
   
   /*
   // Can I do gradient sampling here?
@@ -601,7 +605,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   }
   */
   /* if exitflag was changed: exit main loop */
-  if (0 != quasinewton<T>::*exitflag) done = true;
+  if (0 != *quasinewton<T>::exitflag) quasinewton<T>::done = true;
 }
 
 template<typename T>
@@ -609,7 +613,7 @@ void BFGSB<T>::mainloop(){
   quasinewton<T>::it++;
   vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
   vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
-  quasinewton<T>::fprev = quasinewton<T>::*f;
+  quasinewton<T>::fprev = *quasinewton<T>::f;
   findGeneralizedCauchyPoint();
   findMinimum2ndApproximation();
 }
