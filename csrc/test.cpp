@@ -61,12 +61,12 @@ int main(int argc, char *argv[]){
   fpu_fix_start(&old_cw);
   
   std::string str;
-  for(size_t i = 0; 0 != argv[1][i]; i++)
+  for(int i = 0; 0 != argv[1][i]; i++)
     str += argv[1][i];
   assert(str.length());
   
   std::string strout;
-  for(size_t i = 0; 0 != argv[3][i]; i++)
+  for(int i = 0; 0 != argv[3][i]; i++)
     strout += argv[3][i];
   assert(str.length());
 
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]){
   double * u = new double[static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ];
   double * l = new double[static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ];
   // dummy initialization just to have something to work with...
-  for(size_t counter = 0; counter < static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ;
+  for(int counter = 0; counter < static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ;
       counter++){
     u[counter] = 1.0; l[counter] = -1.0;
   }

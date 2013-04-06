@@ -36,13 +36,13 @@ void printhowtodoit(); // implemented on the cpp
 template<typename T>
 class algoparameters{
 private:
-  friend void bfgs<T>(T*&, T *& , size_t&, short&, size_t&, T&, T&, 
-		       size_t&,  long&, T&, T&,  short&, 
-		      int(*&)(T*, T*, T*, size_t),  std::string& , double*&, size_t&, 
+  friend void bfgs<T>(T*&, T *& , int&, short&, int&, T&, T&, 
+		       int&,  long&, T&, T&,  short&, 
+		      int(*&)(T*, T*, T*, int),  std::string& , double*&, int&, 
 		      double*&, double*&, bool&);
   T ftarget, gnormtol, taux, taud;
   short echo, lm;
-  size_t n, m, maxit, gradientsamplingN;
+  int n, m, maxit, gradientsamplingN;
   std::string datafilename;
   long J;
   T * fopt; 
@@ -50,12 +50,12 @@ private:
   double * info;
   T * xf;
   double * x0;
-  int(*fun_ptr)(T*, T*, T*, size_t);
+  int(*fun_ptr)(T*, T*, T*, int);
   allfunctions<T> * pFunctions;
   bool boundedProblem;
 public:
-  algoparameters(size_t, std::string, std::string, short);
-  algoparameters(size_t, std::string, std::string, short, double*, double*);
+  algoparameters(int, std::string, std::string, short);
+  algoparameters(int, std::string, std::string, short, double*, double*);
   void initializationcode(std::string);
   ~algoparameters();
   void generateXF();
@@ -97,7 +97,7 @@ void algoparameters<T>::initializationcode(std::string locfunc){
   // the keys are the names of the non-smooth functions (std::strings) and the
   // elements pointed to are function pointers corresponding to the function
 
-  typename std::map<std::string, int(*)(T*, T*, T*, size_t), 
+  typename std::map<std::string, int(*)(T*, T*, T*, int), 
 		    StringComparerForMap>::iterator it = 
     pFunctions->tMap.find(locfunc);
 
@@ -112,12 +112,12 @@ void algoparameters<T>::initializationcode(std::string locfunc){
 
 // There are two initializers.  The first one initializes when there are u, l vectors
 template<typename T>
-algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr, 
+algoparameters<T>::algoparameters(int k, std::string locfunc, std::string outstr, 
 				  short lmprm, double * u0, double * l0):
   ftarget(1e-100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(lmprm), n(k), 
   m(7), maxit(10e8), gradientsamplingN(1000), datafilename(outstr){
   initializationcode(locfunc);
-  for(size_t i =0; i < n; i++){
+  for(int i =0; i < n; i++){
     u[i] = u0[i]; l[i] = l0[i];
   }
   // turn on the boundedProblem flag variable
@@ -126,13 +126,13 @@ algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string out
 
 // The second initializer initializes when there are no u, l vectors
 template<typename T>
-algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string outstr, 
+algoparameters<T>::algoparameters(int k, std::string locfunc, std::string outstr, 
 				  short lmprm):
   ftarget(1e-100), gnormtol(0.0), taux(1e-16), taud(1e-14), echo(2), lm(lmprm), n(k), 
   m(7), maxit(10e8), gradientsamplingN(1000), datafilename(outstr){
   initializationcode(locfunc);
   // This for loop is just here for consistency and won't be implemented
-  for(size_t i = 0; i < n; i++){
+  for(int i = 0; i < n; i++){
     u[i] = l[i] = 0.0;  // 
   }
   boundedProblem = false;
@@ -156,7 +156,7 @@ template <typename T>
 void algoparameters<T>::generateXF(){
   srand(static_cast<unsigned> (time(NULL)));
   rand_real_vec<double>(x0, n, -1, 1);
-  for (size_t j = 0 ; j < n; j++)
+  for (int j = 0 ; j < n; j++)
     xf[j] = (T) x0[j];
 }
 

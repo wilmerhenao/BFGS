@@ -22,13 +22,13 @@
 #include "libmatrix_template.hpp"
 
 template <class T> void update_bfgs (T [], T p[], T g[], T s[], T y[], T q[], 
-				     size_t n);
+				     int n);
 template <class T> void update_lbfgs (T p[], T S[],T Y[], T rho[], T a[], T g[], 
-				      int cs, int ne, size_t m, size_t n);
+				      int cs, int ne, int m, int n);
 
 /* BFGS update */
 template<class T>
-void update_bfgs (T H[], T p[], T g[], T s[], T y[], T q[], size_t n)  {    
+void update_bfgs (T H[], T p[], T g[], T s[], T y[], T q[], int n)  {    
   
   T rho;
   rho = 1 / vecip<T>(s, y, n);
@@ -56,10 +56,10 @@ void update_bfgs (T H[], T p[], T g[], T s[], T y[], T q[], size_t n)  {
 /* LBFGS update */
 template <class T>
 void update_lbfgs (T p[], T S[],T Y[], T rho[], T a[], T g[], 
-		   size_t cs, size_t ne, size_t m, size_t n) {
+		   int cs, int ne, int m, int n) {
   /* newest s/y/rho is in col ne of S/Y/rho */    
   T b, gam;
-  size_t ci, i, j;
+  int ci, i, j;
     
   gam = (1.0 / rho[ne - 1]) / vecip<T>(Y + n * (ne - 1), Y + n * (ne - 1), n);
   vcopy<T>(p, g, n);

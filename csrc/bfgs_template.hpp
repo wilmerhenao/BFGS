@@ -43,10 +43,10 @@ extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*,
 extern "C" int sgesv_(int*, int*, float*, int*, int*, float*, int*, int*);
 
 template<class T>
-void bfgs(T*&, T*& fopt, size_t& n, short& lm, size_t& m, T& ftarget,  T& gnormtol,  
-	  size_t& maxit,  long& J, T& taux,  T& taud, short& echo, 
-	  int(*&testFunction)(T*, T*, T*, size_t),  std::string& datafilename, 
-          double*&, size_t&, double*&, double*&, bool&);
+void bfgs(T*&, T*& fopt, int& n, short& lm, int& m, T& ftarget,  T& gnormtol,  
+	  int& maxit,  long& J, T& taux,  T& taud, short& echo, 
+	  int(*&testFunction)(T*, T*, T*, int),  std::string& datafilename, 
+          double*&, int&, double*&, double*&, bool&);
 
 /* Cast to double. */
 inline double t_double(const dd_real &a) {
@@ -69,27 +69,27 @@ protected:
   const double C2 = 0.9;
   bool done;
   clock_t t1, t2;
-  size_t n, n1, n2, nm, m1, tmp, maxit, m;
-  size_t it = 0, ol = 1, cs = 0, nfevalval = 0;
+  int n, n1, n2, nm, m1, tmp, maxit, m;
+  int it = 0, ol = 1, cs = 0, nfevalval = 0;
   T *g, *p, *s, *y, *f, *qpoptvalptr, *x, *fopt;
   double *u, *l, *xcauchy;
   bool *freeVariable;
   T t, gnorm, gtp, fval, fprev, qpoptval, taud, ftarget, gnormtol;
   /* integer pointers: */  
-  size_t* nfeval, gradientsamplingN;
+  int* nfeval, gradientsamplingN;
   int *exitflag;
   int echo, jcur, lm, exitflagval = 0;
-  int(*testFunction)(T*, T*, T*, size_t);
+  int(*testFunction)(T*, T*, T*, int);
   std::ofstream* output;
   std::ofstream alloutput;
   const char * outputname;
   std::vector<T> breakpoints; //Contains the breakpoints to be ordered
   std::vector<T> breakpointsNOorder; 
-  std::multimap<T, size_t> bpmemory; //Breakpoints automatically ordered
+  std::multimap<T, int> bpmemory; //Breakpoints automatically ordered
   
 public:
-  quasinewton(T [], T *, size_t ,  T,  int(*)(T*, T*, T*, size_t), std::ofstream&,  
-	      T,  T,  size_t, short, short, const char *, size_t , size_t, double*, 
+  quasinewton(T [], T *, int ,  T,  int(*)(T*, T*, T*, int), std::ofstream&,  
+	      T,  T,  int, short, short, const char *, int , int, double*, 
 	      double*);
   ~quasinewton();
   void finish(){t2 = clock();};
@@ -103,16 +103,16 @@ public:
   void runallsteps();
   void printallfinalinfo();
   void gettis();
-  bool themin(double*, size_t);
+  bool themin(double*, int);
   bool gradsamp(); // A few more iterations.  Defined only for double types
 };
 
 template<typename T>
-quasinewton<T>::quasinewton(T x0[], T* fopt0, size_t n0,  T taud0,  
-			    int(*tF)(T*, T*, T*, size_t), std::ofstream& output0,  
-			    T ftarget0,  T gnormtol0,  size_t maxit0, short echo0, 
-			    short lm0, const char * outputname0, size_t m0,
-			    size_t gradientsamplingN0, double* u0, double* l0){
+quasinewton<T>::quasinewton(T x0[], T* fopt0, int n0,  T taud0,  
+			    int(*tF)(T*, T*, T*, int), std::ofstream& output0,  
+			    T ftarget0,  T gnormtol0,  int maxit0, short echo0, 
+			    short lm0, const char * outputname0, int m0,
+			    int gradientsamplingN0, double* u0, double* l0){
   x        = x0;
   fopt     = fopt0;
   n        = n0;
@@ -278,17 +278,17 @@ template<typename T>
 void quasinewton<T>::gettis(){
   // This function gets all the Ti points described in (4.1) of 8limited**
   // It also sorts them at the end
-  for(size_t i = 0; i < n; i++){
+  for(int i = 0; i < n; i++){
     if(0 == g[i]){
       breakpoints.push_back(std::numeric_limits<T>::max()); // Assign \Infty if g == 0
-      bpmemory.insert(std::pair<T, size_t>(std::numeric_limits<T>::max(), i));
+      bpmemory.insert(std::pair<T, int>(std::numeric_limits<T>::max(), i));
     } else {
       if(g[i] < 0) {
 	breakpoints.push_back( (x[i] - u[i]) / g[i]);
-	bpmemory.insert(std::pair<T, size_t>((x[i] - u[i]) / g[i], i));
+	bpmemory.insert(std::pair<T, int>((x[i] - u[i]) / g[i], i));
       } else {
 	breakpoints.push_back((x[i] - l[i]) / g[i]);
-	bpmemory.insert(std::pair<T, size_t>((x[i] - l[i]) / g[i], i));
+	bpmemory.insert(std::pair<T, int>((x[i] - l[i]) / g[i], i));
       }
     }
   }
@@ -298,15 +298,15 @@ void quasinewton<T>::gettis(){
 }
 /*
   template<typename T>
-  size_t quasinewton<T>::findDimension(size_t i){
+  int quasinewton<T>::findDimension(int i){
   //This function finds the correct dimension that we should work with and pops the
   // the corresponding element in the multimap container
   // receives the current cardinal dimension I'm working with.  Returns the real
   // dimension to work with
   T ti;
-  size_t thisdimension;
+  int thisdimension;
   ti =  breakpoints[i];
-  std::multimap<T, size_t>::iterator it = bpmemory.find(ti);
+  std::multimap<T, int>::iterator it = bpmemory.find(ti);
   thisdimension = it->second;
   bpmemory.erase(it);
   return(thisdimension);
@@ -321,8 +321,8 @@ protected:
   double* Hdouble;
 
 public:
-  BFGS(T*& x0, T*& fopt0, size_t&, T&, int(*&)(T*, T*, T*, size_t), 
-       std::ofstream&, T&, T&, size_t&, short&, short&, const char *&, size_t&, size_t&,
+  BFGS(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
+       std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, int&,
        double*&, double*&);
   virtual void befmainloopspecific();
   virtual void mainloopspecific();
@@ -330,10 +330,10 @@ public:
 };
 
 template<typename T>
-BFGS<T>::BFGS(T*& x0, T*& fopt0, size_t& n0,  T& taud0,  
-	      int(*&tF)(T*, T*, T*, size_t), std::ofstream& output0,  T& ftarget0,  
-	      T& gnormtol0,  size_t& maxit0, short& echo0, short& lm0, 
-	      const char *& outputname0, size_t& m0, size_t& gradientsamplingN0, 
+BFGS<T>::BFGS(T*& x0, T*& fopt0, int& n0,  T& taud0,  
+	      int(*&tF)(T*, T*, T*, int), std::ofstream& output0,  T& ftarget0,  
+	      T& gnormtol0,  int& maxit0, short& echo0, short& lm0, 
+	      const char *& outputname0, int& m0, int& gradientsamplingN0, 
 	      double*& u0, double*& l0):
   quasinewton<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
 		 echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0){
@@ -361,8 +361,8 @@ void BFGS<T>::mainloopspecific(){
 
 template<typename T>
 void BFGS<T>::createDoubleH(){
-  for(size_t i = 0; i < quasinewton<T>::n; i++){
-    for(size_t j = 0; j < quasinewton<T>::n; j++)
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    for(int j = 0; j < quasinewton<T>::n; j++)
       Hdouble[i * quasinewton<T>::n + j] = t_double(H[i * quasinewton<T>::n + j]);
   }
 }
@@ -372,19 +372,19 @@ class BFGSB: public BFGS<T>{
 protected:
 
 public:
-  BFGSB(T*& x0, T*& fopt0, size_t&, T&, int(*&)(T*, T*, T*, size_t), 
-	std::ofstream&, T&, T&, size_t&, short&, short&, const char *&, size_t&, 
-	size_t&, double*&, double*&);
+  BFGSB(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
+	std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
+	int&, double*&, double*&);
   double findGeneralizedCauchyPoint();
   void findMinimum2ndApproximation();
   void mainloop();
 };
 
 template<typename T>
-BFGSB<T>::BFGSB(T*& x0, T*& fopt0, size_t& n0,  T& taud0,  
-		int(*&tF)(T*, T*, T*, size_t), std::ofstream& output0,  T& ftarget0,  
-		T& gnormtol0,  size_t& maxit0, short& echo0, short& lm0, 
-		const char *& outputname0, size_t& m0, size_t& gradientsamplingN0,
+BFGSB<T>::BFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,  
+		int(*&tF)(T*, T*, T*, int), std::ofstream& output0,  T& ftarget0,  
+		T& gnormtol0,  int& maxit0, short& echo0, short& lm0, 
+		const char *& outputname0, int& m0, int& gradientsamplingN0,
 		double*& u0, double*&l0):
   BFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
 	   echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0){
@@ -397,7 +397,7 @@ double BFGSB<T>::findGeneralizedCauchyPoint(){
   char yTrans = 'T';
   char nTrans = 'N';
   double alpha = 1.0, beta = 0.0;
-  int ndouble = static_cast<int> (quasinewton<T>::n);
+  int ndouble =  (quasinewton<T>::n);
   int one = 1;
   double tj, fpj, fppj, deltatj, oldtj;
   double* di = new double[quasinewton<T>::n];
@@ -405,19 +405,19 @@ double BFGSB<T>::findGeneralizedCauchyPoint(){
   double* C = new double[quasinewton<T>::n];
   double adouble;
   double dtstar, tstar;
-  for(size_t i0 = 0; i0 < quasinewton<T>::n; i0++){
+  for(int i0 = 0; i0 < quasinewton<T>::n; i0++){
     di[i0] = z[i0] = 0.0;
     quasinewton<T>::freeVariable[i0] = true;
   }
   // bear in mind that the following multimap is already ordered
-  typename std::multimap<T, size_t>::iterator iter = quasinewton<T>::bpmemory.begin();
+  typename std::multimap<T, int>::iterator iter = quasinewton<T>::bpmemory.begin();
   // First of all.  Run the zeroeth step from the multistep gradient projection
   iter = quasinewton<T>::bpmemory.begin();
-  size_t b = (*iter).second;
+  int b = (*iter).second;
   deltatj = t_double((*iter).first); // Change from zero
   oldtj = tj = deltatj;
   // Find the new x position
-  for(size_t i0 = 0; i0 < quasinewton<T>::n; i0++){
+  for(int i0 = 0; i0 < quasinewton<T>::n; i0++){
     quasinewton<T>::xcauchy[i0] = (t_double(quasinewton<T>::x[i0]) - 
 				  t_double((*iter).first) * 
 				  t_double(quasinewton<T>::g[i0]));
@@ -446,7 +446,7 @@ double BFGSB<T>::findGeneralizedCauchyPoint(){
   fppj = adouble;
   dtstar = -fpj / fppj;
   tstar = dtstar + oldtj;
-  typename std::multimap<T, size_t>::iterator titer = quasinewton<T>::bpmemory.begin();
+  typename std::multimap<T, int>::iterator titer = quasinewton<T>::bpmemory.begin();
   titer++;
   tj = t_double((*titer).first);
   if (tstar < tj){
@@ -460,7 +460,7 @@ double BFGSB<T>::findGeneralizedCauchyPoint(){
     deltatj = t_double((*iter).first) - oldtj;
     di[b] = -t_double(quasinewton<T>::g[b]);  // This is equation 4.2 (minus?)
     quasinewton<T>::freeVariable[b] = false;
-    for(size_t i = 0; i < quasinewton<T>::n; i++){
+    for(int i = 0; i < quasinewton<T>::n; i++){
       quasinewton<T>::xcauchy[i] = t_double((quasinewton<T>::x[i]) - 
 							(*iter).first * 
 							quasinewton<T>::g[i]);
@@ -503,7 +503,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // Assuming xcauchy has been correctly found.  This function runs a minimization of
   // the quadratic approximation to the goal function
   int numfree = 0; // number of free variables
-  size_t b = 0;
+  int b = 0;
   double* Z, *r, *dx, *d, *dnsize;
   char yTrans = 'T', nTrans = 'N';
   int ndouble = (int)(quasinewton<T>::n);
@@ -515,34 +515,34 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   d = new double[numfree];
   dnsize = new double[quasinewton<T>::n];
 
-  for(size_t i = 0; i < quasinewton<T>::n; i++){
+  for(int i = 0; i < quasinewton<T>::n; i++){
     if(quasinewton<T>::freeVariable[i])
       numfree++;
   }
-  Z = new double[static_cast<int>(quasinewton<T>::n) * numfree];
+  Z = new double[(quasinewton<T>::n) * numfree];
   
-  typename std::multimap<T, size_t>::iterator titer = quasinewton<T>::bpmemory.begin();
-  for(size_t i = 0; i < quasinewton<T>::n; i++, titer++){
+  typename std::multimap<T, int>::iterator titer = quasinewton<T>::bpmemory.begin();
+  for(int i = 0; i < quasinewton<T>::n; i++, titer++){
     for(int j = 0; j < numfree; j++)
-      Z[static_cast<int>(i) * numfree + j] = 0.0;
+      Z[(i) * numfree + j] = 0.0;
     b = (*titer).second; //position of the ith. crossed boundary
-    Z[static_cast<int>(b) * numfree + static_cast<int>(i)] = 1.0;
+    Z[(b) * numfree + (i)] = 1.0;
   }
   
   // Now let's define the r vector.  r = Z(g + H(Xcauchy - X))
   // is it maybe worth representing r as in equation 5.4 instead?
-  for(size_t i = 0; i < quasinewton<T>::n; i++)
+  for(int i = 0; i < quasinewton<T>::n; i++)
     dx[i] = t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
   dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble,
 	 &ndouble, dx, &ndouble, &beta, C, &ndouble);
-  for(size_t i = 0; i < quasinewton<T>::n; i++)
+  for(int i = 0; i < quasinewton<T>::n; i++)
     C[i] += t_double(quasinewton<T>::g[i]);
   dgemm_(&yTrans, &nTrans, &ndouble, &one, &numfree, &alpha, Z,
 	 &ndouble, C, &ndouble, &beta, r, &ndouble);
   
   // Find Bhat = Z^TBZ
   double* BZ, *BHAT;
-  BZ = new double[static_cast<int>(quasinewton<T>::n) * numfree];
+  BZ = new double[(quasinewton<T>::n) * numfree];
   BHAT = new double[numfree * numfree];
   dgemm_(&nTrans, &nTrans, &ndouble, &numfree, &ndouble, &alpha, BFGS<T>::Hdouble,
 	 &ndouble, Z, &numfree, &beta, BZ, &ndouble);
@@ -561,7 +561,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // Define the new boundaries which appear on 5.6
   double* lbf = new double[numfree];
   double* ubf = new double[numfree];
-  size_t ind = 0;
+  int ind = 0;
   titer = quasinewton<T>::bpmemory.begin();
   for(; titer != quasinewton<T>::bpmemory.end(); titer++, ind++)
     {
@@ -580,7 +580,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // Z_k * d
   dgemm_(&nTrans, &nTrans, &ndouble, &one, &numfree, &alpha, Z,
 	 &ndouble, d, &ndouble, &beta, dnsize, &ndouble);  
-  for(size_t i = 0; i < quasinewton<T>::n; i++){
+  for(int i = 0; i < quasinewton<T>::n; i++){
     quasinewton<T>::x[i] = quasinewton<T>::xcauchy[i];
     if((*titer).second == i){
       quasinewton<T>::x[i] += dnsize[i];
@@ -596,7 +596,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // Here's a question.  Do I use the new g or the previous one before the update
   // My guess is that it's probably similar
   T* dnsizeT = new T[quasinewton<T>::n];
-  for(size_t i = 0; i < quasinewton<T>::n; i++)
+  for(int i = 0; i < quasinewton<T>::n; i++)
 	dnsizeT[i] = dnsize[i];
   update_bfgs<T>(BFGS<T>::H, dnsizeT, quasinewton<T>::g, 
 		 quasinewton<T>::s, quasinewton<T>::y, BFGS<T>::q, quasinewton<T>::n);
@@ -642,18 +642,18 @@ class LBFGS: public quasinewton<T>{
 protected:
   T *S, *Y, *rho, *a;
 public:
-  LBFGS(T*& x0, T*& fopt0, size_t&, T&, int(*&)(T*, T*, T*, size_t), 
-	std::ofstream&, T&, T&, size_t&, short&, short&, const char *&, size_t&, 
-	size_t&, double*&, double*&);
+  LBFGS(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
+	std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
+	int&, double*&, double*&);
   virtual void befmainloopspecific();
   virtual void mainloopspecific();
 };
 
 template<typename T>
-LBFGS<T>::LBFGS(T*& x0, T*& fopt0, size_t& n0,  T& taud0,  
-		int(*&tF)(T*, T*, T*, size_t), std::ofstream& output0,  T& ftarget0,
-		T& gnormtol0, size_t& maxit0, short& echo0, short& lm0, 
-		const char *& outputname0, size_t& m0, size_t& gradientsamplingN0, 
+LBFGS<T>::LBFGS(T*& x0, T*& fopt0, int& n0,  T& taud0,  
+		int(*&tF)(T*, T*, T*, int), std::ofstream& output0,  T& ftarget0,
+		T& gnormtol0, int& maxit0, short& echo0, short& lm0, 
+		const char *& outputname0, int& m0, int& gradientsamplingN0, 
 		double*& u0, double*& l0):
   quasinewton<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
 		 echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0){
@@ -693,16 +693,16 @@ template<typename T>
 class LBFGSB: public LBFGS<T>{
 protected:
 public:
-  LBFGSB(T*& x0, T*& fopt0, size_t&, T&, int(*&)(T*, T*, T*, size_t), 
-	 std::ofstream&, T&, T&, size_t&, short&, short&, const char *&, size_t&, 
-	 size_t&, double*&, double*&);
+  LBFGSB(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
+	 std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
+	 int&, double*&, double*&);
 };
 
 template<typename T>
-LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, size_t& n0,  T& taud0,  
-		  int(*&tF)(T*, T*, T*, size_t), std::ofstream& output0,  T& ftarget0,  
-		  T& gnormtol0,  size_t& maxit0, short& echo0, short& lm0, 
-		  const char *& outputname0, size_t& m0, size_t& gradientsamplingN0,
+LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,  
+		  int(*&tF)(T*, T*, T*, int), std::ofstream& output0,  T& ftarget0,  
+		  T& gnormtol0,  int& maxit0, short& echo0, short& lm0, 
+		  const char *& outputname0, int& m0, int& gradientsamplingN0,
 		  double*& u0, double*&l0):
   LBFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
 	  echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0){
@@ -711,10 +711,10 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, size_t& n0,  T& taud0,
 /////////////////////////////////////////////////////////////////////////////////////
 /* BFGS MAIN ALGORITHM: */
 template<class T>
-void bfgs(T*& x, T*& fopt,  size_t& n,  short& lm,  size_t& m, T& ftarget, 
-	  T& gnormtol, size_t& maxit,  long& J, T& taux,  T& taud, short& echo, 
-	  int(*&testFunction)(T*, T*, T*, size_t), std::string& datafilename, 
-          double*& info, size_t& gradientsamplingN0, double*& u0, double*& l0, 
+void bfgs(T*& x, T*& fopt,  int& n,  short& lm,  int& m, T& ftarget, 
+	  T& gnormtol, int& maxit,  long& J, T& taux,  T& taud, short& echo, 
+	  int(*&testFunction)(T*, T*, T*, int), std::string& datafilename, 
+          double*& info, int& gradientsamplingN0, double*& u0, double*& l0, 
 	  bool& boundedProblem){
   
   std::ofstream output;
@@ -751,12 +751,12 @@ void bfgs(T*& x, T*& fopt,  size_t& n,  short& lm,  size_t& m, T& ftarget,
 }
 
 template<typename T>
-bool quasinewton<T>::themin(double *gradpoints, size_t i1){
+bool quasinewton<T>::themin(double *gradpoints, int i1){
   double mindist = 1.0;
-  size_t mybase = i1 * n;
-  size_t loc = 0;
+  int mybase = i1 * n;
+  int loc = 0;
   bool threshold = false;
-  for(size_t i = 0; i < n; i++){
+  for(int i = 0; i < n; i++){
     loc = mybase + i;
     mindist = MIN((x[i] - gradpoints[loc]), mindist);
   }
@@ -776,17 +776,17 @@ template <> //template specialization for double (only doubles work with lapack)
 bool quasinewton<double>::gradsamp(){
   // n is the size of x and gradientsamplingN is the number of gradient samples 
   // assigned in algoparameters.  Gradpoints contains all the points to be evaluated
-  size_t j = 0;
+  int j = 0;
   double * gradpoints;
-  gradpoints = new double[static_cast<size_t>(gradientsamplingN) * 
-			  static_cast<size_t>(n)];
+  gradpoints = new double[(gradientsamplingN) * 
+			  (n)];
   // Assign original x point to the gradpoints store
-  for (size_t i = 0; i < n; i++)
+  for (int i = 0; i < n; i++)
     gradpoints[i] = x[i];
   
   // Assign random numbers to the rest of variables.
-  for (size_t i = n; i < static_cast<size_t>(gradientsamplingN) * 
-	 static_cast<size_t>(n); i++, j++){
+  for (int i = n; i < (gradientsamplingN) * 
+	 (n); i++, j++){
     if(n == j)
       j = 0;
     gradpoints[i] = x[j] + (rand() / RAND_MAX) - 0.5;
@@ -794,9 +794,9 @@ bool quasinewton<double>::gradsamp(){
   
   // A distance of up to 0.5 is usually too big in any direction.  So I will divide all
   // coordinates by two until the smallest coordinate difference is < 1e-14
-  for (size_t i = 1; i < gradientsamplingN; i++){
+  for (int i = 1; i < gradientsamplingN; i++){
     do {
-      for(size_t k = 0; k < n; k++)
+      for(int k = 0; k < n; k++)
 	gradpoints[i + k] = (gradpoints[i + k] + x[i]) / 2;      
     } while (themin(gradpoints, i));
   }
@@ -805,16 +805,16 @@ bool quasinewton<double>::gradsamp(){
   double * gradgrads;
   // double f;
   
-  gradgrads = new double[static_cast<size_t>(gradientsamplingN) * 
-    static_cast<size_t>(n)];
-for(size_t i = 0; i < static_cast<size_t>(gradientsamplingN); i++){
+  gradgrads = new double[(gradientsamplingN) * 
+    (n)];
+for(int i = 0; i < (gradientsamplingN); i++){
   testFunction(f, g +(i * n), gradpoints + (i * n), n);
  }
   
 // Next step call qpspecial
  std::cout << "calling qpspecial" << std::endl;
- qpclass<double> * myopt = new qpclass<double>(static_cast<int>(n), 
-					       static_cast<int>(gradientsamplingN), 
+ qpclass<double> * myopt = new qpclass<double>((n), 
+					       (gradientsamplingN), 
 					       gradgrads, 100);
  myopt->optimization();
   

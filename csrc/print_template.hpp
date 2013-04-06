@@ -34,14 +34,14 @@
   step by step after each of the iterations
 */
 
-template<class T> void print_iter_info(std::ofstream&, size_t& it, T*& f, T& gnorm,
+template<class T> void print_iter_info(std::ofstream&, int& it, T*& f, T& gnorm,
 				       int& j, T *& q, T& t);
-template<class T> void print_init_info(std::ofstream&,const size_t& n, 
+template<class T> void print_init_info(std::ofstream&,const int& n, 
 				       const T& ftarget, const T& gnormtol, 
-				       const size_t& maxit, const int& echo, 
+				       const int& maxit, const int& echo, 
 				       const int& lm, const char *& outputname);
-template<class T> void print_final_info(std::ofstream&, size_t& it, T*& f,
-					T& gnorm,  size_t& nfeval,
+template<class T> void print_final_info(std::ofstream&, int& it, T*& f,
+					T& gnorm,  int& nfeval,
 					int& exitflag,  double& ttime);
 
 template<class T> void print_mat(T A[], int m, int n, char * str);
@@ -57,7 +57,7 @@ void print_gs4(double info[]);
 template<class T> void print_gs5(T f, double info[]);
 
 template<class T>
-void print_iter_info(std::ofstream& output, size_t& it,  T *& f,  T& gnorm,
+void print_iter_info(std::ofstream& output, int& it,  T *& f,  T& gnorm,
 		     int& j,  T *& q, T& t) {
 
   // Prints each step of the iteration
@@ -67,8 +67,8 @@ void print_iter_info(std::ofstream& output, size_t& it,  T *& f,  T& gnorm,
 }
 
 template<class T>
-void print_init_info(std::ofstream& output, const size_t& n, const T& ftarget, 
-		     const T& gnormtol, const size_t& maxit, const int& echo,
+void print_init_info(std::ofstream& output, const int& n, const T& ftarget, 
+		     const T& gnormtol, const int& maxit, const int& echo,
 		     const int& lm, const char*& outputname) {
   // Prints the initial conditions of the problem, before any of the iterations take
   // place
@@ -90,8 +90,8 @@ void print_init_info(std::ofstream& output, const size_t& n, const T& ftarget,
 }
 
 template <class T>
-void print_final_info(std::ofstream& output,  size_t& it, T*& f, T& gnorm,
-		      size_t& nfeval,  int& exitflag,  double& ttime) {
+void print_final_info(std::ofstream& output,  int& it, T*& f, T& gnorm,
+		      int& nfeval,  int& exitflag,  double& ttime) {
   
   // Prints the final conditions after the program has finalized running
 

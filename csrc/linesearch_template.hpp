@@ -23,12 +23,12 @@
 #include <qd/dd_real.h>
 
 template <class T>
-T linesearch_ww (T*& x, T*& f, T*& g, T*& d, const T& C1, const T& C2, size_t& n, 
-		 int(*&)(T*, T*, T*, size_t), size_t*&, T& ftarget, int*& exitflag);
+T linesearch_ww (T*& x, T*& f, T*& g, T*& d, const T& C1, const T& C2, int& n, 
+		 int(*&)(T*, T*, T*, int), int*&, T& ftarget, int*& exitflag);
 
 template <class T>
-T linesearch_ww (T*& x, T*& f, T*& g, T*& d, const T& C1, const T& C2, size_t& n, 
-		 int(*&testFunction)(T*, T*, T*, size_t), size_t*& nfeval, T& ftarget,
+T linesearch_ww (T*& x, T*& f, T*& g, T*& d, const T& C1, const T& C2, int& n, 
+		 int(*&testFunction)(T*, T*, T*, int), int*& nfeval, T& ftarget,
 		 int*& exitflag){
   T alpha = 0;		/* lower bound on step length*/
   T beta_max = 1e100;	/* upper bound on step length*/

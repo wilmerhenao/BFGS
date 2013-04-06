@@ -27,7 +27,7 @@
 
 // Notice that the original implementation called these function as "double"
 template <class T> T rand_real(T a, T b);
-template <class T> void rand_real_vec(T v[], size_t n, T a, T b);
+template <class T> void rand_real_vec(T v[], int n, T a, T b);
 
 template <class T>
 T rand_real(T a, T b){
@@ -37,8 +37,8 @@ T rand_real(T a, T b){
 }
 
 template <class T>
-void rand_real_vec(T v[], size_t n, T a, T b){
-  size_t j;
+void rand_real_vec(T v[], int n, T a, T b){
+  int j;
   T tmp = b - a;
   for (j = 0; j < n; j++){
     v[j] = (a + tmp * ((T)rand() / (T)RAND_MAX));
