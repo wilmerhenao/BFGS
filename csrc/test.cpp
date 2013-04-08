@@ -76,7 +76,7 @@ int main(int argc, char *argv[]){
   // 3) Run and delete
   
   std::cout << "output file" << strout << std::endl;
-  unsigned int ninitial = static_cast<unsigned>(strtoul(argv[2], NULL, 0)); 
+  int ninitial = static_cast<int>(strtoul(argv[2], NULL, 0)); 
   algoparameters<double> * doubleparameters;
   algoparameters<dd_real> * dd_realparameters;
   algoparameters<dd_real> * dd_realparLBFGS;
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]){
   double * u = new double[static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ];
   double * l = new double[static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ];
   // dummy initialization just to have something to work with...
-  for(int counter = 0; counter < static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ;
+  for(int counter = 0; counter < static_cast<int>(strtoul(argv[2], NULL, 0)) ;
       counter++){
     u[counter] = 1.0; l[counter] = -1.0;
   }

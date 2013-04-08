@@ -16,14 +16,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
 
-ifndef _LIBMATRIX_TEMPLATE_HPP_
+#ifndef _LIBMATRIX_TEMPLATE_HPP_
 #define _LIBMATRIX_TEMPLATE_HPP_
 
 #include <cstdlib>
 #include <cmath>
 #include <qd/dd_real.h>
 #include <qd/qd_real.h>
-
+/*
 template<class T> void mxv(T y[], T [], T x[], T alpha, T beta, int m, int n);
 template <class T> T vecip(T x[], T y[], int n);
 template <class T> double veciptd(double*&, double*&, int&);
@@ -36,9 +36,9 @@ template <class T> void vcopy(T y[], T x[], int n);
 template <class T> void vcopyp(T y[], T x[], T a, int n);
 template <class T> void vscal(T x[], T a, int n);
 template <class T> void mat_r1update(T A[], T x[], T y[], T alpha, int n);
-
+									      */
 template <class T> 
-double veciptd(double*& x, double*& y, int& n){
+double veciptd(double*& x, double*& y, int& n){ 
 // Dot product between x and y vectors
   double ip = 0;
   for(int i=0; i < n; i++)
