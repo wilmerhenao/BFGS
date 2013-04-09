@@ -372,11 +372,10 @@ void BFGS<T>::createDoubleH(){
       Hdouble[i * quasinewton<T>::n + j] = t_double(H[i * quasinewton<T>::n + j]);
   }
 }
+
 /////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
 class BFGSB: public BFGS<T>{
-protected:
-
 public:
   BFGSB(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
 	std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
@@ -459,7 +458,7 @@ double BFGSB<T>::findGeneralizedCauchyPoint(){
     if (tstar > 0)
       return(tstar);
   }
-  
+  int mycounter = 1;
   for(iter++; iter != quasinewton<T>::bpmemory.end(); iter++){
     tj = t_double((*iter).first);
     b = (*iter).second;
@@ -476,27 +475,45 @@ double BFGSB<T>::findGeneralizedCauchyPoint(){
 				       quasinewton<T>::l[i]);
       z[i] = t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
     }
+std::cout << "iter checker0 " << mycounter << " and value of n is: " << this->n << 
+      std::endl;
     dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, 
 	   &ndouble, z, &ndouble, &beta, C, &ndouble); //C = B^T * z
-    
+std::cout << "iter checker1 " << mycounter << " and value of n is: " << this->n << 
+      std::endl;
     fpj = fpj + deltatj * fppj + std::pow(t_double(quasinewton<T>::g[b]), 
 					  2) + 
       t_double(quasinewton<T>::g[b]) * C[b];
+std::cout << "iter checker2 " << mycounter << " and value of n is: " << this->n << 
+      std::endl;
     dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, 
 	   &ndouble, di, &ndouble, &beta, C, &ndouble); //C = B^T * d
+std::cout << "iter checker3 " << mycounter << " and value of n is: " << this->n << 
+      std::endl;
     fppj = fppj + 2 * t_double(quasinewton<T>::g[b]) * C[b] + 
       std::pow(t_double(quasinewton<T>::g[b]), 2) * 
       t_double(BFGS<T>::H[b * quasinewton<T>::n + b]);
+std::cout << "iter checker4 " << mycounter << " and value of n is: " << this->n << 
+      std::endl;
     dtstar = fpj / fppj;
     tstar = oldtj + dtstar;
+std::cout << "iter checker5 " << mycounter << " and value of n is: " << this->n << 
+      std::endl;
     if (tstar >= oldtj){
       if (tstar <= tj)
+	std::cout << "returning" << std::endl;
 	return(tstar);
     }
+std::cout << "iter checker5 " << mycounter << " and value of n is: " << this->n << 
+      std::endl;
     if (fpj >= 0)
       return(oldtj);
 
     oldtj = tj; // Update the time to the new end of the time frame
+    
+    std::cout << "iter runs " << mycounter << " and value of n is: " << this->n << 
+      std::endl;
+    mycounter++;
   }
 
   // In case nothing was found.  Return the last point
@@ -512,10 +529,10 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   int b = 0;
   double* Z, *r, *dx, *d, *dnsize;
   char yTrans = 'T', nTrans = 'N';
-  std::cout << "here" << std::endl;
+  std::cout << "I got here" << std::endl;
   int myn;
-  myn = this->n;
-  std::cout << "qn::n " << myn << std::endl;
+  myn = (quasinewton<T>::n);
+  std::cout << "but I did not get here " << myn << std::endl;
   myn = myn+1;
   int ndouble = (int)(quasinewton<T>::n);
   int one = 1;
@@ -643,8 +660,9 @@ void BFGSB<T>::mainloop(){
   vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
   vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
   quasinewton<T>::fprev = *quasinewton<T>::f;
-  findGeneralizedCauchyPoint();
+  double a = findGeneralizedCauchyPoint(); // up to here all good
   findMinimum2ndApproximation();
+  a++;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
