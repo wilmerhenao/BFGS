@@ -76,7 +76,7 @@ int main(int argc, char *argv[]){
   // 3) Run and delete
   
   std::cout << "output file" << strout << std::endl;
-  int ninitial = static_cast<int>(strtoul(argv[2], NULL, 0)); 
+  int ninitial = atoi(argv[2]); 
   algoparameters<double> * doubleparameters;
   algoparameters<dd_real> * dd_realparameters;
   algoparameters<dd_real> * dd_realparLBFGS;

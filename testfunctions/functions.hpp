@@ -547,6 +547,7 @@ int test29f06(T *f, T *g, T *x, int n) {
   T tmp2 = 0.0;
   T tmp3 = 1.0;
   int k = 0;
+  if (n < 0) return 0;
     
   for (int j = 0; j < n; j++) {
     g[j] = 0.0;
@@ -563,7 +564,9 @@ int test29f06(T *f, T *g, T *x, int n) {
   }
   g[k] = tmp3 * (3.0 - 4.0 * x[k]);
   if (k > 0) g[k - 1] = -tmp3;
-  if (k < (n - 1)) g[k + 1] = -tmp3;
+  if (k < (n - 1)) {
+    g[k + 1] = -tmp3;
+  }
   *f = fval;
   return 0;
 }

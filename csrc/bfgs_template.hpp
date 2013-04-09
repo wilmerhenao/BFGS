@@ -86,7 +86,6 @@ protected:
   std::vector<T> breakpoints; //Contains the breakpoints to be ordered
   std::vector<T> breakpointsNOorder; 
   std::multimap<T, int> bpmemory; //Breakpoints automatically ordered
-  
 public:
   quasinewton(T [], T *, int ,  T,  int(*)(T*, T*, T*, int), std::ofstream&,  
 	      T,  T,  int, short, short, const char *, int , int, double*, 
@@ -105,8 +104,15 @@ public:
   void gettis();
   bool themin(double*, int);
   bool gradsamp(); // A few more iterations.  Defined only for double types
+  //int getn();
 };
-
+/*
+template<typename T>
+int quasinewton<T>::getn(){
+  std::cout << "getn : " << this->n << std::endl; 
+  return this->n;
+}
+*/
 template<typename T>
 quasinewton<T>::quasinewton(T x0[], T* fopt0, int n0,  T taud0,  
 			    int(*tF)(T*, T*, T*, int), std::ofstream& output0,  
@@ -244,7 +250,7 @@ template<typename T>
 void quasinewton<T>::postmainloop(){
   t2 = clock();
   double ttime = (double) ((double)(t2 - t1)/ (double)CLOCKS_PER_SEC );
-    
+  
   if (echo > 0) {
     print_final_info<T>(*output, it, f, gnorm, *nfeval, *exitflag, ttime);
     printallfinalinfo();
@@ -361,7 +367,7 @@ void BFGS<T>::mainloopspecific(){
 
 template<typename T>
 void BFGS<T>::createDoubleH(){
-  for(int i = 0; i < quasinewton<T>::n; i++){
+  for(int i = 0; i < this->n; i++){
     for(int j = 0; j < quasinewton<T>::n; j++)
       Hdouble[i * quasinewton<T>::n + j] = t_double(H[i * quasinewton<T>::n + j]);
   }
@@ -506,6 +512,11 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   int b = 0;
   double* Z, *r, *dx, *d, *dnsize;
   char yTrans = 'T', nTrans = 'N';
+  std::cout << "here" << std::endl;
+  int myn;
+  myn = this->n;
+  std::cout << "qn::n " << myn << std::endl;
+  myn = myn+1;
   int ndouble = (int)(quasinewton<T>::n);
   int one = 1;
   double alpha = 1.0, beta = 0.0;
