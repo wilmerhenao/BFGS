@@ -459,14 +459,27 @@ void BFGSB<T>::lapackzerostep(){
   /*
     This method includes all the lapack routines that have to be run at the beginning
     of the "find the cauchy point iteration"
-   */
+  */
+  
+  double * grad;
+  grad = new double[this->n];
+  
+  for(int i0 = 0; i0 < this->n; i0++){
+    grad[i0] = t_double(this->g[i0]);
+    std::cout << i0 << " :- "<< grad[i0] * di[i0] << " ++ " << 
+      di[i0] << " adouble: "<< adouble << std::endl;
+  }
+  
   zBz();
   std::cout << "checking existence before veciptd.  ADOUBLE-> " << adouble << std::endl;
   fpj = adouble;
+  std::cout << "first fpj: " << fpj << std::endl;
   for(int i0 = 0; i0 < this->n; i0++){
     //veciptd<double>(quasinewton<T>::g, di, ndouble) + adouble;
-    fpj = fpj + t_double(this->g[i0]) * di[i0];
+    fpj = fpj + grad[i0] * di[i0];
+    std::cout << "fpj so far: " << fpj << std::endl;
   }
+  
   std::cout << "checking existence after veciptd FPJ ->" << fpj << std::endl;
   //g^Td +  z^T*B*z
   
