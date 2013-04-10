@@ -38,16 +38,18 @@ template <class T> void vscal(T x[], T a, int n);
 template <class T> void mat_r1update(T A[], T x[], T y[], T alpha, int n);
 									      */
 template <class T> 
-double veciptd(double*& x, double*& y, int& n){ 
+double veciptd(double*& x, double*& y, int n){ 
 // Dot product between x and y vectors
   double ip = 0;
-  for(int i=0; i < n; i++)
+  for(int i = 0; i < n; i++){
     ip += x[i] * y[i];
+    std::cout << i << std::endl;
+  }
   return ip;  
 }
 
 template <class T> 
-double veciptd(dd_real*& x, double*& y, int& n){
+double veciptd(dd_real*& x, double*& y, int n){
 // Dot product between x and y vectors
   double ip = 0;
   for(int i=0; i < n; i++)
@@ -56,7 +58,7 @@ double veciptd(dd_real*& x, double*& y, int& n){
 }
 
 template <class T> 
-double veciptd(qd_real*& x, double*& y, int& n){
+double veciptd(qd_real*& x, double*& y, int n){
 // Dot product between x and y vectors
   double ip = 0;
   for(int i=0; i < n; i++)
