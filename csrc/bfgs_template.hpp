@@ -459,11 +459,12 @@ void BFGSB<T>::zBz(){
   onetemp = this->one;
   alphatemp = this->alpha;
   betatemp = this->beta;
-  std::cout << "thisone " << this->one << std::endl;
+  std::cout << "this one " << this->one << " n: " << ndoubletemp << std::endl;
   // WARNING:  This could be the one that changes the one and possible the ndouble
-  dgemm_(&yTrans, &nTrans, &onetemp, &ndoubletemp, &ndoubletemp, &alphatemp, di, 
-	 &ndoubletemp, C, &ndoubletemp, &betatemp, &adouble, &onetemp);
-  std::cout << "thisone " << this->one << std::endl;
+  // Something is overwriting everything else in memory
+  dgemm_(&yTrans, &nTrans, &onetemp, &ndoubletemp, &onetemp, &alphatemp, di, 
+	 &oneetemp, C, &ndoubletemp, &betatemp, &adouble, &onetemp);
+  std::cout << "this one " << this->one << "onetemp" << onetemp << std::endl;
 }
 
 template<typename T>
