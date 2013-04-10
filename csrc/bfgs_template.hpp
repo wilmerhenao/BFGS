@@ -433,7 +433,7 @@ void BFGSB<T>::zeroethstep(){
   // Find the new x position
   for(int i0 = 0; i0 < quasinewton<T>::n; i0++){
     quasinewton<T>::xcauchy[i0] = (t_double(quasinewton<T>::x[i0]) - 
-				  t_double((*iter).first) * 
+				  t_double(iter->first) * 
 				  t_double(quasinewton<T>::g[i0]));
     quasinewton<T>::xcauchy[i0]= MIN(quasinewton<T>::xcauchy[i0], quasinewton<T>::u[i0]);
     quasinewton<T>::xcauchy[i0]= MAX(quasinewton<T>::xcauchy[i0], quasinewton<T>::l[i0]);
@@ -461,9 +461,13 @@ void BFGSB<T>::lapackzerostep(){
     of the "find the cauchy point iteration"
    */
   zBz();
-  std::cout << "checking existence before veciptd " << this->n << std::endl;
-  fpj = veciptd<double>(quasinewton<T>::g, di, ndouble) + adouble;
-  std::cout << "checking existence after veciptd " << this->n << std::endl;
+  std::cout << "checking existence before veciptd.  ADOUBLE-> " << adouble << std::endl;
+  fpj = adouble;
+  for(int i0 = 0; i0 < this->n; i0++){
+    //veciptd<double>(quasinewton<T>::g, di, ndouble) + adouble;
+    fpj = fpj + t_double(this->g[i0]) * di[i0];
+  }
+  std::cout << "checking existence after veciptd FPJ ->" << fpj << std::endl;
   //g^Td +  z^T*B*z
   
   // d^T*B*z
@@ -489,7 +493,7 @@ template<typename T>
 void BFGSB<T>::findXCauchymX(int i){
   // Calculates the difference between the new "cauchy" point and X
   quasinewton<T>::xcauchy[i] = t_double((quasinewton<T>::x[i]) - 
-					(*iter).first * 
+					iter->first * 
 					quasinewton<T>::g[i]);
   quasinewton<T>::xcauchy[i] = MIN(quasinewton<T>::xcauchy[i], 
 				   quasinewton<T>::u[i]);
@@ -535,7 +539,7 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
   for(; iter != quasinewton<T>::bpmemory.end(); iter++){
     tj = t_double(iter->first);
     b = iter->second;
-    deltatj = t_double((*iter).first) - oldtj;
+    deltatj = t_double(iter->first) - oldtj;
     di[b] = -t_double(quasinewton<T>::g[b]);  // This is equation 4.2 (minus?)
     quasinewton<T>::freeVariable[b] = false;
     for(int i = 0; i < quasinewton<T>::n; i++){
