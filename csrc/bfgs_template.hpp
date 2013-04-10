@@ -448,10 +448,22 @@ void BFGSB<T>::zeroethstep(){
 template<typename T>
 void BFGSB<T>::zBz(){
   // z^T*B*z
-  dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, &ndouble,
-	 z, &ndouble, &beta, C, &ndouble);
-  dgemm_(&yTrans, &nTrans, &one, &ndouble, &ndouble, &alpha, di, &ndouble, C, &ndouble, 
-	 &beta, &adouble, &one);
+  int ndoubletemp = this->ndouble;
+  int onetemp = this->one;
+  double alphatemp = this->alpha;
+  double betatemp = this->beta;
+
+  dgemm_(&nTrans, &nTrans, &ndoubletemp, &onetemp, &ndoubletemp, &alphatemp, 
+	 BFGS<T>::Hdouble, &ndoubletemp, z, &ndoubletemp, &betatemp, C, &ndoubletemp);
+  ndoubletemp = this->ndouble;
+  onetemp = this->one;
+  alphatemp = this->alpha;
+  betatemp = this->beta;
+  std::cout << "thisone " << this->one << std::endl;
+  // WARNING:  This could be the one that changes the one and possible the ndouble
+  dgemm_(&yTrans, &nTrans, &onetemp, &ndoubletemp, &ndoubletemp, &alphatemp, di, 
+	 &ndoubletemp, C, &ndoubletemp, &betatemp, &adouble, &onetemp);
+  std::cout << "thisone " << this->one << std::endl;
 }
 
 template<typename T>
@@ -465,27 +477,30 @@ void BFGSB<T>::lapackzerostep(){
   grad = new double[this->n];
   
   for(int i0 = 0; i0 < this->n; i0++){
-    grad[i0] = t_double(this->g[i0]);
-    std::cout << i0 << " :- "<< grad[i0] * di[i0] << " ++ " << 
-      di[i0] << " adouble: "<< adouble << std::endl;
+    grad[i0] = t_double(this->g[i0]) * di[i0];
   }
-  
+  std::cout << "before zBz one is " << this->one << std::endl;
   zBz();
-  std::cout << "checking existence before veciptd.  ADOUBLE-> " << adouble << std::endl;
+  std::cout << "after zBz one is " << this->one << std::endl;
+
+  std::cout << "adouble after" << adouble << std::endl;
+  std::cout << "after zBz " << std::endl;
   fpj = adouble;
-  std::cout << "first fpj: " << fpj << std::endl;
   for(int i0 = 0; i0 < this->n; i0++){
-    //veciptd<double>(quasinewton<T>::g, di, ndouble) + adouble;
-    fpj = fpj + grad[i0] * di[i0];
-    std::cout << "fpj so far: " << fpj << std::endl;
+    // veciptd<double>(quasinewton<T>::g, di, ndouble) + adouble;
+    std::cout << "grad[i0] " << grad[i0] << std::endl;
+    fpj = fpj + grad[i0];
   }
   
   std::cout << "checking existence after veciptd FPJ ->" << fpj << std::endl;
   //g^Td +  z^T*B*z
   
   // d^T*B*z
-  dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, &ndouble,
-	 di, &ndouble, &beta, C, &ndouble);
+  ndouble = this->n;
+  std::cout << "problem params: 3: " << ndouble << " 4: "<< this->one << 
+	    " 13: " << ndouble << std::endl;
+  dgemm_(&nTrans, &nTrans, &ndouble, &this->one, &ndouble, &alpha, BFGS<T>::Hdouble, 
+	 &ndouble, di, &ndouble, &beta, C, &ndouble);
   std::cout << "checking existence after first dgemm " << this->n << std::endl;
   dgemm_(&yTrans, &nTrans, &one, &ndouble, &ndouble, &alpha, di, &ndouble, C, &ndouble, 
 	 &beta, &adouble, &one);
