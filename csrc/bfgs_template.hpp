@@ -37,6 +37,7 @@
 #include "../lib/qpspecial/qpobject.hpp"
 #include <qd/dd_real.h>
 #include <qd/qd_real.h>
+#include "nummatrix.hpp"
 
 extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*, 
 		       double*, int*, double*, double*, int*);
