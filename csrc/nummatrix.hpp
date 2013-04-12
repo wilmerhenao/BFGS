@@ -41,7 +41,8 @@ public:
   ~Matrix();
   void initializeToZero();
   bool isSquare();
-  friend void matrixMultiply(Matrix<T> *, Matrix<T> *, Matrix<T> *);
+  friend void matrixMultiply(Matrix<T> *, Matrix<T> *, Matrix<T> *, char transA = 'N',
+			     char transB = 'N');
 };
 
 template<typename T>
@@ -52,8 +53,8 @@ Matrix<T>::Matrix():m(1), n(1){
 
 template<typename T>
 Matrix<T>::Matrix(T* A, int& m0, int&n0):m(m0), n(n0){
-  if (0 == m * n)
-    std::cerr << "Impossible to have a dimension zero" << std::endl;
+  if (0 >= m || 0 >= n)
+    std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
   matrix = new T[m * n];
 }
 
@@ -69,10 +70,12 @@ bool Matrix<T>::isSquare(){
 }
 
 template<typename T>
-void matrixMultiply(Matrix<T>* A, Matrix<T> * B, Matrix<T> * C){
+void matrixMultiply(Matrix<T>* A, Matrix<T> * B, Matrix<T> * C, char transA = 'N',
+		    char transB = 'N'){
   /*  Multiplies A * B = C */
   
-  // Perform some basic checks
+  // Perform some basic checks (dependent on transA and transB)
+  /*
   if(A->n != B->m)
     std::cerr << "Matrix Dimensions for the multiplicating matrix  do not agree" <<
       std::endl;
@@ -80,8 +83,31 @@ void matrixMultiply(Matrix<T>* A, Matrix<T> * B, Matrix<T> * C){
     std::cerr << "Size m of the result matrix is wrong" << std::endl;
   if(B->n != C->n)
     std::cerr << "Size n of the result matrix is wrong" << std::endl;
+  */
+  // declare some local variables so that external variables do not get destroyed
+  // Will make local copies of A and B.  This may sound like a waste of time.  But
+  // avoids the problem of unintentionally
+  // UPDATE: Not necessary for this function.  A and B will be unchanged on exit
   
+  int m0;
+  int n0;
+  int k0;
+
+  if('N' == transA){
+    m0 = A->m;
+    n0 = A->n;
+  }
+
+  if('Y' == transA){
+    m0 = A->n;
+    n0 = A->m;
+  }
+
+  if('N' == transB){
+    k0 = 
+  }
   
+  dgemm_(&transA, &transB, 
 
 }
 
