@@ -136,7 +136,8 @@ void bfgssolver(Matrix<T>& A, Matrix<T>& B, Matrix<T>& x){
   // A has to be nxn
   if((A.m != A.n) || A.m <= 0){
     std::cerr << "Dimensions of A are wrong.  Either not a square matrix or one of" << 
-      "the dimensions of the matrix is wroong.  Aborting " << std::endl; 
+      "the dimensions of the matrix is wrong.  Aborting " << std::endl;
+    std::cerr << "Dimensions of A are: " << A.m << " by " << A.n << std::endl; 
   }
   if(A.m != B.m){
     std::cerr << "Size of matrix A and B are in disagreement" << std::endl;
