@@ -39,9 +39,11 @@
 #include <qd/qd_real.h>
 #include "nummatrix.hpp"
 
+/*
 extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*, 
 		       double*, int*, double*, double*, int*);
 extern "C" int sgesv_(int*, int*, float*, int*, int*, float*, int*, int*);
+*/
 
 template<class T>
 void bfgs(T*&, T*& fopt, int& n, short& lm, int& m, T& ftarget,  T& gnormtol,  

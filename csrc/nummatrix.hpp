@@ -25,6 +25,8 @@
 extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*, 
 		       double*, int*, double*, double*, int*);
 
+extern "C" int sgesv_(int*, int*, float*, int*, int*, float*, int*, int*);
+
 /*
   The main idea of creatin this class is to use a library interacts with lapack and
   seamlessly can solve problems without having to worry for lapack's messy syntax.
@@ -40,27 +42,51 @@ protected:
 public:
   Matrix();
   Matrix(T *, int , int );
+  Matrix(const Matrix<T>&); // copy constructor
   ~Matrix();
   void initializeToZero();
   bool isSquare();
   template<typename H> friend void matrixMultiply(Matrix<H> &, Matrix<H> &, 
 						  Matrix<H> &, char transA = 'N',
 						  char transB = 'N');
-  
+  template<typename H> friend void solver(Matrix<H>&, Matrix<H>&, Matrix<H>&);
+
   T& operator()(int& );
-  //operator=(T&);
+  Matrix<T>& operator=(const Matrix<T>& );
 };
 
 template<typename T>
 T& Matrix<T>::operator()(int& i){
   return matrix[i];
 }
-/*
+
+//copy constructor
 template<typename T>
-Matrix<T>::operator=(T&){
-matrix
+Matrix<T>::Matrix(const Matrix<T>& other){
+  m = other.m;
+  n = other.n;
+  matrix = new T[m * n];
+  for(int i = 0; i < m * n; i++){
+    matrix[i] = other(i);
+  }
 }
-*/
+
+template<typename T>
+Matrix<T>& Matrix<T>::operator=(const Matrix<T>& rhs){
+  if(this != &rhs){
+    int * newmatrix = new double[rhs.m * rhs * n];
+    for (int i = 0; i < rhs.m * rhs.n; i++)
+      newmatrix[i] = rhs(i);
+
+    delete [] matrix;
+    
+    m = rhs.m;
+    n = rhs.n;
+    matrix = newmatrix;
+  }
+  return *this;
+}
+
 template<typename T>
 Matrix<T>::Matrix():m(1), n(1){
   matrix = new T[1];
@@ -93,6 +119,53 @@ bool Matrix<T>::isSquare(){
   bool retvalue;
   (m == n) ? retvalue = true : retvalue = false;
   return retvalue;
+}
+
+template<typename T>
+void solver(Matrix<T>& A, Matrix<T>& B, Matrix<T>& x){
+  /*
+    Solves the system Ax = B
+  */
+  
+  // Perform some basic checks
+  // A has to be nxn
+  if((A.m != A.n) || A.m <= 0){
+    std::cerr << "Dimensions of A are wrong.  Either not a square matrix or one of" << 
+      "the dimensions of the matrix is wroong.  Aborting " << std::endl; 
+  }
+  if(A.m != B.m){
+    std::cerr << "Size of matrix A and B are in disagreement" << std::endl;
+  }
+  if(A.n != x.m){
+    std::cerr << "Size of matrix A and x are in disagreement" << std::endl;
+  }
+  
+  // Variables to the equation
+  int N = A.m;
+  int NRHS = 1; //I always have to solve only one system
+  double* A0 = new double[A.m * A.n];
+  int* IPIV = new double[A.m]; // Not initialize it??? that is the question
+  int info;
+  
+  // Use a copy of A0 that will be destroyed (do it in only one loop)
+  for(int i = 0; i < a.m * A.n; i++)
+    A0[i] = A(i);
+  
+  // Do not actually use matrix b since it will be destroyed.  Use "x" instead
+  x = B;
+    
+  sgesv_(&N, &NRHS, A0, &N, IPIV, x.matrix, &N, &info);
+  // A0 now contains the factors L and U from the LU factorization of A
+  if(0 != info ){
+    if(info < 0){
+      std::cerr << "Argument " << -info << " had an illegal value" << std::endl;
+    } else {
+      std::cerr << "Position U(i,i) where i = " << info << " is exactly zero.  The " <<
+	"factorization was completed but the U is exactly singular,  so the solution" <<
+	" could not be computed" << std::endl;
+    }
+  }
+  
 }
 
 template<typename T>

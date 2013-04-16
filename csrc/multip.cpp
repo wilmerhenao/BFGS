@@ -1,6 +1,11 @@
 #include "nummatrix.hpp"
 #include <iostream>
 
+/* 
+   This is just to test that my nummatrix.hpp is working correctly.  It contains a set
+   of basic cases where everything should run smooth
+*/
+
 int main (){
   double * a;
   a = new double[6];
@@ -48,25 +53,38 @@ int main (){
   std::cout << "A2: " << std::endl;
   for(int i = 0; i < 6; i++)
     std::cout << A(i) << std::endl;
-
+  
   matrixMultiply(A, B2, C2, 'T', 'N');
   std::cout << "C2: " << std::endl;
   for (int i = 0; i < 3; i++)
     std::cout << C2(i) << std::endl;
-
+  
   Matrix<double> B3(b2, 1, 2);
   matrixMultiply(A, B3, C2, 'T', 'T');
   for (int i = 0; i < 3; i++)
     std::cout << C2(i) << std::endl;
-
-
+  
   std::cout << "ultimirris: " << std::endl;
-
+  
   Matrix<double> B4(b4, 1, 3);
   matrixMultiply(A, B4, B2, 'N', 'T');
   for (int i = 0; i < 2; i++)
     std::cout << B2(i) << std::endl;
 
+  std::cout << "Test the solution of a system with sgesv" << std::endl;
+  double * amatrix = new double[100];
+  for(int i = 0; i < 100; i++){
+    amatrix[i] = i;
+  }
+  Matrix<double> AEq(amatrix, 10, 10);
+  double * bmatrix = new double[10];
+  for (int i = 0; i < 10; i++)
+    bmatrix[i] = i;
+  Matrix<double> BEq(bmatrix, 10, 1);
+  solver(A, BEq, BEq);
+  for (int i = 0; i < 10; i++)
+    std::cout << BEq() << std::endl;
+  
   return 0;
 }
 
