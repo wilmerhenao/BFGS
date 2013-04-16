@@ -25,12 +25,12 @@
 extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*, 
 		       double*, int*, double*, double*, int*);
 
-extern "C" int sgesv_(int*, int*, float*, int*, int*, float*, int*, int*);
+extern "C" void dgesv_(int*, int*, double*, int*, int*, double*, int*, int*);
 
 /*
   The main idea of creatin this class is to use a library interacts with lapack and
   seamlessly can solve problems without having to worry for lapack's messy syntax.
- */
+*/
 
 template<typename T>
 class Matrix{
@@ -42,17 +42,17 @@ protected:
 public:
   Matrix();
   Matrix(T *, int , int );
-  Matrix(const Matrix<T>&); // copy constructor
+  Matrix(Matrix<T>&); // copy constructor
   ~Matrix();
   void initializeToZero();
   bool isSquare();
   template<typename H> friend void matrixMultiply(Matrix<H> &, Matrix<H> &, 
 						  Matrix<H> &, char transA = 'N',
 						  char transB = 'N');
-  template<typename H> friend void solver(Matrix<H>&, Matrix<H>&, Matrix<H>&);
+  template<typename H> friend void bfgssolver(Matrix<H>&, Matrix<H>&, Matrix<H>&);
 
   T& operator()(int& );
-  Matrix<T>& operator=(const Matrix<T>& );
+  Matrix<T>& operator=(Matrix<T>& );
 };
 
 template<typename T>
@@ -62,7 +62,7 @@ T& Matrix<T>::operator()(int& i){
 
 //copy constructor
 template<typename T>
-Matrix<T>::Matrix(const Matrix<T>& other){
+Matrix<T>::Matrix(Matrix<T>& other){
   m = other.m;
   n = other.n;
   matrix = new T[m * n];
@@ -72,17 +72,22 @@ Matrix<T>::Matrix(const Matrix<T>& other){
 }
 
 template<typename T>
-Matrix<T>& Matrix<T>::operator=(const Matrix<T>& rhs){
-  if(this != &rhs){
-    int * newmatrix = new double[rhs.m * rhs * n];
-    for (int i = 0; i < rhs.m * rhs.n; i++)
-      newmatrix[i] = rhs(i);
+Matrix<T>& Matrix<T>::operator=(Matrix<T>& rhs){
+  /*
+    Please notice that this is not your average "equal" operator.  I am not creating any
+    new memory and I am only using what I already had in the receiving Matrix<T>
 
-    delete [] matrix;
-    
+    A check is performed... but you don't want this to crash while you run it so be
+    careful
+  */
+  
+  if(rhs.m != m)
+    std::cerr << "This is an assignment to an element of different size" << std::endl;
+  if(this != &rhs){
     m = rhs.m;
-    n = rhs.n;
-    matrix = newmatrix;
+    n = rhs.n;   
+    for (int i = 0; i < m * n; i++)
+      matrix[i] = rhs(i);
   }
   return *this;
 }
@@ -122,7 +127,7 @@ bool Matrix<T>::isSquare(){
 }
 
 template<typename T>
-void solver(Matrix<T>& A, Matrix<T>& B, Matrix<T>& x){
+void bfgssolver(Matrix<T>& A, Matrix<T>& B, Matrix<T>& x){
   /*
     Solves the system Ax = B
   */
@@ -144,17 +149,16 @@ void solver(Matrix<T>& A, Matrix<T>& B, Matrix<T>& x){
   int N = A.m;
   int NRHS = 1; //I always have to solve only one system
   double* A0 = new double[A.m * A.n];
-  int* IPIV = new double[A.m]; // Not initialize it??? that is the question
+  int* IPIV = new int[A.m]; // Not initialize it??? that is the question
   int info;
   
   // Use a copy of A0 that will be destroyed (do it in only one loop)
-  for(int i = 0; i < a.m * A.n; i++)
+  for(int i = 0; i < A.m * A.n; i++)
     A0[i] = A(i);
-  
   // Do not actually use matrix b since it will be destroyed.  Use "x" instead
   x = B;
     
-  sgesv_(&N, &NRHS, A0, &N, IPIV, x.matrix, &N, &info);
+  dgesv_(&N, &NRHS, A0, &N, IPIV, x.matrix, &N, &info);
   // A0 now contains the factors L and U from the LU factorization of A
   if(0 != info ){
     if(info < 0){
@@ -222,12 +226,12 @@ void matrixMultiply(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C, char transA = 'N',
   int LDC = A.n;
   double alpha = 1.0;
   double beta = 0.0;
-
+  
   if('N' == transA || 'n' == transA){
     m0 = A.m;
     k0 = A.n;
   }
-
+  
   if('T' == transA || 't' == transA){
     m0 = A.n;
     k0 = A.m;

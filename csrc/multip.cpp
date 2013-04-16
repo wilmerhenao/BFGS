@@ -81,9 +81,15 @@ int main (){
   for (int i = 0; i < 10; i++)
     bmatrix[i] = i;
   Matrix<double> BEq(bmatrix, 10, 1);
-  solver(A, BEq, BEq);
+
+  double * x = new double[10];
   for (int i = 0; i < 10; i++)
-    std::cout << BEq() << std::endl;
+    x[i] = i;
+  Matrix<double> X(x, 10, 1);
+
+  bfgssolver(A, BEq, X);
+  for (int i = 0; i < 10; i++)
+    std::cout << BEq(i) << std::endl;
   
   return 0;
 }
