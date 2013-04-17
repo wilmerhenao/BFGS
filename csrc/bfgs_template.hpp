@@ -402,6 +402,7 @@ public:
   void findGeneralizedCauchyPoint();
   void findMinimum2ndApproximation();
   void mainloop();
+  void printFinalConditions();
 };
 
 // initializer
@@ -456,44 +457,12 @@ void BFGSB<T>::zeroethstep(){
 
 template<typename T>
 void BFGSB<T>::zBz(){
-  // z^T*B*z
-/*
-  Matrix<double> madouble(1, 1);
-  Matrix<double> mtemp(1, quasinewton<T>::n); //receives the first part of z^T*B
-  matrixMultiply(mZ, BFGS<T>::mHdouble, mtemp, 'T', 'N');
-  // matrixMultiply here using mtemp from before
-  matrixMultiply(mtemp, mZ, madouble);
-  int intemp = 0;
-  adouble = madouble(intemp);
-*/
   adouble = squareForm(mZ, BFGS<T>::mHdouble, mZ);
-
 }
 
 template<typename T>
 void BFGSB<T>::dBz(){
-/*
-  std::cout << "problem params: 3: " << ndouble << " 4: "<< this->one << 
-    " 13: " << ndouble << std::endl;
-  Matrix<double> madouble(1, 1);
-  Matrix<double> mtemp(1, quasinewton<T>::n);
-  matrixMultiply(mdi, BFGS<T>::mHdouble, mtemp, 'T', 'N');
-  
-  dgemm_(&nTrans, &nTrans, &ndouble, &this->one, &ndouble, &alpha, BFGS<T>::Hdouble, 
-  &ndouble, di, &ndouble, &beta, C, &ndouble);
-  
-  std::cout << "checking existence after first dgemm " << this->n << std::endl;
-  matrixMultiply(mtemp, mZ, madouble);
-  int intemp = 0;
-  adouble = madouble(intemp);
-  
-  dgemm_(&yTrans, &nTrans, &one, &ndouble, &ndouble, &alpha, di, &ndouble, C, &ndouble, 
-	 &beta, &adouble, &one);
-  
-  std::cout << "checking existence after second dgemm " << this->n << std::endl;
-*/
   adouble = squareForm(mdi, BFGS<T>::mHdouble, mZ);
-
 }
 
 template<typename T>
@@ -509,7 +478,7 @@ void BFGSB<T>::lapackzerostep(){
   for(int i0 = 0; i0 < this->n; i0++){
     grad[i0] = t_double(this->g[i0]) * di[i0];
   }
-  adouble = zBz();
+  zBz();
   fpj = adouble;
   for(int i0 = 0; i0 < this->n; i0++){
     // veciptd<double>(quasinewton<T>::g, di, ndouble) + adouble;
@@ -520,7 +489,7 @@ void BFGSB<T>::lapackzerostep(){
   //g^Td +  z^T*B*z
   
   // d^T*B*z
-  adouble = dBz();
+  dBz();
   fppj = adouble;
   dtstar = -fpj / fppj;
   tstar = dtstar + oldtj;
@@ -549,43 +518,28 @@ void BFGSB<T>::findXCauchymX(int i){
 template<typename T>
 void BFGSB<T>::lapackmanipulations(){
   // LAPACK manipulations for each of the loops in the xcauchy calculations
-  std::cout << "iter checker0 " << " and value of n is: " << this->n << 
-    std::endl;
 /*
   dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, 
 	 &ndouble, z, &ndouble, &beta, C, &ndouble); //C = B^T * z
 */
   Matrix<double> temp(1, quasinewton<T>::n);
   matrixMultiply(mZ, BFGS<T>::mHdouble, temp, 'T', 'N');
-
-  std::cout << "iter checker1 " << " and value of n is: " << this->n << 
-    std::endl;
   fpj = fpj + deltatj * fppj + std::pow(t_double(quasinewton<T>::g[b]), 
 					2) + 
     t_double(quasinewton<T>::g[b]) * temp(b);
-  std::cout << "iter checker2 " << " and value of n is: " << this->n << 
-    std::endl;
-/*
-  dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, 
-	 &ndouble, di, &ndouble, &beta, C, &ndouble); //C = B^T * d
-*/
-  Matrix<double> temp2(1, quasinewton<T>::n);
-  matrixMultiply(BFGS<T>::mHdouble, mdi, temp2);
 
-// Reassigning values to C
+  Matrix<double> temp2(quasinewton<T>::n, 1);
+  matrixMultiply(BFGS<T>::mHdouble, mdi, temp2);
+  // Reassigning values to C
   for(int i = 0; i < quasinewton<T>::n; i++)
-    C[i] = temp2[i];
+    C[i] = temp2(i);
 }
 
 template<typename T>
 void BFGSB<T>::tstarcalculation(){
-  std::cout << "iter checker3 " << " and value of n is: " << this->n << 
-    std::endl;
   fppj = fppj + 2 * t_double(quasinewton<T>::g[b]) * C[b] + 
     std::pow(t_double(quasinewton<T>::g[b]), 2) * 
     t_double(BFGS<T>::H[b * quasinewton<T>::n + b]);
-  std::cout << "iter checker4 " << " and value of n is: " << this->n << 
-    std::endl;
   dtstar = fpj / fppj;
   tstar = oldtj + dtstar;
 }
@@ -607,34 +561,26 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
     Matrix<double> temp(z, quasinewton<T>::n, 1);
     mZ = temp;
     Matrix<double> temp2(z, quasinewton<T>::n, 1);
-    dim = temp2;
-
-
+    mdi = temp2;
     lapackmanipulations();
     tstarcalculation();
-    std::cout << "iter checker5 " << " and value of n is: " << this->n << 
-      std::endl;
     if (tstar >= oldtj){
       if (tstar <= tj){
-	std::cout << "returning" << std::endl;
-	exit(0);
+	std::cout << "found optimal cauchy point." << std::endl;
+	return;
       }
     }
-    std::cout << "iter checker5 " << " and value of n is: " << this->n << 
-      std::endl;
     if (fpj >= 0){
       tstar = oldtj;
       exit(0);
     }    
     oldtj = tj; // Update the time to the new end of the time frame
-    
-    std::cout << "iter runs " << " and value of n is: " << this->n << 
-      std::endl;
   }
 
   // In case nothing was found.  Return the last point
   tstar = tj;
   // I still need to implement the last segment to locate xcauchy correctly.
+  std::cout << "exiting after finding generalized cauchy point (not optimal)"<<std::endl;
 }
 
 template<typename T>
@@ -644,10 +590,8 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   int numfree = 0; // number of free variables
   b = 0;
   double* ZfM2, *r, *dx, *d, *dnsize;
-  std::cout << "I got here" << std::endl;
   int myn;
   myn = quasinewton<T>::n;
-  std::cout << "but I did not get here " << myn << std::endl;
   myn = myn + 1;
   dx = new double[quasinewton<T>::n];
   r = new double[numfree];
@@ -658,7 +602,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     if(quasinewton<T>::freeVariable[i])
       numfree++;
   }
-  
+ 
   ZfM2 = new double[(quasinewton<T>::n) * numfree];
   
   typename std::multimap<T, int>::iterator titer = quasinewton<T>::bpmemory.begin();
@@ -668,27 +612,30 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     b = (*titer).second; //position of the ith. crossed boundary
     ZfM2[(b) * numfree + (i)] = 1.0;
   }
-  
+  std::cout << "Entered second approximation function" << std::endl;
   // Now let's define the r vector.  r = Z(g + H(Xcauchy - X))
   // is it maybe worth representing r as in equation 5.4 instead?
   for(int i = 0; i < quasinewton<T>::n; i++)
     dx[i] = t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
+  std::cout << "Before lapack computations" << std::endl;
   dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble,
 	 &ndouble, dx, &ndouble, &beta, C, &ndouble);
   for(int i = 0; i < quasinewton<T>::n; i++)
     C[i] += t_double(quasinewton<T>::g[i]);
   dgemm_(&yTrans, &nTrans, &ndouble, &one, &numfree, &alpha, ZfM2,
 	 &ndouble, C, &ndouble, &beta, r, &ndouble);
-  
+  std::cout << "After lapack computations" << std::endl;
   // Find Bhat = Z^TBZ
   double* BZ, *BHAT;
   BZ = new double[(quasinewton<T>::n) * numfree];
   BHAT = new double[numfree * numfree];
+  std::cout << "Before more lapack computations" << std::endl;
   dgemm_(&nTrans, &nTrans, &ndouble, &numfree, &ndouble, &alpha, BFGS<T>::Hdouble,
 	 &ndouble, ZfM2, &numfree, &beta, BZ, &ndouble);
+std::cout << "In the middle of computations" << std::endl;
   dgemm_(&yTrans, &nTrans, &numfree, &ndouble, &ndouble, &alpha, ZfM2,
 	 &numfree, BZ, &ndouble, &beta, BHAT, &one); //Warning  Check that &one
-  
+  std::cout << "After more lapack computations" << std::endl;
   // Solve the system 5.5 and 5.6
   // Notice that this system could easily be solved by inverting the matrix *BHAT
   // Notice that BHAT will be completely overwritten with an L and U decomposition...
@@ -767,23 +714,28 @@ void BFGSB<T>::findMinimum2ndApproximation(){
 }
 
 template<typename T>
+void BFGSB<T>::printFinalConditions(){
+    std::cout << "values of vector g" << std::endl;
+
+  for(int i = 0; i < quasinewton<T>::n; i++)
+    std::cout << quasinewton<T>::g[i] << std::endl;
+
+}
+
+template<typename T>
 void BFGSB<T>::mainloop(){
   quasinewton<T>::it++;
   vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
   vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
   quasinewton<T>::fprev = *quasinewton<T>::f;
-  std::cout << "checking existence 1 " << this->n << std::endl;
   quasinewton<T>::gettis();
-  std::cout << "checking existence 2 " << this->n << std::endl;
   BFGS<T>::createDoubleH();
-  std::cout << "checking existence 3 " << this->n << std::endl;
   zeroethstep();
-  std::cout << "checking existence 4 " << this->n << std::endl;
   lapackzerostep();
-  std::cout << "checking existence 5 " << this->n << std::endl;
   findGeneralizedCauchyPoint(); // up to here all good
-  std::cout << "checking existence after " << this->n << std::endl;
   findMinimum2ndApproximation();
+  std::cout << "Print final conditions to see if we converged" << std::endl;
+  printFinalConditions();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -972,7 +924,6 @@ for(int i = 0; i < (gradientsamplingN); i++){
   myopt->fetchSolution(solution);
   return(true);
 }
-
 
 #endif // _BFGS_TEMPLATE_HPP_
 
