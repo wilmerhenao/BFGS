@@ -51,6 +51,8 @@ public:
   template<typename H> friend void matrixMultiply(Matrix<H> &, Matrix<H> &, 
 						  Matrix<H> &, char transA = 'N',
 						  char transB = 'N');
+  template<typename H> friend double squareForm(Matrix<H> &, Matrix<H> &, 
+						Matrix<H>&);
   template<typename H> friend void bfgssolver(Matrix<H>&, Matrix<H>&, Matrix<H>&);
 
   T& operator()(int& );
@@ -266,6 +268,27 @@ void matrixMultiply(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C, char transA = 'N',
   dgemm_(&transA, &transB, &m0, &n0, &k0, &alpha, A.matrix, &LDA, B.matrix, 
 	 &LDB, &beta, C.matrix, &LDC);
 
+}
+
+template<typename T>
+double squareForm(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C){
+  /* 
+     This one solves problems of the type x^TBz where x, and z are COLUMN vectors and
+     B is a square matrix.  No warnings are checked here since they will show up in 
+     the individual multiplications anyway
+  */
+
+  // Create a temporal instance for first multiplication result storage
+  Matrix<double> temp(1, A.m);
+  Matrix<double> finalresult(1, 1);
+  int posit = 0;
+  double squareFormResult;
+
+  matrixMultiply(A, B, temp, 'T', 'N');
+  matrixMultiply(temp, C, finalresult, 'N', 'N');
+  squareFormResult = finalresult(posit);
+
+  return squareFormResult;
 }
 
 #endif // _NUMMATRIX_HPP_
