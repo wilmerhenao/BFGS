@@ -39,12 +39,6 @@
 #include <qd/qd_real.h>
 #include "nummatrix.hpp"
 
-/*
-extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*, 
-		       double*, int*, double*, double*, int*);
-extern "C" int sgesv_(int*, int*, float*, int*, int*, float*, int*, int*);
-*/
-
 template<class T>
 void bfgs(T*&, T*& fopt, int& n, short& lm, int& m, T& ftarget,  T& gnormtol,  
 	  int& maxit,  long& J, T& taux,  T& taud, short& echo, 
@@ -89,6 +83,7 @@ protected:
   std::vector<T> breakpoints; //Contains the breakpoints to be ordered
   std::vector<T> breakpointsNOorder; 
   std::multimap<T, int> bpmemory; //Breakpoints automatically ordered
+  
 public:
   quasinewton(T [], T *, int ,  T,  int(*)(T*, T*, T*, int), std::ofstream&,  
 	      T,  T,  int, short, short, const char *, int , int, double*, 
@@ -330,7 +325,7 @@ class BFGS: public quasinewton<T>{
 protected:
   T *q, *H;
   double* Hdouble;
-
+  Matrix<double> mHdouble;
 public:
   BFGS(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
        std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, int&,
@@ -347,7 +342,8 @@ BFGS<T>::BFGS(T*& x0, T*& fopt0, int& n0,  T& taud0,
 	      const char *& outputname0, int& m0, int& gradientsamplingN0, 
 	      double*& u0, double*& l0):
   quasinewton<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
-		 echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0){
+		 echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
+  mHdouble(quasinewton<T>::n, quasinewton<T>::n){
   quasinewton<T>::n1 = quasinewton<T>::n;
   quasinewton<T>::n2 = quasinewton<T>::n * quasinewton<T>::n;
   quasinewton<T>::nm = 1;
@@ -376,6 +372,8 @@ void BFGS<T>::createDoubleH(){
     for(int j = 0; j < quasinewton<T>::n; j++)
       Hdouble[i * quasinewton<T>::n + j] = t_double(H[i * quasinewton<T>::n + j]);
   }
+  Matrix<double> temp(Hdouble, quasinewton<T>::n, quasinewton<T>::n);
+  mHdouble = temp;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -387,6 +385,7 @@ protected:
   double alpha, beta, tj, fpj, fppj, deltatj, oldtj, adouble, dtstar;
   int ndouble, one, b;
   double *di, *z, *C;
+  Matrix<double> mZ, mdi;
   // bear in mind that the following multimap is already ordered
   typename std::multimap<T, int>::iterator iter;
 public:
@@ -394,6 +393,7 @@ public:
 	std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
 	int&, double*&, double*&);
   void zBz();
+  void dBz();
   void zeroethstep();
   void lapackzerostep();
   void findXCauchymX(int);
@@ -412,7 +412,8 @@ BFGSB<T>::BFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
 		const char *& outputname0, int& m0, int& gradientsamplingN0,
 		double*& u0, double*&l0):
   BFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
-	   echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0){
+	  echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0), 
+  mZ(quasinewton<T>::n, 1), mdi(quasinewton<T>::n, 1){
   tstar = 0.0;
   yTrans = 'T'; nTrans = 'N';
   alpha = 1.0; beta = 0.0;
@@ -442,32 +443,49 @@ void BFGSB<T>::zeroethstep(){
     quasinewton<T>::xcauchy[i0]= MAX(quasinewton<T>::xcauchy[i0], quasinewton<T>::l[i0]);
     z[i0] = t_double(quasinewton<T>::xcauchy[i0] - quasinewton<T>::x[i0]);
   }
+  Matrix<double> temp(z, quasinewton<T>::n, 1);
+  mZ = temp;
+
   // Update new d_i coordinate
   di[b] = -t_double(quasinewton<T>::g[b]);
-  quasinewton<T>::freeVariable[b] = false;
+  Matrix<double> temp2(di, quasinewton<T>::n, 1);
+  mdi = temp2;
   
+  quasinewton<T>::freeVariable[b] = false;
 }
 
 template<typename T>
 void BFGSB<T>::zBz(){
   // z^T*B*z
-  int ndoubletemp = this->ndouble;
-  int onetemp = this->one;
-  double alphatemp = this->alpha;
-  double betatemp = this->beta;
+  Matrix<double> madouble(1, 1);
+  Matrix<double> mtemp(1, quasinewton<T>::n); //receives the first part of z^T*B
+  matrixMultiply(mZ, BFGS<T>::mHdouble, mtemp, 'T', 'N');
+  // matrixMultiply here using mtemp from before
+  matrixMultiply(mtemp, mZ, madouble);
+  int intemp = 0;
+  adouble = madouble(intemp);
+}
 
-  dgemm_(&nTrans, &nTrans, &ndoubletemp, &onetemp, &ndoubletemp, &alphatemp, 
-	 BFGS<T>::Hdouble, &ndoubletemp, z, &ndoubletemp, &betatemp, C, &ndoubletemp);
-  ndoubletemp = this->ndouble;
-  onetemp = this->one;
-  alphatemp = this->alpha;
-  betatemp = this->beta;
-  std::cout << "this one " << this->one << " n: " << ndoubletemp << std::endl;
-  // WARNING:  This could be the one that changes the one and possible the ndouble
-  // Something is overwriting everything else in memory
-  dgemm_(&yTrans, &nTrans, &onetemp, &ndoubletemp, &onetemp, &alphatemp, di, 
-	 &oneetemp, C, &ndoubletemp, &betatemp, &adouble, &onetemp);
-  std::cout << "this one " << this->one << "onetemp" << onetemp << std::endl;
+template<typename T>
+void BFGSB<T>::dBz(){
+  std::cout << "problem params: 3: " << ndouble << " 4: "<< this->one << 
+    " 13: " << ndouble << std::endl;
+  Matrix<double> madouble(1, 1);
+  Matrix<double> mtemp(1, quasinewton<T>::n);
+  matrixMultiply(mdi, BFGS<T>::mHdouble, mtemp, 'T', 'N');
+  /*
+  dgemm_(&nTrans, &nTrans, &ndouble, &this->one, &ndouble, &alpha, BFGS<T>::Hdouble, 
+  &ndouble, di, &ndouble, &beta, C, &ndouble);
+  */
+  std::cout << "checking existence after first dgemm " << this->n << std::endl;
+  matrixMultiply(mtemp, mZ, madouble);
+  int intemp = 0;
+  adouble = madouble(intemp);
+  /*
+  dgemm_(&yTrans, &nTrans, &one, &ndouble, &ndouble, &alpha, di, &ndouble, C, &ndouble, 
+	 &beta, &adouble, &one);
+  */
+  std::cout << "checking existence after second dgemm " << this->n << std::endl;
 }
 
 template<typename T>
@@ -483,16 +501,10 @@ void BFGSB<T>::lapackzerostep(){
   for(int i0 = 0; i0 < this->n; i0++){
     grad[i0] = t_double(this->g[i0]) * di[i0];
   }
-  std::cout << "before zBz one is " << this->one << std::endl;
   zBz();
-  std::cout << "after zBz one is " << this->one << std::endl;
-
-  std::cout << "adouble after" << adouble << std::endl;
-  std::cout << "after zBz " << std::endl;
   fpj = adouble;
   for(int i0 = 0; i0 < this->n; i0++){
     // veciptd<double>(quasinewton<T>::g, di, ndouble) + adouble;
-    std::cout << "grad[i0] " << grad[i0] << std::endl;
     fpj = fpj + grad[i0];
   }
   
@@ -500,15 +512,7 @@ void BFGSB<T>::lapackzerostep(){
   //g^Td +  z^T*B*z
   
   // d^T*B*z
-  ndouble = this->n;
-  std::cout << "problem params: 3: " << ndouble << " 4: "<< this->one << 
-	    " 13: " << ndouble << std::endl;
-  dgemm_(&nTrans, &nTrans, &ndouble, &this->one, &ndouble, &alpha, BFGS<T>::Hdouble, 
-	 &ndouble, di, &ndouble, &beta, C, &ndouble);
-  std::cout << "checking existence after first dgemm " << this->n << std::endl;
-  dgemm_(&yTrans, &nTrans, &one, &ndouble, &ndouble, &alpha, di, &ndouble, C, &ndouble, 
-	 &beta, &adouble, &one);
-  std::cout << "checking existence after second dgemm " << this->n << std::endl;
+  dBz();
   fppj = adouble;
   dtstar = -fpj / fppj;
   tstar = dtstar + oldtj;
@@ -610,7 +614,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // the quadratic approximation to the goal function
   int numfree = 0; // number of free variables
   b = 0;
-  double* Z, *r, *dx, *d, *dnsize;
+  double* ZfM2, *r, *dx, *d, *dnsize;
   std::cout << "I got here" << std::endl;
   int myn;
   myn = (quasinewton<T>::n);
@@ -626,14 +630,14 @@ void BFGSB<T>::findMinimum2ndApproximation(){
       numfree++;
   }
   
-  Z = new double[(quasinewton<T>::n) * numfree];
+  ZfM2 = new double[(quasinewton<T>::n) * numfree];
   
   typename std::multimap<T, int>::iterator titer = quasinewton<T>::bpmemory.begin();
   for(int i = 0; i < quasinewton<T>::n; i++, titer++){
     for(int j = 0; j < numfree; j++)
-      Z[(i) * numfree + j] = 0.0;
+      ZfM2[(i) * numfree + j] = 0.0;
     b = (*titer).second; //position of the ith. crossed boundary
-    Z[(b) * numfree + (i)] = 1.0;
+    ZfM2[(b) * numfree + (i)] = 1.0;
   }
   
   // Now let's define the r vector.  r = Z(g + H(Xcauchy - X))
@@ -644,7 +648,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
 	 &ndouble, dx, &ndouble, &beta, C, &ndouble);
   for(int i = 0; i < quasinewton<T>::n; i++)
     C[i] += t_double(quasinewton<T>::g[i]);
-  dgemm_(&yTrans, &nTrans, &ndouble, &one, &numfree, &alpha, Z,
+  dgemm_(&yTrans, &nTrans, &ndouble, &one, &numfree, &alpha, ZfM2,
 	 &ndouble, C, &ndouble, &beta, r, &ndouble);
   
   // Find Bhat = Z^TBZ
@@ -652,8 +656,8 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   BZ = new double[(quasinewton<T>::n) * numfree];
   BHAT = new double[numfree * numfree];
   dgemm_(&nTrans, &nTrans, &ndouble, &numfree, &ndouble, &alpha, BFGS<T>::Hdouble,
-	 &ndouble, Z, &numfree, &beta, BZ, &ndouble);
-  dgemm_(&yTrans, &nTrans, &numfree, &ndouble, &ndouble, &alpha, Z,
+	 &ndouble, ZfM2, &numfree, &beta, BZ, &ndouble);
+  dgemm_(&yTrans, &nTrans, &numfree, &ndouble, &ndouble, &alpha, ZfM2,
 	 &numfree, BZ, &ndouble, &beta, BHAT, &one); //Warning  Check that &one
   
   // Solve the system 5.5 and 5.6
@@ -685,7 +689,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // Find the new solution
   titer = quasinewton<T>::bpmemory.begin();
   // Z_k * d
-  dgemm_(&nTrans, &nTrans, &ndouble, &one, &numfree, &alpha, Z,
+  dgemm_(&nTrans, &nTrans, &ndouble, &one, &numfree, &alpha, ZfM2,
 	 &ndouble, d, &ndouble, &beta, dnsize, &ndouble);  
   for(int i = 0; i < quasinewton<T>::n; i++){
     quasinewton<T>::x[i] = quasinewton<T>::xcauchy[i];

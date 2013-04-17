@@ -19,14 +19,15 @@
 #ifndef _NUMMATRIX_HPP_
 #define _NUMMATRIX_HPP_
 
-#include<iostream>
+#include <iostream>
+#include "../lib/qpspecial/lapackc.hpp"
 
 // multiplication routine in lapack
-extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*, 
+/*extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*, 
 		       double*, int*, double*, double*, int*);
 
 extern "C" void dgesv_(int*, int*, double*, int*, int*, double*, int*, int*);
-
+*/
 /*
   The main idea of creatin this class is to use a library interacts with lapack and
   seamlessly can solve problems without having to worry for lapack's messy syntax.
@@ -42,6 +43,7 @@ protected:
 public:
   Matrix();
   Matrix(T *, int , int );
+  Matrix(int, int); // Constructor without data
   Matrix(Matrix<T>&); // copy constructor
   ~Matrix();
   void initializeToZero();
@@ -52,6 +54,7 @@ public:
   template<typename H> friend void bfgssolver(Matrix<H>&, Matrix<H>&, Matrix<H>&);
 
   T& operator()(int& );
+  //T& operator()(int);
   Matrix<T>& operator=(Matrix<T>& );
 };
 
@@ -59,7 +62,12 @@ template<typename T>
 T& Matrix<T>::operator()(int& i){
   return matrix[i];
 }
-
+/*
+template<typename T>
+T& Matrix<T>::operator()(int i){
+  return matrix[i];
+}
+*/
 //copy constructor
 template<typename T>
 Matrix<T>::Matrix(Matrix<T>& other){
@@ -91,12 +99,23 @@ Matrix<T>& Matrix<T>::operator=(Matrix<T>& rhs){
   }
   return *this;
 }
-
+// constructors
 template<typename T>
 Matrix<T>::Matrix():m(1), n(1){
   matrix = new T[1];
   matrix[0] = 0.0;
 }
+// Initialize to zeroes
+template<typename T>
+Matrix<T>::Matrix(int m0, int n0):m(m0), n(n0){
+  if (0 >= m || 0 >= n)
+    std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
+  matrix = new T[m * n];
+  for(int i = 0; i < m * n; i++){
+    matrix[i] = 0;
+  }
+}
+
 
 template<typename T>
 Matrix<T>::Matrix(T* A, int m0, int n0):m(m0), n(n0){
