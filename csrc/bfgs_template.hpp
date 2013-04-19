@@ -586,7 +586,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // the quadratic approximation to the goal function
   int numfree = 0; // number of free variables
   b = 0;
-  double* ZfM2, *r, *dx, *d, *dnsize;
+  double* ZfM2, *r, *dx, *dnsize;
   int myn;
   myn = quasinewton<T>::n;
   myn = myn + 1;
@@ -615,43 +615,36 @@ void BFGSB<T>::findMinimum2ndApproximation(){
 
   std::cout << "Before lapack computations" << std::endl;
   Matrix<double> mdx(dx, quasinewton<T>::n, 1), mC(C, quasinewton<T>::n, 1);
+  matrixMultiply(BFGS<T>::mHdouble, mdx, mC); // Result kept in mC 
+  std::cout << "After lapack computations" << std::endl;
 
-  matrixMultiply(BFGS<T>::mHdouble, mdx, mC); // Result kept in mC
-  
   for(int i = 0; i < quasinewton<T>::n; i++){
     C[i] = mC(i);  //Warning!.  I need to correct for this double assignation
     C[i] += t_double(quasinewton<T>::g[i]);
   }
 
   r = new double[numfree];
-  d = new double[numfree];
   Matrix<double> mZfM2(ZfM2, quasinewton<T>::n, numfree);
   Matrix<double> mmC(C, quasinewton<T>::n, 1);
   Matrix<double> mr(r, numfree, 1);
+  std::cout << "numfree: " << numfree << "quasinewton<T>::n :  " << quasinewton<T>::n << std::endl;
+  std::cout << "before the suspicious matrixMultiply" << std::endl;
   matrixMultiply(mZfM2, mmC, mr, 'T', 'N'); // the result is now on mr;
 
-  std::cout << "After lapack computations" << std::endl;
-
   // Find Bhat = Z^TBZ
-  double* BZ;
-  BZ = new double[(quasinewton<T>::n) * numfree];
   Matrix<double> mBHAT(numfree, numfree);
   std::cout << "Before more lapack computations" << std::endl;
-  mBHAT = squareForm(mZfM2, BFGS<T>::mHdouble, mZfM2);
+  GensquareForm(mZfM2, BFGS<T>::mHdouble, mZfM2, mBHAT);
   std::cout << "After more lapack computations" << std::endl;
 
 
   // Solve the system 5.5 and 5.6
   // Notice that this system could easily be solved by inverting the matrix *BHAT
   // Notice that BHAT will be completely overwritten with an L and U decomposition...
-  int info = 11;
-  int* ipiv = new int[numfree];
-  /*
-  dgesv_(&numfree, &one, BHAT, &numfree, ipiv, r, &numfree, &info);
-  */
-  bfgssolver(mBHAT, mr);
+  
+  Matrix<double> md(numfree, 1);  // Where to put the solution 
+  bfgssolver(mBHAT, mr, md);
 
-  // The solution is now on variable r
   double alpha0 = 0.0;
   double alphacandidate = 0.0;
   // Define the new boundaries which appear on 5.6
@@ -664,36 +657,37 @@ void BFGSB<T>::findMinimum2ndApproximation(){
       b = (*titer).second;
       lbf[ind] = quasinewton<T>::l[b] - quasinewton<T>::xcauchy[b];
       ubf[ind] = quasinewton<T>::u[b] - quasinewton<T>::xcauchy[b];
-      alphacandidate = MAX(ubf[ind] / r[ind], lbf[ind] / r[ind]); //WARNING: r is d here
+      alphacandidate = MAX(ubf[ind] / md(ind), lbf[ind] / md(ind));
       alpha0 = MAX(alpha0, alphacandidate);
     }
   alpha0 = MIN(alpha0, 1.0);
-  for(int i = 0; i < numfree; i++){
-    d[i] = alpha0 * r[i];   // Move back to vector d since it is less confusing
-  }
+  md *= alpha0;
+
   // Find the new solution
   titer = quasinewton<T>::bpmemory.begin();
   // Z_k * d
-  dgemm_(&nTrans, &nTrans, &ndouble, &one, &numfree, &alpha, ZfM2,
-	 &ndouble, d, &ndouble, &beta, dnsize, &ndouble);  
+  Matrix<double> mdnsize(dnsize, quasinewton<T>::n, 1);
+  matrixMultiply(mZfM2, md, mdnsize);
+
   for(int i = 0; i < quasinewton<T>::n; i++){
     quasinewton<T>::x[i] = quasinewton<T>::xcauchy[i];
     if((*titer).second == i){
-      quasinewton<T>::x[i] += dnsize[i];
+      quasinewton<T>::x[i] += mdnsize(i);
     }
   }
- /* 
+  /* 
     calculate s and y:
     before these calls, s and y contain
     previous -x and prev. -g, so e.g. s = x - xprev is s = s + x 
- */
+  */
   vpv<T>(quasinewton<T>::s, quasinewton<T>::x, 1, quasinewton<T>::n);
   vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1, quasinewton<T>::n);
   // Here's a question.  Do I use the new g or the previous one before the update
   // My guess is that it's probably similar
+  // ANSWER: USE THE NEW g!!!
   T* dnsizeT = new T[quasinewton<T>::n];
   for(int i = 0; i < quasinewton<T>::n; i++)
-	dnsizeT[i] = dnsize[i];
+	dnsizeT[i] = mdnsize(i);
   update_bfgs<T>(BFGS<T>::H, dnsizeT, quasinewton<T>::g, 
 		 quasinewton<T>::s, quasinewton<T>::y, BFGS<T>::q, quasinewton<T>::n);
   T alpha1 = static_cast<T>(alpha0);
@@ -709,15 +703,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     *quasinewton<T>::exitflag = 2;
   if (*quasinewton<T>::qpoptvalptr < quasinewton<T>::taud)
     *quasinewton<T>::exitflag = 7;
-  
-  /*
-  // Can I do gradient sampling here?
-  if(-1 == quasinewton<T>::*exitflag){
-    bool gradsampresult;
-    gradsampresult = gradsamp();
-    gradsampresult
-  }
-  */
+  // Don't do Gradiend Sampling
   /* if exitflag was changed: exit main loop */
   if (0 != *quasinewton<T>::exitflag) quasinewton<T>::done = true;
 }

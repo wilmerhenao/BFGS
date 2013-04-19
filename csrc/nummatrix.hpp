@@ -53,14 +53,15 @@ public:
 						  char transB = 'N');
   template<typename H> friend double squareForm(Matrix<H> &, Matrix<H> &, 
 						Matrix<H>&);
-  template<typename H> friend Matrix<H>& GensquareForm(Matrix<H> &, Matrix<H> &, 
-						Matrix<H>&);
+  template<typename H> friend void GensquareForm(Matrix<H> &, Matrix<H> &, 
+						 Matrix<H>&, Matrix<H> &);
 
   template<typename H> friend void bfgssolver(Matrix<H>&, Matrix<H>&, Matrix<H>&);
 
   T& operator()(int& );
   //T& operator()(int);
   Matrix<T>& operator=(Matrix<T>& );
+  Matrix<T>& operator*=(double );
 };
 
 template<typename T>
@@ -104,6 +105,15 @@ Matrix<T>& Matrix<T>::operator=(Matrix<T>& rhs){
   }
   return *this;
 }
+
+template<typename T>
+Matrix<T>& Matrix<T>::operator*=(double rhs){
+  for(int i = 0; i < n * m; i++){
+    matrix[i] = rhs * matrix[i];
+  }
+  return (*this);
+}
+
 // constructors
 template<typename T>
 Matrix<T>::Matrix():m(1), n(1){
@@ -115,6 +125,7 @@ template<typename T>
 Matrix<T>::Matrix(int m0, int n0):m(m0), n(n0){
   if (0 >= m || 0 >= n)
     std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
+    std::cerr << "m: " << m << " n:" << n << std::endl;
   matrix = new T[m * n];
   for(int i = 0; i < m * n; i++){
     matrix[i] = 0;
@@ -126,6 +137,7 @@ template<typename T>
 Matrix<T>::Matrix(T* A, int m0, int n0):m(m0), n(n0){
   if (0 >= m || 0 >= n)
     std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
+    std::cerr << "m: " << m << " n:" << n << std::endl;
   matrix = new T[m * n];
   for(int i = 0; i < m * n; i++){
     matrix[i] = A[i];
@@ -311,7 +323,7 @@ double squareForm(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C){
 }
 
 template<typename H> 
-Matrix<H>& GensquareForm(Matrix<H> & A, Matrix<H> & B, Matrix<H>& C){
+void GensquareForm(Matrix<H> & A, Matrix<H> & B, Matrix<H>& C, Matrix<H>& res){
   /* 
      This one solves problems of the type x^TBz where x, and z are COLUMN vectors and
      B is a square matrix.  No warnings are checked here since they will show up in 
@@ -320,16 +332,11 @@ Matrix<H>& GensquareForm(Matrix<H> & A, Matrix<H> & B, Matrix<H>& C){
      this method returns a full matrix and not just a double.
   */
 
-  // Create the matrix where I'm going to put the final result
-  Matrix<H> res(A.n, C.n);
-
   // Create a temporal instance for first multiplication result storage
   Matrix<H> temp(A.n, B.n);
 
   matrixMultiply(A, B, temp, 'T', 'N');
   matrixMultiply(temp, C, res, 'N', 'N');
-
-  return res;
 }
 
 
