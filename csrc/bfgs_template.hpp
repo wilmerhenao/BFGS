@@ -518,10 +518,7 @@ void BFGSB<T>::findXCauchymX(int i){
 template<typename T>
 void BFGSB<T>::lapackmanipulations(){
   // LAPACK manipulations for each of the loops in the xcauchy calculations
-/*
-  dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble, 
-	 &ndouble, z, &ndouble, &beta, C, &ndouble); //C = B^T * z
-*/
+
   Matrix<double> temp(1, quasinewton<T>::n);
   matrixMultiply(mZ, BFGS<T>::mHdouble, temp, 'T', 'N');
   fpj = fpj + deltatj * fppj + std::pow(t_double(quasinewton<T>::g[b]), 
@@ -594,8 +591,6 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   myn = quasinewton<T>::n;
   myn = myn + 1;
   dx = new double[quasinewton<T>::n];
-  r = new double[numfree];
-  d = new double[numfree];
   dnsize = new double[quasinewton<T>::n];
   
   for(int i = 0; i < quasinewton<T>::n; i++){
@@ -617,14 +612,34 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // is it maybe worth representing r as in equation 5.4 instead?
   for(int i = 0; i < quasinewton<T>::n; i++)
     dx[i] = t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
+
   std::cout << "Before lapack computations" << std::endl;
+  Matrix<double> mdx(dx, quasinewton<T>::n, 1), mC(C, quasinewton<T>::n, 1);
+  /*
   dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble,
 	 &ndouble, dx, &ndouble, &beta, C, &ndouble);
-  for(int i = 0; i < quasinewton<T>::n; i++)
+  */
+  matrixMultiply(BFGS<T>::mHdouble, mdx, mC); // Result kept in mC
+  
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    C[i] = mC(i);  //Warning!.  I need to correct for this double assignation
     C[i] += t_double(quasinewton<T>::g[i]);
+  }
+
+  r = new double[numfree];
+  d = new double[numfree];
+  Matrix<double> mZfM2(ZfM2, quasinewton<T>::n, numfree);
+  Matrix<double> mmC(C, quasinewton<T>::n, 1);
+  Matrix<double> mr(r, numfree, 1);
+  matrixMultiply(mZfM2, mmC, mr, 'T', 'N'); // the result is now on mr;
+
+  /*
   dgemm_(&yTrans, &nTrans, &ndouble, &one, &numfree, &alpha, ZfM2,
 	 &ndouble, C, &ndouble, &beta, r, &ndouble);
+*/
   std::cout << "After lapack computations" << std::endl;
+
+
   // Find Bhat = Z^TBZ
   double* BZ, *BHAT;
   BZ = new double[(quasinewton<T>::n) * numfree];
