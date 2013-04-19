@@ -79,9 +79,7 @@ protected:
   int(*testFunction)(T*, T*, T*, int);
   std::ofstream* output;
   std::ofstream alloutput;
-  const char * outputname;
-  std::vector<T> breakpoints; //Contains the breakpoints to be ordered
-  std::vector<T> breakpointsNOorder; 
+  const char * outputname; 
   std::multimap<T, int> bpmemory; //Breakpoints automatically ordered
   
 public:
@@ -257,12 +255,7 @@ void quasinewton<T>::postmainloop(){
   }
   *fopt = *f;
   std::cout << "valor final: " << *f << std::endl;
-  /* Gather rundata in the double array 'info' 
-     info[0] = (double) (*nfeval);
-     info[1] = (double) (*exitflag);
-     info[2] = (double) (lm);
-     info[3] = (double) (ttime);
-  */
+  
 }
 
 template<typename T>
@@ -285,39 +278,18 @@ void quasinewton<T>::gettis(){
   // This function gets all the Ti points described in (4.1) of 8limited**
   // It also sorts them at the end
   for(int i = 0; i < n; i++){
-    if(0 == g[i]){
-      breakpoints.push_back(std::numeric_limits<T>::max()); // Assign \Infty if g == 0
+    if(0.0 == g[i]){
+      // Assign \Infty if g == 0
       bpmemory.insert(std::pair<T, int>(std::numeric_limits<T>::max(), i));
     } else {
       if(g[i] < 0) {
-	breakpoints.push_back( (x[i] - u[i]) / g[i]);
 	bpmemory.insert(std::pair<T, int>((x[i] - u[i]) / g[i], i));
       } else {
-	breakpoints.push_back((x[i] - l[i]) / g[i]);
 	bpmemory.insert(std::pair<T, int>((x[i] - l[i]) / g[i], i));
       }
     }
   }
-  breakpointsNOorder = breakpoints;
-  std::make_heap(breakpoints.begin(), breakpoints.end());
-  std::sort_heap(breakpoints.begin(), breakpoints.end());
 }
-/*
-  template<typename T>
-  int quasinewton<T>::findDimension(int i){
-  //This function finds the correct dimension that we should work with and pops the
-  // the corresponding element in the multimap container
-  // receives the current cardinal dimension I'm working with.  Returns the real
-  // dimension to work with
-  T ti;
-  int thisdimension;
-  ti =  breakpoints[i];
-  std::multimap<T, int>::iterator it = bpmemory.find(ti);
-  thisdimension = it->second;
-  bpmemory.erase(it);
-  return(thisdimension);
-  }
-*/
 
 /////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
@@ -446,7 +418,7 @@ void BFGSB<T>::zeroethstep(){
   }
   Matrix<double> temp(z, quasinewton<T>::n, 1);
   mZ = temp;
-
+  
   // Update new d_i coordinate
   di[b] = -t_double(quasinewton<T>::g[b]);
   Matrix<double> temp2(di, quasinewton<T>::n, 1);
