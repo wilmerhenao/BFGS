@@ -53,6 +53,9 @@ public:
 						  char transB = 'N');
   template<typename H> friend double squareForm(Matrix<H> &, Matrix<H> &, 
 						Matrix<H>&);
+  template<typename H> friend Matrix<H>& GensquareForm(Matrix<H> &, Matrix<H> &, 
+						Matrix<H>&);
+
   template<typename H> friend void bfgssolver(Matrix<H>&, Matrix<H>&, Matrix<H>&);
 
   T& operator()(int& );
@@ -295,10 +298,10 @@ double squareForm(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C){
   */
 
   // Create a temporal instance for first multiplication result storage
-  Matrix<double> temp(1, A.m);
-  Matrix<double> finalresult(1, 1);
+  Matrix<T> temp(1, B.n);
+  Matrix<T> finalresult(1, 1);
   int posit = 0;
-  double squareFormResult;
+  T squareFormResult;
 
   matrixMultiply(A, B, temp, 'T', 'N');
   matrixMultiply(temp, C, finalresult, 'N', 'N');
@@ -306,5 +309,28 @@ double squareForm(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C){
 
   return squareFormResult;
 }
+
+template<typename H> 
+Matrix<H>& GensquareForm(Matrix<H> & A, Matrix<H> & B, Matrix<H>& C){
+  /* 
+     This one solves problems of the type x^TBz where x, and z are COLUMN vectors and
+     B is a square matrix.  No warnings are checked here since they will show up in 
+     the individual multiplications anyway
+     Notice that the only difference between this method and the one above is that
+     this method returns a full matrix and not just a double.
+  */
+
+  // Create the matrix where I'm going to put the final result
+  Matrix<H> res(A.n, C.n);
+
+  // Create a temporal instance for first multiplication result storage
+  Matrix<H> temp(A.n, B.n);
+
+  matrixMultiply(A, B, temp, 'T', 'N');
+  matrixMultiply(temp, C, res, 'N', 'N');
+
+  return res;
+}
+
 
 #endif // _NUMMATRIX_HPP_

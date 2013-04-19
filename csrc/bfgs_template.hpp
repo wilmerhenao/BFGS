@@ -615,10 +615,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
 
   std::cout << "Before lapack computations" << std::endl;
   Matrix<double> mdx(dx, quasinewton<T>::n, 1), mC(C, quasinewton<T>::n, 1);
-  /*
-  dgemm_(&nTrans, &nTrans, &ndouble, &one, &ndouble, &alpha, BFGS<T>::Hdouble,
-	 &ndouble, dx, &ndouble, &beta, C, &ndouble);
-  */
+
   matrixMultiply(BFGS<T>::mHdouble, mdx, mC); // Result kept in mC
   
   for(int i = 0; i < quasinewton<T>::n; i++){
@@ -633,30 +630,27 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   Matrix<double> mr(r, numfree, 1);
   matrixMultiply(mZfM2, mmC, mr, 'T', 'N'); // the result is now on mr;
 
-  /*
-  dgemm_(&yTrans, &nTrans, &ndouble, &one, &numfree, &alpha, ZfM2,
-	 &ndouble, C, &ndouble, &beta, r, &ndouble);
-*/
   std::cout << "After lapack computations" << std::endl;
 
-
   // Find Bhat = Z^TBZ
-  double* BZ, *BHAT;
+  double* BZ;
   BZ = new double[(quasinewton<T>::n) * numfree];
-  BHAT = new double[numfree * numfree];
+  Matrix<double> mBHAT(numfree, numfree);
   std::cout << "Before more lapack computations" << std::endl;
-  dgemm_(&nTrans, &nTrans, &ndouble, &numfree, &ndouble, &alpha, BFGS<T>::Hdouble,
-	 &ndouble, ZfM2, &numfree, &beta, BZ, &ndouble);
-std::cout << "In the middle of computations" << std::endl;
-  dgemm_(&yTrans, &nTrans, &numfree, &ndouble, &ndouble, &alpha, ZfM2,
-	 &numfree, BZ, &ndouble, &beta, BHAT, &one); //Warning  Check that &one
+  mBHAT = squareForm(mZfM2, BFGS<T>::mHdouble, mZfM2);
   std::cout << "After more lapack computations" << std::endl;
+
+
   // Solve the system 5.5 and 5.6
   // Notice that this system could easily be solved by inverting the matrix *BHAT
   // Notice that BHAT will be completely overwritten with an L and U decomposition...
   int info = 11;
   int* ipiv = new int[numfree];
+  /*
   dgesv_(&numfree, &one, BHAT, &numfree, ipiv, r, &numfree, &info);
+  */
+  bfgssolver(mBHAT, mr);
+
   // The solution is now on variable r
   double alpha0 = 0.0;
   double alphacandidate = 0.0;
