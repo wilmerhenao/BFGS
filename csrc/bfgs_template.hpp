@@ -97,7 +97,7 @@ public:
   void postmainloop();
   void runallsteps();
   void printallfinalinfo();
-  void gettis();
+  void get_ti_s();
   bool themin(double*, int);
   bool gradsamp(); // A few more iterations.  Defined only for double types
   //int getn();
@@ -274,7 +274,7 @@ void quasinewton<T>::runallsteps(){
 }
 
 template<typename T>
-void quasinewton<T>::gettis(){
+void quasinewton<T>::get_ti_s(){
   // This function gets all the Ti points described in (4.1) of 8limited**
   // It also sorts them at the end
   for(int i = 0; i < n; i++){
@@ -338,9 +338,11 @@ void BFGS<T>::mainloopspecific(){
 		 quasinewton<T>::y, q, quasinewton<T>::n);
 }
 
+// Hopefully this function will become obsolete if I include qd analysis
 template<typename T>
 void BFGS<T>::createDoubleH(){
-  for(int i = 0; i < this->n; i++){
+  for(int i = 0; i < this->n; i++){ //left this->n here on purpose for whoever is
+                                    //reading.  This way you don't know the scope!
     for(int j = 0; j < quasinewton<T>::n; j++)
       Hdouble[i * quasinewton<T>::n + j] = t_double(H[i * quasinewton<T>::n + j]);
   }
@@ -377,7 +379,7 @@ public:
   void printFinalConditions();
 };
 
-// initializer
+// constructor
 template<typename T>
 BFGSB<T>::BFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,  
 		int(*&tF)(T*, T*, T*, int), std::ofstream& output0,  T& ftarget0,  
@@ -425,6 +427,8 @@ void BFGSB<T>::zeroethstep(){
   mdi = temp2;
   
   quasinewton<T>::freeVariable[b] = false;
+
+
 }
 
 template<typename T>
@@ -522,6 +526,11 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
     deltatj = t_double(iter->first) - oldtj;
     di[b] = -t_double(quasinewton<T>::g[b]);  // This is equation 4.2 (minus?)
     quasinewton<T>::freeVariable[b] = false;
+
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    std::cout << "freevariable: " << quasinewton<T>::freeVariable[i] << std::endl;
+  }
+
     for(int i = 0; i < quasinewton<T>::n; i++){
       findXCauchymX(i);
     }
@@ -695,7 +704,7 @@ void BFGSB<T>::mainloop(){
   vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
   vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
   quasinewton<T>::fprev = *quasinewton<T>::f;
-  quasinewton<T>::gettis();
+  quasinewton<T>::get_ti_s();
   BFGS<T>::createDoubleH();
   zeroethstep();
   lapackzerostep();
