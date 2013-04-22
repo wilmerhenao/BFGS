@@ -64,7 +64,7 @@ class quasinewton{
 protected:
   const double C1 = 0.0001;
   const double C2 = 0.9;
-  bool done;
+  bool done, thisIterationConverged;
   clock_t t1, t2;
   int n, n1, n2, nm, m1, tmp, maxit, m;
   int it = 0, ol = 1, cs = 0, nfevalval = 0;
@@ -119,6 +119,7 @@ quasinewton<T>::quasinewton(T x0[], T* fopt0, int n0,  T taud0,
   outputname = outputname0;
   output   = &output0;
   done     = false;
+  thisIterationConverged = false;
   quasinewton<T>::f = &(quasinewton<T>::ftarget);
   g        = new T[n];
   p        = new T[n];
@@ -389,20 +390,22 @@ BFGSB<T>::BFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
   one = 1;
   di = new double[quasinewton<T>::n];
   z = new double[quasinewton<T>::n];
-  for(int i0 = 0; i0 < quasinewton<T>::n; i0++)
-    di[i0] = z[i0] = 0.0;
+  for(int i0 = 0; i0 < quasinewton<T>::n; i0++){
+    z[i0] = 0.0;
+    di[i0] = t_double(quasinewton<T>::g[i0]);
+  }
   C = new double[quasinewton<T>::n];
 }
 
 template<typename T>
 void BFGSB<T>::zeroethstep(){
-  /*  
-      First of all.  Run the zeroeth step from the multistep gradient projection
-      when you exit this function.  Xcauchy will have the first value after the gradient
-      hits a boundary. d will basically contain the same value as g and freeVariable
-      will register the value of the dimension of the boundary that was hit the first 
-      time.  Z will contain the variation between the two vectors (same a g for the 1st
-      step
+  /*
+    First of all.  Run the zeroeth step from the multistep gradient projection
+    when you exit this function. Xcauchy will have the first value after the gradient
+    hits a boundary. d will basically contain the same value as g and freeVariable
+    will register the value of the dimension of the boundary that was hit the first 
+    time.  Z will contain the variation between the two vectors (same a g for the 1st
+    step
   */
   
   iter = quasinewton<T>::bpmemory.begin();
@@ -418,18 +421,13 @@ void BFGSB<T>::zeroethstep(){
   for(int i0 = 0; i0 < quasinewton<T>::n; i0++){
     quasinewton<T>::xcauchy[i0] = (t_double(quasinewton<T>::x[i0]) - tj *
 				  t_double(quasinewton<T>::g[i0]));
-    /*
-      This part is probably not necessary if I start inside the box
-    quasinewton<T>::xcauchy[i0]= MIN(quasinewton<T>::xcauchy[i0], quasinewton<T>::u[i0]);
-    quasinewton<T>::xcauchy[i0]= MAX(quasinewton<T>::xcauchy[i0], quasinewton<T>::l[i0]);
-    */
     z[i0] = t_double(quasinewton<T>::xcauchy[i0] - quasinewton<T>::x[i0]);
   }
   Matrix<double> temp(z, quasinewton<T>::n, 1);
   mZ = temp;
   
   // Update new d_i coordinate
-  di[b] = -t_double(quasinewton<T>::g[b]);
+  di[b] = 0.0;
   Matrix<double> temp2(di, quasinewton<T>::n, 1);
   mdi = temp2;
   
@@ -472,28 +470,28 @@ void BFGSB<T>::lapackzerostep(){
   // fppj = d^T*B*z
   dBz();
   fppj = adouble;
-
+  
+  // find optimal point dtstar and tstar.  From last paragraph on page 6 of the paper
   dtstar = -fpj / fppj;
   tstar = dtstar + oldtj;
-  typename std::multimap<T, int>::iterator titer = quasinewton<T>::bpmemory.begin();
-  titer++;
-  tj = t_double((*titer).first);
-  if (tstar < tj){
-    if (tstar > 0)
-      exit(0);
-  }
+  oldtj = tj; // Because the next iteration tj will move one step to the front
 }
 
 template<typename T>
 void BFGSB<T>::findXCauchymX(int i){
-  // Calculates the difference between the new "cauchy" point and X
-  quasinewton<T>::xcauchy[i] = t_double((quasinewton<T>::x[i]) - 
-					iter->first * 
-					quasinewton<T>::g[i]);
+  // Calculates the difference between the new "cauchy" point and X one coordinate at a
+  // time.  Of course it also calculates the new "cauchy" point
+  
+  quasinewton<T>::xcauchy[i] = quasinewton<T>::xcauchy[i] + deltatj * di[i];
+
+  // Just a revision of where I am (in reality. This should only work at the epsilon
+  // level.  It might not be necessary at all. Consider erasing later).
   quasinewton<T>::xcauchy[i] = MIN(quasinewton<T>::xcauchy[i], 
 				   quasinewton<T>::u[i]);
   quasinewton<T>::xcauchy[i] = MAX(quasinewton<T>::xcauchy[i], 
 				   quasinewton<T>::l[i]);
+
+  // zeta As in Equation (4.3) on the paper
   z[i] = t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
 }
 
@@ -525,32 +523,41 @@ void BFGSB<T>::tstarcalculation(){
 
 template<typename T>
 void BFGSB<T>::findGeneralizedCauchyPoint(){
-  iter++;
+  iter++;  // this is a class member.  Starts at t_1 and the first time it moves to t_2
   for(; iter != quasinewton<T>::bpmemory.end(); iter++){
     tj = t_double(iter->first);
     b = iter->second;
-    deltatj = t_double(iter->first) - oldtj;
-    di[b] = -t_double(quasinewton<T>::g[b]);  // This is equation 4.2 (minus?)
+    deltatj = tj - oldtj;
+    //di[b] = -t_double(quasinewton<T>::g[b]);  // This is equation 4.2 (minus?)
+    di[b] = 0.0;  // Do not move in the direction that reached the boundary from now on
+
     quasinewton<T>::freeVariable[b] = false;
-
-  for(int i = 0; i < quasinewton<T>::n; i++){
-    std::cout << "freevariable: " << quasinewton<T>::freeVariable[i] << std::endl;
-  }
-
+    
+    for(int i = 0; i < quasinewton<T>::n; i++){
+      std::cout << "freevariable: " << quasinewton<T>::freeVariable[i] << std::endl;
+    }
+    
+    // update xcauchy and update the new z (the array, not the Matrix<double>)
     for(int i = 0; i < quasinewton<T>::n; i++){
       findXCauchymX(i);
     }
-
+    
     // Organize matrices
     Matrix<double> temp(z, quasinewton<T>::n, 1);
     mZ = temp;
-    Matrix<double> temp2(z, quasinewton<T>::n, 1);
+    Matrix<double> temp2(di, quasinewton<T>::n, 1);
     mdi = temp2;
+    
+    for (int i = 0; i < quasinewton<T>::n; i++){
+      std::cout << "mdi element: " << i << ": " << mdi(i) << std::endl;
+    }
+    
     lapackmanipulations();
     tstarcalculation();
     if (tstar >= oldtj){
       if (tstar <= tj){
 	std::cout << "found optimal cauchy point." << std::endl;
+	this->thisIterationConverged = true;
 	return;
       }
     }
@@ -560,7 +567,7 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
     }    
     oldtj = tj; // Update the time to the new end of the time frame
   }
-
+  
   // In case nothing was found.  Return the last point
   tstar = tj;
   // I still need to implement the last segment to locate xcauchy correctly.
@@ -709,15 +716,45 @@ void BFGSB<T>::mainloop(){
   quasinewton<T>::it++;
   vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
   vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
+  for (int i = 0; i < quasinewton<T>::n; i++){
+    std::cout << quasinewton<T>::g[i] <<" di element: "<< i <<": "<< di[i] << std::endl;
+  }
   quasinewton<T>::fprev = *quasinewton<T>::f;
   quasinewton<T>::get_ti_s();
   BFGS<T>::createDoubleH();
+  this->thisIterationConverged = false;  // 
   zeroethstep();
   lapackzerostep();
-  findGeneralizedCauchyPoint(); // up to here all good
+  // check if I can finish now and graciously leave if that's the case.
+  if (tstar < tj){
+    if (tstar > 0){
+      std::cout << "optimal value was found" << std::endl;
+      this->thisIterationConverged = true; // you found the generalized cauchy point
+      for(int i = 0; i < quasinewton<T>::n; i++){
+	  this->x[i] = this->xcauchy[i];
+	}
+	    }
+  }
+  
+
+  // Only continue if this iteration has not not converged
+  if(!this->thisIterationConverged)
+    findGeneralizedCauchyPoint(); // If this function converges inside it has to exit
   findMinimum2ndApproximation();
   std::cout << "Print final conditions to see if we converged" << std::endl;
   printFinalConditions();
+
+  if (quasinewton<T>::it >= quasinewton<T>::maxit)
+    *quasinewton<T>::exitflag = -1;
+  if (*quasinewton<T>::f < quasinewton<T>::ftarget)
+    *quasinewton<T>::exitflag = 1;
+  if (quasinewton<T>::gnorm < quasinewton<T>::gnormtol)
+    *quasinewton<T>::exitflag = 2;
+  if (*quasinewton<T>::qpoptvalptr < quasinewton<T>::taud)
+    *quasinewton<T>::exitflag = 7;
+  
+  /* if exitflag was changed: exit main loop: */
+  if (*quasinewton<T>::exitflag != 0) quasinewton<T>::done = true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
