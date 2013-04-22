@@ -71,7 +71,7 @@ protected:
   T *g, *p, *s, *y, *f, *qpoptvalptr, *x, *fopt;
   double *u, *l, *xcauchy;
   bool *freeVariable;
-  T t, gnorm, gtp, fval, fprev, qpoptval, taud, ftarget, gnormtol;
+  T t, gnorm, gtp, fprev, qpoptval, taud, ftarget, gnormtol;
   /* integer pointers: */  
   int* nfeval, gradientsamplingN;
   int *exitflag;
@@ -100,15 +100,8 @@ public:
   void get_ti_s();
   bool themin(double*, int);
   bool gradsamp(); // A few more iterations.  Defined only for double types
-  //int getn();
 };
-/*
-template<typename T>
-int quasinewton<T>::getn(){
-  std::cout << "getn : " << this->n << std::endl; 
-  return this->n;
-}
-*/
+
 template<typename T>
 quasinewton<T>::quasinewton(T x0[], T* fopt0, int n0,  T taud0,  
 			    int(*tF)(T*, T*, T*, int), std::ofstream& output0,  
@@ -126,7 +119,7 @@ quasinewton<T>::quasinewton(T x0[], T* fopt0, int n0,  T taud0,
   outputname = outputname0;
   output   = &output0;
   done     = false;
-  quasinewton<T>::f = &(quasinewton<T>::fval);
+  quasinewton<T>::f = &(quasinewton<T>::ftarget);
   g        = new T[n];
   p        = new T[n];
   s        = new T[n];
@@ -403,18 +396,33 @@ BFGSB<T>::BFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
 
 template<typename T>
 void BFGSB<T>::zeroethstep(){
-  // First of all.  Run the zeroeth step from the multistep gradient projection
+  /*  
+      First of all.  Run the zeroeth step from the multistep gradient projection
+      when you exit this function.  Xcauchy will have the first value after the gradient
+      hits a boundary. d will basically contain the same value as g and freeVariable
+      will register the value of the dimension of the boundary that was hit the first 
+      time.  Z will contain the variation between the two vectors (same a g for the 1st
+      step
+  */
+  
   iter = quasinewton<T>::bpmemory.begin();
   b = iter->second;
   deltatj = t_double(iter->first); // Change from zero
   
-  oldtj = tj = deltatj;
-  // Find the new x position
+  oldtj = 0.0;
+  tj = deltatj;
+  // Find the new x position.  Notice that in this case all the coordinates advance
+  // (at least those with non-zero values in the gradient)
+  // given that nothing will hit the boundary (until you hit the boundary corresponding
+  // to dimension 'b' of course.
   for(int i0 = 0; i0 < quasinewton<T>::n; i0++){
     quasinewton<T>::xcauchy[i0] = (t_double(quasinewton<T>::x[i0]) - tj *
 				  t_double(quasinewton<T>::g[i0]));
+    /*
+      This part is probably not necessary if I start inside the box
     quasinewton<T>::xcauchy[i0]= MIN(quasinewton<T>::xcauchy[i0], quasinewton<T>::u[i0]);
     quasinewton<T>::xcauchy[i0]= MAX(quasinewton<T>::xcauchy[i0], quasinewton<T>::l[i0]);
+    */
     z[i0] = t_double(quasinewton<T>::xcauchy[i0] - quasinewton<T>::x[i0]);
   }
   Matrix<double> temp(z, quasinewton<T>::n, 1);
@@ -451,19 +459,20 @@ void BFGSB<T>::lapackzerostep(){
   for(int i0 = 0; i0 < this->n; i0++){
     grad[i0] = t_double(this->g[i0]) * di[i0];
   }
-  zBz();
+  
+  // Calculation of variable fpj (page 6 of Nocedal's paper. Equation 4.4)
+  // fpj =  g^Td + z^T*B*z
+  zBz(); // this function modifies adouble (which is zero until now)
   fpj = adouble;
   for(int i0 = 0; i0 < this->n; i0++){
-    // veciptd<double>(quasinewton<T>::g, di, ndouble) + adouble;
     fpj = fpj + grad[i0];
   }
   
-  std::cout << "checking existence after veciptd FPJ ->" << fpj << std::endl;
-  //g^Td +  z^T*B*z
-  
-  // d^T*B*z
+  // Calculation of variable fppj (page 6 of Nocedal's paper. Equation 4.5)
+  // fppj = d^T*B*z
   dBz();
   fppj = adouble;
+
   dtstar = -fpj / fppj;
   tstar = dtstar + oldtj;
   typename std::multimap<T, int>::iterator titer = quasinewton<T>::bpmemory.begin();
