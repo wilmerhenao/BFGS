@@ -106,7 +106,6 @@ void algoparameters<T>::initializationcode(std::string locfunc){
   else
     std::cerr << "This function was not found!" << std::endl;
   boundedProblem = false;
-  generateXF();
 }
 
 
@@ -122,6 +121,7 @@ algoparameters<T>::algoparameters(int k, std::string locfunc, std::string outstr
   }
   // turn on the boundedProblem flag variable
   boundedProblem = true;
+  generateXF();
 }
 
 // The second initializer initializes when there are no u, l vectors
@@ -136,6 +136,7 @@ algoparameters<T>::algoparameters(int k, std::string locfunc, std::string outstr
     u[i] = l[i] = 0.0;  // 
   }
   boundedProblem = false;
+  generateXF();
 }
 
 template<typename T>
@@ -154,10 +155,21 @@ algoparameters<T>::~algoparameters(){
 
 template <typename T> 
 void algoparameters<T>::generateXF(){
-  srand(static_cast<unsigned> (time(NULL)));
-  rand_real_vec<double>(x0, n, -1, 1);
-  for (int j = 0 ; j < n; j++)
-    xf[j] = (T) x0[j];
+  /*
+    Generate a starting point.  If the problem is bounded, starting point is exactly
+    in the middle of the box.  If the problem is unbounded a random starting point is
+    applied
+  */
+
+  if(boundedProblem){
+    for(int j = 0; j < n; j++)
+      xf[j] = (u[j] + l[j]) / 2;
+  } else {
+    srand(static_cast<unsigned> (time(NULL)));
+    rand_real_vec<double>(x0, n, -1, 1);
+    for (int j = 0 ; j < n; j++)
+      xf[j] = (T) x0[j];
+  }
 }
 
 // The next function will be explicitly called by the user.  But if we want

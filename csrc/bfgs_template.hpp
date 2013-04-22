@@ -411,8 +411,7 @@ void BFGSB<T>::zeroethstep(){
   oldtj = tj = deltatj;
   // Find the new x position
   for(int i0 = 0; i0 < quasinewton<T>::n; i0++){
-    quasinewton<T>::xcauchy[i0] = (t_double(quasinewton<T>::x[i0]) - 
-				  t_double(iter->first) * 
+    quasinewton<T>::xcauchy[i0] = (t_double(quasinewton<T>::x[i0]) - tj *
 				  t_double(quasinewton<T>::g[i0]));
     quasinewton<T>::xcauchy[i0]= MIN(quasinewton<T>::xcauchy[i0], quasinewton<T>::u[i0]);
     quasinewton<T>::xcauchy[i0]= MAX(quasinewton<T>::xcauchy[i0], quasinewton<T>::l[i0]);
@@ -427,8 +426,6 @@ void BFGSB<T>::zeroethstep(){
   mdi = temp2;
   
   quasinewton<T>::freeVariable[b] = false;
-
-
 }
 
 template<typename T>
@@ -787,46 +784,6 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
-/* BFGS MAIN ALGORITHM: */
-template<class T>
-void bfgs(T*& x, T*& fopt,  int& n,  short& lm,  int& m, T& ftarget, 
-	  T& gnormtol, int& maxit,  long& J, T& taux,  T& taud, short& echo, 
-	  int(*&testFunction)(T*, T*, T*, int), std::string& datafilename, 
-          double*& info, int& gradientsamplingN0, double*& u0, double*& l0, 
-	  bool& boundedProblem){
-  
-  std::ofstream output;
-  std::cout <<"echo is: "<< echo << " datafilename is: " << datafilename << std::endl;
-  output.open(datafilename.c_str(), std::ios::app);
-  const char * outputname = datafilename.c_str();
-  if(!lm){
-    if(boundedProblem){
-      BFGS<T>* mybfgs;
-      mybfgs = new BFGSB<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol, 
-			   maxit, echo, lm, outputname, m, gradientsamplingN0, u0, l0);
-      mybfgs->runallsteps();
-    } else {
-      BFGS<T>* mybfgs;
-      mybfgs = new BFGS<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol, 
-			   maxit, echo, lm, outputname, m, gradientsamplingN0, u0, l0);
-      mybfgs->runallsteps();
-    }
-  } else {
-    if(boundedProblem){
-      LBFGS<T>* mylbfgs;
-      mylbfgs = new LBFGSB<T>(x, fopt, n, taud, testFunction, output, ftarget,gnormtol, 
-			   maxit, echo, lm, outputname, m, gradientsamplingN0, u0, l0);
-      mylbfgs->runallsteps();
-    } else{
-      LBFGS<T>* mylbfgs;
-      mylbfgs = new LBFGS<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol,
-			     maxit, echo, lm, outputname, m, gradientsamplingN0, u0,l0);
-      mylbfgs->runallsteps();
-    }
-  }
-  taux = taux + 1; J++; info[0] = info[0] + 1;
-  output.close();
-}
 
 template<typename T>
 bool quasinewton<T>::themin(double *gradpoints, int i1){
@@ -899,6 +856,47 @@ for(int i = 0; i < (gradientsamplingN); i++){
   double * solution = new double[n];
   myopt->fetchSolution(solution);
   return(true);
+}
+
+/* BFGS MAIN ALGORITHM: */
+template<class T>
+void bfgs(T*& x, T*& fopt,  int& n,  short& lm,  int& m, T& ftarget, 
+	  T& gnormtol, int& maxit,  long& J, T& taux,  T& taud, short& echo, 
+	  int(*&testFunction)(T*, T*, T*, int), std::string& datafilename, 
+          double*& info, int& gradientsamplingN0, double*& u0, double*& l0, 
+	  bool& boundedProblem){
+  
+  std::ofstream output;
+  std::cout <<"echo is: "<< echo << " datafilename is: " << datafilename << std::endl;
+  output.open(datafilename.c_str(), std::ios::app);
+  const char * outputname = datafilename.c_str();
+  if(!lm){
+    if(boundedProblem){
+      BFGS<T>* mybfgs;
+      mybfgs = new BFGSB<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol, 
+			   maxit, echo, lm, outputname, m, gradientsamplingN0, u0, l0);
+      mybfgs->runallsteps();
+    } else {
+      BFGS<T>* mybfgs;
+      mybfgs = new BFGS<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol, 
+			   maxit, echo, lm, outputname, m, gradientsamplingN0, u0, l0);
+      mybfgs->runallsteps();
+    }
+  } else {
+    if(boundedProblem){
+      LBFGS<T>* mylbfgs;
+      mylbfgs = new LBFGSB<T>(x, fopt, n, taud, testFunction, output, ftarget,gnormtol, 
+			   maxit, echo, lm, outputname, m, gradientsamplingN0, u0, l0);
+      mylbfgs->runallsteps();
+    } else{
+      LBFGS<T>* mylbfgs;
+      mylbfgs = new LBFGS<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol,
+			     maxit, echo, lm, outputname, m, gradientsamplingN0, u0,l0);
+      mylbfgs->runallsteps();
+    }
+  }
+  taux = taux + 1; J++; info[0] = info[0] + 1;
+  output.close();
 }
 
 #endif // _BFGS_TEMPLATE_HPP_
