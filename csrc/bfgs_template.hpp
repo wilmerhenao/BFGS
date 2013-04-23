@@ -442,7 +442,6 @@ void BFGSB<T>::zeroethstep(){
   }
  
   update_d();
- 
   quasinewton<T>::freeVariable[b] = false;
 }
 
@@ -531,7 +530,32 @@ template<typename T>
 void BFGSB<T>::lapackmanipulations(){
   // Literally just run the lapackzerostep method.  This is until I fix whether there
   // is any change in methodology or not.  If anything... consider merging completely
-  lapackzerostep();
+  /*
+    This method includes all the lapack routines that have to be run at the beginning
+    of the "find the cauchy point iteration"
+  */
+  
+  double * grad;
+  grad = new double[this->n];
+  
+  for(int i0 = 0; i0 < this->n; i0++){
+    grad[i0] = t_double(this->g[i0]) * di[i0];
+  }
+  
+  // Calculation of variable fpj (page 6 of Nocedal's paper. Equation 4.4)
+  // fpj =  g^Td + z^T*B*z
+  zBz(); // this function modifies adouble (which is zero until now)
+  fpj = adouble;
+  for(int i0 = 0; i0 < this->n; i0++){
+    fpj = fpj + grad[i0];
+  }
+  
+  // Calculation of variable fppj (page 6 of Nocedal's paper. Equation 4.5)
+  // fppj = d^T*B*z
+  dBz();
+  fppj = adouble;
+
+  tstarcalculation();
 }
 
 template<typename T>
@@ -558,8 +582,7 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
     tj = t_double(iter->first);
     b = iter->second;
     deltatj = tj - oldtj;
-    
-    quasinewton<T>::freeVariable[b] = false;    
+       
     for(int i = 0; i < quasinewton<T>::n; i++){
       std::cout << "freevariable: " << quasinewton<T>::freeVariable[i] << std::endl;
     }
@@ -601,6 +624,7 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
     }    
     update_d();
     oldtj = tj;
+    quasinewton<T>::freeVariable[b] = false; 
   }
   
   // In case nothing was found.  Return the last point
@@ -634,9 +658,19 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   typename std::multimap<T, int>::iterator titer = quasinewton<T>::bpmemory.begin();
   for(int i = 0; i < quasinewton<T>::n; i++, titer++){
     for(int j = 0; j < numfree; j++)
-      ZfM2[(i) * numfree + j] = 0.0;
+      ZfM2[i * numfree + j] = 0.0;
+  }
+  
+  int i1 = 0;
+  for(titer = this->bpmemory.begin(); titer != quasinewton<T>::bpmemory.end(); titer++){
     b = (*titer).second; //position of the ith. crossed boundary
-    ZfM2[(b) * numfree + i] = 1.0;
+    if(quasinewton<T>::freeVariable[b]){
+      // ZfM2 is a n x numfree matrix populated column-wise
+      ZfM2[b + quasinewton<T>::n * i1] = 1.0; // fill with ones for free variables as 
+                                              // explained on paragraph 2 of page 10 of 
+                                              // the paper.
+      i1++;
+    }
   }
   
   std::cout << "Entered second approximation function" << std::endl;
