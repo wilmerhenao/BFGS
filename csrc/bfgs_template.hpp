@@ -138,8 +138,10 @@ quasinewton<T>::quasinewton(T x0[], T* fopt0, int n0,  T taud0,
   gradientsamplingN = gradientsamplingN0;
   xcauchy = new double[n];
   freeVariable = new bool[n];
-  for(int i0 = 0; i0 < n; i0++)
+  for(int i0 = 0; i0 < n; i0++){
     freeVariable[i0] = true;
+    y[i0] = s[i0] = p[i0] = g[i0] = 0.0;
+  }
   u = u0;
   l = l0;
 }
@@ -371,6 +373,7 @@ public:
   void findMinimum2ndApproximation();
   void mainloop();
   void printFinalConditions();
+  void update_d();
 };
 
 // constructor
@@ -392,9 +395,16 @@ BFGSB<T>::BFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
   z = new double[quasinewton<T>::n];
   for(int i0 = 0; i0 < quasinewton<T>::n; i0++){
     z[i0] = 0.0;
-    di[i0] = t_double(quasinewton<T>::g[i0]);
+    di[i0] = 0.0;
   }
   C = new double[quasinewton<T>::n];
+}
+
+template<typename T>
+void BFGSB<T>::update_d(){
+    di[b] = 0.0;  // Do not move in the direction that reached the boundary from now on
+    Matrix<double> temp2(di, quasinewton<T>::n, 1);
+    mdi = temp2;
 }
 
 template<typename T>
@@ -426,11 +436,13 @@ void BFGSB<T>::zeroethstep(){
   Matrix<double> temp(z, quasinewton<T>::n, 1);
   mZ = temp;
   
-  // Update new d_i coordinate
-  di[b] = 0.0;
-  Matrix<double> temp2(di, quasinewton<T>::n, 1);
-  mdi = temp2;
-  
+  // Create di but Update new d_i coordinate
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    di[i] = t_double(quasinewton<T>::g[i]);
+  }
+ 
+  update_d();
+ 
   quasinewton<T>::freeVariable[b] = false;
 }
 
@@ -470,10 +482,9 @@ void BFGSB<T>::lapackzerostep(){
   // fppj = d^T*B*z
   dBz();
   fppj = adouble;
-  
-  // find optimal point dtstar and tstar.  From last paragraph on page 6 of the paper
-  dtstar = -fpj / fppj;
-  tstar = dtstar + oldtj;
+
+  tstarcalculation();  
+  update_d();
   oldtj = tj; // Because the next iteration tj will move one step to the front
 }
 
@@ -494,13 +505,14 @@ void BFGSB<T>::findXCauchymX(int i){
   // zeta As in Equation (4.3) on the paper
   z[i] = t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
 }
-
+/*
 template<typename T>
 void BFGSB<T>::lapackmanipulations(){
   // LAPACK manipulations for each of the loops in the xcauchy calculations
 
   Matrix<double> temp(1, quasinewton<T>::n);
   matrixMultiply(mZ, BFGS<T>::mHdouble, temp, 'T', 'N');
+  // Next step uses formula (4.9) page 7 of the paper.
   fpj = fpj + deltatj * fppj + std::pow(t_double(quasinewton<T>::g[b]), 
 					2) + 
     t_double(quasinewton<T>::g[b]) * temp(b);
@@ -511,7 +523,25 @@ void BFGSB<T>::lapackmanipulations(){
   for(int i = 0; i < quasinewton<T>::n; i++)
     C[i] = temp2(i);
 }
+*/
 
+// I'm redefining lapack manipulations
+
+template<typename T>
+void BFGSB<T>::lapackmanipulations(){
+  // Literally just run the lapackzerostep method.  This is until I fix whether there
+  // is any change in methodology or not.  If anything... consider merging completely
+  lapackzerostep();
+}
+
+template<typename T>
+void BFGSB<T>::tstarcalculation(){
+  // find optimal point dtstar and tstar.  From last paragraph on page 6 of the paper
+  dtstar = -fpj / fppj;
+  tstar = dtstar + oldtj;
+}
+
+/*
 template<typename T>
 void BFGSB<T>::tstarcalculation(){
   fppj = fppj + 2 * t_double(quasinewton<T>::g[b]) * C[b] + 
@@ -520,7 +550,7 @@ void BFGSB<T>::tstarcalculation(){
   dtstar = fpj / fppj;
   tstar = oldtj + dtstar;
 }
-
+*/
 template<typename T>
 void BFGSB<T>::findGeneralizedCauchyPoint(){
   iter++;  // this is a class member.  Starts at t_1 and the first time it moves to t_2
@@ -528,11 +558,8 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
     tj = t_double(iter->first);
     b = iter->second;
     deltatj = tj - oldtj;
-    //di[b] = -t_double(quasinewton<T>::g[b]);  // This is equation 4.2 (minus?)
-    di[b] = 0.0;  // Do not move in the direction that reached the boundary from now on
-
-    quasinewton<T>::freeVariable[b] = false;
     
+    quasinewton<T>::freeVariable[b] = false;    
     for(int i = 0; i < quasinewton<T>::n; i++){
       std::cout << "freevariable: " << quasinewton<T>::freeVariable[i] << std::endl;
     }
@@ -542,11 +569,9 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
       findXCauchymX(i);
     }
     
-    // Organize matrices
+    // Create Matrix<double> material
     Matrix<double> temp(z, quasinewton<T>::n, 1);
     mZ = temp;
-    Matrix<double> temp2(di, quasinewton<T>::n, 1);
-    mdi = temp2;
     
     for (int i = 0; i < quasinewton<T>::n; i++){
       std::cout << "mdi element: " << i << ": " << mdi(i) << std::endl;
@@ -558,18 +583,32 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
       if (tstar <= tj){
 	std::cout << "found optimal cauchy point." << std::endl;
 	this->thisIterationConverged = true;
+	for(int i = 0; i < quasinewton<T>::n; i++){
+	  this->x[i] = this->xcauchy[i] - (tj - dtstar) * mdi(i); // step back a little
+	}
 	return;
       }
     }
     if (fpj >= 0){
+      std::cout << "found optimal cauchy point exactly at a breakpoint." << std::endl;
       tstar = oldtj;
-      exit(0);
+      this->thisIterationConverged = true;
+      for(int i = 0; i < quasinewton<T>::n; i++){
+	this->x[i] = this->xcauchy[i] - (tj - oldtj) * mdi(i); // previous xcauchy was
+	                                                       // the right point
+      }
+      return;
     }    
-    oldtj = tj; // Update the time to the new end of the time frame
+    update_d();
+    oldtj = tj;
   }
   
   // In case nothing was found.  Return the last point
   tstar = tj;
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    this->x[i] = this->xcauchy[i];// previous xcauchy was
+    // the right point
+  }
   // I still need to implement the last segment to locate xcauchy correctly.
   std::cout << "exiting after finding generalized cauchy point (not optimal)"<<std::endl;
 }
@@ -716,9 +755,6 @@ void BFGSB<T>::mainloop(){
   quasinewton<T>::it++;
   vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
   vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
-  for (int i = 0; i < quasinewton<T>::n; i++){
-    std::cout << quasinewton<T>::g[i] <<" di element: "<< i <<": "<< di[i] << std::endl;
-  }
   quasinewton<T>::fprev = *quasinewton<T>::f;
   quasinewton<T>::get_ti_s();
   BFGS<T>::createDoubleH();
@@ -730,10 +766,11 @@ void BFGSB<T>::mainloop(){
     if (tstar > 0){
       std::cout << "optimal value was found" << std::endl;
       this->thisIterationConverged = true; // you found the generalized cauchy point
+      tj = tj + tstar;
       for(int i = 0; i < quasinewton<T>::n; i++){
-	  this->x[i] = this->xcauchy[i];
-	}
-	    }
+	  this->x[i] = this->xcauchy[i] - (tj - dtstar) * mdi(i); //step back a little
+      }
+    }
   }
   
 
@@ -852,7 +889,7 @@ bool quasinewton<T>::gradsamp(){
   //Do nothing unless T is a double type
   return(false);
 }
-
+ 
 template <> //template specialization for double (only doubles work with lapack)
 bool quasinewton<double>::gradsamp(){
   // n is the size of x and gradientsamplingN is the number of gradient samples 
@@ -906,8 +943,8 @@ for(int i = 0; i < (gradientsamplingN); i++){
 
 /* BFGS MAIN ALGORITHM: */
 template<class T>
-void bfgs(T*& x, T*& fopt,  int& n,  short& lm,  int& m, T& ftarget, 
-	  T& gnormtol, int& maxit,  long& J, T& taux,  T& taud, short& echo, 
+void bfgs(T*& x, T*& fopt, int& n, short& lm, int& m, T& ftarget, 
+	  T& gnormtol, int& maxit, long& J, T& taux, T& taud, short& echo, 
 	  int(*&testFunction)(T*, T*, T*, int), std::string& datafilename, 
           double*& info, int& gradientsamplingN0, double*& u0, double*& l0, 
 	  bool& boundedProblem){

@@ -123,9 +123,10 @@ Matrix<T>::Matrix():m(1), n(1){
 // Initialize to zeroes
 template<typename T>
 Matrix<T>::Matrix(int m0, int n0):m(m0), n(n0){
-  if (0 >= m || 0 >= n)
+  if (0 >= m || 0 >= n){
     std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
     std::cerr << "m: " << m << " n:" << n << std::endl;
+  }
   matrix = new T[m * n];
   for(int i = 0; i < m * n; i++){
     matrix[i] = 0;
@@ -135,9 +136,10 @@ Matrix<T>::Matrix(int m0, int n0):m(m0), n(n0){
 
 template<typename T>
 Matrix<T>::Matrix(T* A, int m0, int n0):m(m0), n(n0){
-  if (0 >= m || 0 >= n)
+  if (0 >= m || 0 >= n){
     std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
     std::cerr << "m: " << m << " n:" << n << std::endl;
+  }
   matrix = new T[m * n];
   for(int i = 0; i < m * n; i++){
     matrix[i] = A[i];
