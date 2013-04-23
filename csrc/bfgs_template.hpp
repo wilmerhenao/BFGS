@@ -620,9 +620,6 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   int numfree = 0; // number of free variables
   b = 0;
   double* ZfM2, *r, *dx, *dnsize;
-  int myn;
-  myn = quasinewton<T>::n;
-  myn = myn + 1;
   dx = new double[quasinewton<T>::n];
   dnsize = new double[quasinewton<T>::n];
   
@@ -630,32 +627,34 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     if(quasinewton<T>::freeVariable[i])
       numfree++;
   }
- 
-  ZfM2 = new double[(quasinewton<T>::n) * numfree];
+  
+  std::cout << "numfree: " << numfree << std::endl;
+  ZfM2 = new double[quasinewton<T>::n * numfree];
   
   typename std::multimap<T, int>::iterator titer = quasinewton<T>::bpmemory.begin();
   for(int i = 0; i < quasinewton<T>::n; i++, titer++){
     for(int j = 0; j < numfree; j++)
       ZfM2[(i) * numfree + j] = 0.0;
     b = (*titer).second; //position of the ith. crossed boundary
-    ZfM2[(b) * numfree + (i)] = 1.0;
+    ZfM2[(b) * numfree + i] = 1.0;
   }
+  
   std::cout << "Entered second approximation function" << std::endl;
   // Now let's define the r vector.  r = Z(g + H(Xcauchy - X))
   // is it maybe worth representing r as in equation 5.4 instead?
   for(int i = 0; i < quasinewton<T>::n; i++)
     dx[i] = t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
-
+  
   std::cout << "Before lapack computations" << std::endl;
   Matrix<double> mdx(dx, quasinewton<T>::n, 1), mC(C, quasinewton<T>::n, 1);
   matrixMultiply(BFGS<T>::mHdouble, mdx, mC); // Result kept in mC 
   std::cout << "After lapack computations" << std::endl;
-
+  
   for(int i = 0; i < quasinewton<T>::n; i++){
     C[i] = mC(i);  //Warning!.  I need to correct for this double assignation
     C[i] += t_double(quasinewton<T>::g[i]);
   }
-
+  
   r = new double[numfree];
   Matrix<double> mZfM2(ZfM2, quasinewton<T>::n, numfree);
   Matrix<double> mmC(C, quasinewton<T>::n, 1);
