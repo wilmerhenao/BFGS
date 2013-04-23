@@ -607,7 +607,7 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
 	std::cout << "found optimal cauchy point." << std::endl;
 	this->thisIterationConverged = true;
 	for(int i = 0; i < quasinewton<T>::n; i++){
-	  this->x[i] = this->xcauchy[i] - (tj - dtstar) * mdi(i); // step back a little
+	  this->xcauchy[i] = this->xcauchy[i] - (tj - dtstar) * mdi(i);//stpbck a lttl
 	}
 	return;
       }
@@ -617,11 +617,12 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
       tstar = oldtj;
       this->thisIterationConverged = true;
       for(int i = 0; i < quasinewton<T>::n; i++){
-	this->x[i] = this->xcauchy[i] - (tj - oldtj) * mdi(i); // previous xcauchy was
+	this->xcauchy[i] = this->xcauchy[i] - (tj - oldtj) * mdi(i); // previous 
+	                                                       // xcauchy was
 	                                                       // the right point
       }
       return;
-    }    
+    }
     update_d();
     oldtj = tj;
     quasinewton<T>::freeVariable[b] = false; 
@@ -673,16 +674,13 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     }
   }
   
-  std::cout << "Entered second approximation function" << std::endl;
   // Now let's define the r vector.  r = Z(g + H(Xcauchy - X))
   // is it maybe worth representing r as in equation 5.4 instead?
   for(int i = 0; i < quasinewton<T>::n; i++)
     dx[i] = t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
   
-  std::cout << "Before lapack computations" << std::endl;
   Matrix<double> mdx(dx, quasinewton<T>::n, 1), mC(C, quasinewton<T>::n, 1);
   matrixMultiply(BFGS<T>::mHdouble, mdx, mC); // Result kept in mC 
-  std::cout << "After lapack computations" << std::endl;
   
   for(int i = 0; i < quasinewton<T>::n; i++){
     C[i] = mC(i);  //Warning!.  I need to correct for this double assignation
@@ -694,7 +692,6 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   Matrix<double> mmC(C, quasinewton<T>::n, 1);
   Matrix<double> mr(r, numfree, 1);
   std::cout << "numfree: " << numfree << "quasinewton<T>::n :  " << quasinewton<T>::n << std::endl;
-  std::cout << "before the suspicious matrixMultiply" << std::endl;
   matrixMultiply(mZfM2, mmC, mr, 'T', 'N'); // the result is now on mr;
 
   // Find Bhat = Z^TBZ
@@ -702,7 +699,6 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   std::cout << "Before more lapack computations" << std::endl;
   GensquareForm(mZfM2, BFGS<T>::mHdouble, mZfM2, mBHAT);
   std::cout << "After more lapack computations" << std::endl;
-
 
   // Solve the system 5.5 and 5.6
   // Notice that this system could easily be solved by inverting the matrix *BHAT
@@ -801,19 +797,18 @@ void BFGSB<T>::mainloop(){
       this->thisIterationConverged = true; // you found the generalized cauchy point
       tj = tj + tstar;
       for(int i = 0; i < quasinewton<T>::n; i++){
-	  this->x[i] = this->xcauchy[i] - (tj - dtstar) * mdi(i); //step back a little
+	  this->xcauchy[i] = this->xcauchy[i] - (tj - dtstar) * mdi(i); //stp bck a ltl
       }
     }
   }
-  
-
+    
   // Only continue if this iteration has not not converged
   if(!this->thisIterationConverged)
     findGeneralizedCauchyPoint(); // If this function converges inside it has to exit
   findMinimum2ndApproximation();
   std::cout << "Print final conditions to see if we converged" << std::endl;
   printFinalConditions();
-
+  
   if (quasinewton<T>::it >= quasinewton<T>::maxit)
     *quasinewton<T>::exitflag = -1;
   if (*quasinewton<T>::f < quasinewton<T>::ftarget)
