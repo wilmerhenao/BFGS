@@ -20,13 +20,21 @@
 #define _QUASINEWT_UPDATES_TEMPLATE_HPP_
 
 #include "libmatrix_template.hpp"
+templte <typename T> void  update_bfgs_B(T [], T [], T [], T [], T [], T [], int );
 
 template <class T> void update_bfgs (T [], T p[], T g[], T s[], T y[], T q[], 
 				     int n);
 template <class T> void update_lbfgs (T p[], T S[],T Y[], T rho[], T a[], T g[], 
 				      int cs, int ne, int m, int n);
+// BFGS update of the actual matrix
 
-/* BFGS update */
+template<typename T>
+void update_bfgs (T H[], T p[], T g[], T s[], T y[], T q[], int n){
+  
+}
+
+
+/* BFGS update of the inverse matrix */
 template<class T>
 void update_bfgs (T H[], T p[], T g[], T s[], T y[], T q[], int n)  {    
   
