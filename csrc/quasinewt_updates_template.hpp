@@ -20,7 +20,7 @@
 #define _QUASINEWT_UPDATES_TEMPLATE_HPP_
 
 #include "libmatrix_template.hpp"
-templte <typename T> void  update_bfgs_B(T [], T [], T [], T [], T [], T [], int );
+template <typename T> void  update_bfgs_B(T [], T [], T [], T [], T [], T [], int );
 
 template <class T> void update_bfgs (T [], T p[], T g[], T s[], T y[], T q[], 
 				     int n);
@@ -29,15 +29,22 @@ template <class T> void update_lbfgs (T p[], T S[],T Y[], T rho[], T a[], T g[],
 // BFGS update of the actual matrix
 
 template<typename T>
-void update_bfgs (T H[], T p[], T g[], T s[], T y[], T q[], int n){
-  
+void update_bfgs_B (T B[], T g[], T s[], T y[], T q[], int n){
+  T rho;
+  rho = 1 / vecip<T>(s, y, n);
+  mxv<T>(q, B, s, 1.0, 0.0, n, n);
+
+  T denom = 1 / vecip<T>(s, q, n);
+  mat_r1update(B, y, y, rho, n);
+  mat_r1update(B, q, q, -denom, n);
 }
 
 
 /* BFGS update of the inverse matrix */
 template<class T>
 void update_bfgs (T H[], T p[], T g[], T s[], T y[], T q[], int n)  {    
-  
+  // This function calculates the next step iteration just like in Nocedal's book
+  // notice that this is the formula for the inverse
   T rho;
   rho = 1 / vecip<T>(s, y, n);
   mxv<T>(q, H, y, 1.0, 0.0, n, n);
