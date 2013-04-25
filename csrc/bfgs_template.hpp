@@ -19,6 +19,22 @@
 #ifndef _BFGS_TEMPLATE_HPP_
 #define _BFGS_TEMPLATE_HPP_
 
+
+#ifndef NDEBUG
+  #define FLAG \
+        std::cout  << "Checking position.  Reached line  " << __LINE__ << std::endl; \
+        std::cout  << "in file " << __FILE__ << std::endl; 
+  #define SHOW(x) \
+        std::cout << "Value of variable " << #x << " is: " << x << std::endl;
+  #define PRINTARRAY(Z,m,n) \
+        for(int i = 0; i < m; i++){ \
+          for(int j = 0; j < n; j++){ \
+            std::cout << Z[i + j * m] << " "; \
+          } \
+          std::cout << std::endl; \
+        }
+#endif
+
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
@@ -138,9 +154,9 @@ quasinewton<T>::quasinewton(T x0[], T* fopt0, int n0,  T taud0,
   gradientsamplingN = gradientsamplingN0;
   xcauchy = new double[n];
   freeVariable = new bool[n];
-  for(int i0 = 0; i0 < n; i0++){
-    freeVariable[i0] = true;
-    y[i0] = s[i0] = p[i0] = g[i0] = 0.0;
+  for(int _i = 0; _i < n; _i++){
+    freeVariable[_i] = true;
+    y[_i] = s[_i] = p[_i] = g[_i] = 0.0;
   }
   u = u0;
   l = l0;
@@ -393,9 +409,9 @@ BFGSB<T>::BFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
   one = 1;
   di = new double[quasinewton<T>::n];
   z = new double[quasinewton<T>::n];
-  for(int i0 = 0; i0 < quasinewton<T>::n; i0++){
-    z[i0] = 0.0;
-    di[i0] = 0.0;
+  for(int _i = 0; _i < quasinewton<T>::n; _i++){
+    z[_i] = 0.0;
+    di[_i] = 0.0;
   }
   C = new double[quasinewton<T>::n];
 }
@@ -428,10 +444,10 @@ void BFGSB<T>::zeroethstep(){
   // (at least those with non-zero values in the gradient)
   // given that nothing will hit the boundary (until you hit the boundary corresponding
   // to dimension 'b' of course.
-  for(int i0 = 0; i0 < quasinewton<T>::n; i0++){
-    quasinewton<T>::xcauchy[i0] = (t_double(quasinewton<T>::x[i0]) - tj *
-				  t_double(quasinewton<T>::g[i0]));
-    z[i0] = t_double(quasinewton<T>::xcauchy[i0] - quasinewton<T>::x[i0]);
+  for(int _i = 0; _i < quasinewton<T>::n; _i++){
+    quasinewton<T>::xcauchy[_i] = (t_double(quasinewton<T>::x[_i]) - tj *
+				  t_double(quasinewton<T>::g[_i]));
+    z[_i] = t_double(quasinewton<T>::xcauchy[_i] - quasinewton<T>::x[_i]);
   }
   Matrix<double> temp(z, quasinewton<T>::n, 1);
   mZ = temp;
@@ -465,16 +481,16 @@ void BFGSB<T>::lapackzerostep(){
   double * grad;
   grad = new double[this->n];
   
-  for(int i0 = 0; i0 < this->n; i0++){
-    grad[i0] = t_double(this->g[i0]) * di[i0];
+  for(int _i = 0; _i < this->n; _i++){
+    grad[_i] = t_double(this->g[_i]) * di[_i];
   }
   
   // Calculation of variable fpj (page 6 of Nocedal's paper. Equation 4.4)
   // fpj =  g^Td + z^T*B*z
   zBz(); // this function modifies adouble (which is zero until now)
   fpj = adouble;
-  for(int i0 = 0; i0 < this->n; i0++){
-    fpj = fpj + grad[i0];
+  for(int _i = 0; _i < this->n; _i++){
+    fpj = fpj + grad[_i];
   }
   
   // Calculation of variable fppj (page 6 of Nocedal's paper. Equation 4.5)
@@ -538,16 +554,16 @@ void BFGSB<T>::lapackmanipulations(){
   double * grad;
   grad = new double[this->n];
   
-  for(int i0 = 0; i0 < this->n; i0++){
-    grad[i0] = t_double(this->g[i0]) * di[i0];
+  for(int _i = 0; _i < this->n; _i++){
+    grad[_i] = t_double(this->g[_i]) * di[_i];
   }
   
   // Calculation of variable fpj (page 6 of Nocedal's paper. Equation 4.4)
   // fpj =  g^Td + z^T*B*z
   zBz(); // this function modifies adouble (which is zero until now)
   fpj = adouble;
-  for(int i0 = 0; i0 < this->n; i0++){
-    fpj = fpj + grad[i0];
+  for(int _i = 0; _i < this->n; _i++){
+    fpj = fpj + grad[_i];
   }
   
   // Calculation of variable fppj (page 6 of Nocedal's paper. Equation 4.5)
@@ -653,15 +669,12 @@ void BFGSB<T>::findMinimum2ndApproximation(){
       numfree++;
   }
   
-  std::cout << "numfree: " << numfree << std::endl;
   ZfM2 = new double[quasinewton<T>::n * numfree];
-  
   typename std::multimap<T, int>::iterator titer = quasinewton<T>::bpmemory.begin();
   for(int i = 0; i < quasinewton<T>::n; i++, titer++){
     for(int j = 0; j < numfree; j++)
       ZfM2[i * numfree + j] = 0.0;
   }
-  
   int i1 = 0;
   for(titer = this->bpmemory.begin(); titer != quasinewton<T>::bpmemory.end(); titer++){
     b = (*titer).second; //position of the ith. crossed boundary
@@ -673,7 +686,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
       i1++;
     }
   }
-  
+
   // Now let's define the r vector.  r = Z(g + H(Xcauchy - X))
   // is it maybe worth representing r as in equation 5.4 instead?
   for(int i = 0; i < quasinewton<T>::n; i++)
@@ -686,27 +699,30 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     C[i] = mC(i);  //Warning!.  I need to correct for this double assignation
     C[i] += t_double(quasinewton<T>::g[i]);
   }
-  
   r = new double[numfree];
+  FLAG;
+  SHOW(quasinewton<T>::n);
+  PRINTARRAY(ZfM2, quasinewton<T>::n, numfree);
   Matrix<double> mZfM2(ZfM2, quasinewton<T>::n, numfree);
+  FLAG;
   Matrix<double> mmC(C, quasinewton<T>::n, 1);
+  FLAG;
   Matrix<double> mr(r, numfree, 1);
-  std::cout << "numfree: " << numfree << "quasinewton<T>::n :  " << quasinewton<T>::n << std::endl;
-  matrixMultiply(mZfM2, mmC, mr, 'T', 'N'); // the result is now on mr;
-
+ matrixMultiply(mZfM2, mmC, mr, 'T', 'N'); // the result is now on mr;
+  FLAG;
   // Find Bhat = Z^TBZ
   Matrix<double> mBHAT(numfree, numfree);
   std::cout << "Before more lapack computations" << std::endl;
   GensquareForm(mZfM2, BFGS<T>::mHdouble, mZfM2, mBHAT);
   std::cout << "After more lapack computations" << std::endl;
-
+  FLAG;
   // Solve the system 5.5 and 5.6
   // Notice that this system could easily be solved by inverting the matrix *BHAT
   // Notice that BHAT will be completely overwritten with an L and U decomposition...
   
   Matrix<double> md(numfree, 1);  // Where to put the solution 
   bfgssolver(mBHAT, mr, md);
-
+  FLAG;
   double alpha0 = 0.0;
   double alphacandidate = 0.0;
   // Define the new boundaries which appear on 5.6
@@ -724,7 +740,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     }
   alpha0 = MIN(alpha0, 1.0);
   md *= alpha0;
-
+  FLAG;
   // Find the new solution
   titer = quasinewton<T>::bpmemory.begin();
   // Z_k * d
@@ -750,8 +766,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   T* dnsizeT = new T[quasinewton<T>::n];
   for(int i = 0; i < quasinewton<T>::n; i++)
 	dnsizeT[i] = mdnsize(i);
-  update_bfgs<T>(BFGS<T>::H, dnsizeT, quasinewton<T>::g, 
-		 quasinewton<T>::s, quasinewton<T>::y, BFGS<T>::q, quasinewton<T>::n);
+  update_bfgs_B<T>(BFGS<T>::H,quasinewton<T>::s,quasinewton<T>::y,BFGS<T>::q,quasinewton<T>::n);
   T alpha1 = static_cast<T>(alpha0);
   if (2 == quasinewton<T>::echo)
     print_iter_info<T>(*quasinewton<T>::output, quasinewton<T>::it, quasinewton<T>::f, 

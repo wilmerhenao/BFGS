@@ -16,7 +16,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
 
-//#define NDEBUG //Uncomment if you are not debugging (FASTER)
+//#define NDEBUG //Comment if you are debugging
 
 #include <cstdlib>
 #include <cstdio>

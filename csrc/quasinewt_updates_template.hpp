@@ -29,9 +29,17 @@ template <class T> void update_lbfgs (T p[], T S[],T Y[], T rho[], T a[], T g[],
 // BFGS update of the actual matrix
 
 template<typename T>
-void update_bfgs_B (T B[], T g[], T s[], T y[], T q[], int n){
+void update_bfgs_B (T B[], T s[], T y[], T q[], int n){
+  /*
+    Direct update of the matrix B which is the hessian (and not the inverted hessian)
+    Matrix B MUST be symmetric.  If this is not the case the algorithm might not work
+    as expected since I didn't take care of non-symmetric updates when I built it.
+    This shouldn't be a problem because bfgs preserves symmetry.
+  */
+
   T rho;
   rho = 1 / vecip<T>(s, y, n);
+  
   mxv<T>(q, B, s, 1.0, 0.0, n, n);
 
   T denom = 1 / vecip<T>(s, q, n);

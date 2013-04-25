@@ -278,7 +278,7 @@ void matrixMultiply(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C, char transA = 'N',
   int k0;
   int LDA = A.m;
   int LDB = B.m;
-  int LDC = A.n;
+  int LDC = C.m;
   double alpha = 1.0;
   double beta = 0.0;
   
@@ -336,11 +336,8 @@ void GensquareForm(Matrix<H> & A, Matrix<H> & B, Matrix<H>& C, Matrix<H>& res){
 
   // Create a temporal instance for first multiplication result storage
   Matrix<H> temp(A.n, B.n);
-  std::cout << "here bef. first mult" << std::endl;
   matrixMultiply(A, B, temp, 'T', 'N');
-  std::cout << "here bef. second mult" << std::endl;
   matrixMultiply(temp, C, res, 'N', 'N');
-  std::cout << "here final mult" << std::endl;
 }
 
 
