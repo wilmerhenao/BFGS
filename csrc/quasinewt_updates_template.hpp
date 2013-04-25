@@ -39,11 +39,15 @@ void update_bfgs_B (T B[], T s[], T y[], T q[], int n){
 
   T rho;
   rho = 1 / vecip<T>(s, y, n);
-  
   mxv<T>(q, B, s, 1.0, 0.0, n, n);
-
+  //FLAG();
   T denom = 1 / vecip<T>(s, q, n);
+  //FLAG();
+  PRINTARRAY(B,n,n);
+  PRINTARRAY(y, n, 1);
+  SHOW(rho);
   mat_r1update(B, y, y, rho, n);
+  FLAG();
   mat_r1update(B, q, q, -denom, n);
 }
 

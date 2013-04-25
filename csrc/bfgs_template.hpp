@@ -21,18 +21,23 @@
 
 
 #ifndef NDEBUG
-  #define FLAG \
+  #define FLAG()								\
         std::cout  << "Checking position.  Reached line  " << __LINE__ << std::endl; \
         std::cout  << "in file " << __FILE__ << std::endl; 
   #define SHOW(x) \
         std::cout << "Value of variable " << #x << " is: " << x << std::endl;
   #define PRINTARRAY(Z,m,n) \
+        std::cout << "Printing array "<<#Z << ": "<< std::endl;	\
         for(int i = 0; i < m; i++){ \
           for(int j = 0; j < n; j++){ \
             std::cout << Z[i + j * m] << " "; \
           } \
           std::cout << std::endl; \
         }
+#else
+  #define SHOW(x)   
+  #define FLAG()
+  #define PRINTARRAY(Z,m,n)
 #endif
 
 #include <cstdlib>
@@ -675,9 +680,12 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     for(int j = 0; j < numfree; j++)
       ZfM2[i * numfree + j] = 0.0;
   }
+  
   int i1 = 0;
+  PRINTARRAY(quasinewton<T>::freeVariable, quasinewton<T>::n, 1);
   for(titer = this->bpmemory.begin(); titer != quasinewton<T>::bpmemory.end(); titer++){
     b = (*titer).second; //position of the ith. crossed boundary
+    SHOW(b);
     if(quasinewton<T>::freeVariable[b]){
       // ZfM2 is a n x numfree matrix populated column-wise
       ZfM2[b + quasinewton<T>::n * i1] = 1.0; // fill with ones for free variables as 
@@ -700,74 +708,74 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     C[i] += t_double(quasinewton<T>::g[i]);
   }
   r = new double[numfree];
-  FLAG;
-  SHOW(quasinewton<T>::n);
+  FLAG();
   PRINTARRAY(ZfM2, quasinewton<T>::n, numfree);
   Matrix<double> mZfM2(ZfM2, quasinewton<T>::n, numfree);
-  FLAG;
   Matrix<double> mmC(C, quasinewton<T>::n, 1);
-  FLAG;
   Matrix<double> mr(r, numfree, 1);
- matrixMultiply(mZfM2, mmC, mr, 'T', 'N'); // the result is now on mr;
-  FLAG;
+  matrixMultiply(mZfM2, mmC, mr, 'T', 'N'); // the result is now on mr;
   // Find Bhat = Z^TBZ
   Matrix<double> mBHAT(numfree, numfree);
-  std::cout << "Before more lapack computations" << std::endl;
   GensquareForm(mZfM2, BFGS<T>::mHdouble, mZfM2, mBHAT);
-  std::cout << "After more lapack computations" << std::endl;
-  FLAG;
+  
   // Solve the system 5.5 and 5.6
   // Notice that this system could easily be solved by inverting the matrix *BHAT
-  // Notice that BHAT will be completely overwritten with an L and U decomposition...
   
   Matrix<double> md(numfree, 1);  // Where to put the solution 
   bfgssolver(mBHAT, mr, md);
-  FLAG;
+  
   double alpha0 = 0.0;
   double alphacandidate = 0.0;
+  
   // Define the new boundaries which appear on 5.6
-  double* lbf = new double[numfree];
-  double* ubf = new double[numfree];
+  double lbf;
+  double ubf;
   int ind = 0;
   titer = quasinewton<T>::bpmemory.begin();
-  for(; titer != quasinewton<T>::bpmemory.end(); titer++, ind++)
-    {
+  for(; titer != quasinewton<T>::bpmemory.end(); titer++, ind++){
       b = (*titer).second;
-      lbf[ind] = quasinewton<T>::l[b] - quasinewton<T>::xcauchy[b];
-      ubf[ind] = quasinewton<T>::u[b] - quasinewton<T>::xcauchy[b];
-      alphacandidate = MAX(ubf[ind] / md(ind), lbf[ind] / md(ind));
+      lbf = quasinewton<T>::l[b] - quasinewton<T>::xcauchy[b];
+      ubf = quasinewton<T>::u[b] - quasinewton<T>::xcauchy[b];
+      alphacandidate = MAX(ubf / md(ind), lbf / md(ind));
       alpha0 = MAX(alpha0, alphacandidate);
     }
   alpha0 = MIN(alpha0, 1.0);
   md *= alpha0;
-  FLAG;
   // Find the new solution
+  
   titer = quasinewton<T>::bpmemory.begin();
   // Z_k * d
+  // FLAG();
   Matrix<double> mdnsize(dnsize, quasinewton<T>::n, 1);
+  //FLAG();
   matrixMultiply(mZfM2, md, mdnsize);
+  
+  // Set up everything for the next phase.  Calibration of H
+  // These s and x will be substracting from xfinal later
+  vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
+  vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
+  //PRINTARRAY(quasinewton<T>::s, quasinewton<T>::n, 1);
 
   for(int i = 0; i < quasinewton<T>::n; i++){
+    // Update the new position of x
     quasinewton<T>::x[i] = quasinewton<T>::xcauchy[i];
     if((*titer).second == i){
       quasinewton<T>::x[i] += mdnsize(i);
     }
   }
-  /* 
-    calculate s and y:
-    before these calls, s and y contain
-    previous -x and prev. -g, so e.g. s = x - xprev is s = s + x 
-  */
+  quasinewton<T>::testFunction(quasinewton<T>::f, quasinewton<T>::g, 
+			       quasinewton<T>::x, quasinewton<T>::n);
+
   vpv<T>(quasinewton<T>::s, quasinewton<T>::x, 1, quasinewton<T>::n);
   vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1, quasinewton<T>::n);
-  // Here's a question.  Do I use the new g or the previous one before the update
-  // My guess is that it's probably similar
-  // ANSWER: USE THE NEW g!!!
-  T* dnsizeT = new T[quasinewton<T>::n];
-  for(int i = 0; i < quasinewton<T>::n; i++)
-	dnsizeT[i] = mdnsize(i);
-  update_bfgs_B<T>(BFGS<T>::H,quasinewton<T>::s,quasinewton<T>::y,BFGS<T>::q,quasinewton<T>::n);
+  //PRINTARRAY(quasinewton<T>::s, quasinewton<T>::n, 1);
+  //PRINTARRAY(quasinewton<T>::x, quasinewton<T>::n, 1);
+  FLAG();
+  update_bfgs_B<T>(BFGS<T>::H, quasinewton<T>::s, quasinewton<T>::y, BFGS<T>::q,
+		   quasinewton<T>::n);
+  FLAG();
   T alpha1 = static_cast<T>(alpha0);
+  
   if (2 == quasinewton<T>::echo)
     print_iter_info<T>(*quasinewton<T>::output, quasinewton<T>::it, quasinewton<T>::f, 
 		       quasinewton<T>::gnorm, quasinewton<T>::jcur, 
@@ -782,7 +790,21 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     *quasinewton<T>::exitflag = 7;
   // Don't do Gradiend Sampling
   /* if exitflag was changed: exit main loop */
+  SHOW(*quasinewton<T>::exitflag);
   if (0 != *quasinewton<T>::exitflag) quasinewton<T>::done = true;
+
+  // Delete memory
+
+  delete [] dnsize;
+  FLAG();
+  delete [] dx;
+  FLAG();
+  delete [] ZfM2;
+  FLAG();
+  delete [] r;
+  FLAG();
+  SHOW(numfree);
+  FLAG();
 }
 
 template<typename T>
@@ -823,6 +845,9 @@ void BFGSB<T>::mainloop(){
   findMinimum2ndApproximation();
   std::cout << "Print final conditions to see if we converged" << std::endl;
   printFinalConditions();
+
+  // Clean class memory variables
+  quasinewton<T>::bpmemory.clear();
   
   if (quasinewton<T>::it >= quasinewton<T>::maxit)
     *quasinewton<T>::exitflag = -1;
@@ -835,6 +860,8 @@ void BFGSB<T>::mainloop(){
   
   /* if exitflag was changed: exit main loop: */
   if (*quasinewton<T>::exitflag != 0) quasinewton<T>::done = true;
+
+  // deletion
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

@@ -135,7 +135,7 @@ void vscal(T x[], T a, int n) {
     x[i] = a * x[i];
 }
 
-template <class T>
+template <typename T>
 void mat_r1update(T A[], T x[], T y[], T alpha, int n) {
   /*  performs the rank one update A = A + alpha*x*y' using BLAS_dger
       General cblas call:
@@ -145,14 +145,21 @@ void mat_r1update(T A[], T x[], T y[], T alpha, int n) {
       *
       * In the case of square matrices nxn, this becomes:
       */
-  int dim = n * n;
-  T * xy = new T[dim];
+  
+  //int dim = n * n;
+  //FLAG();
+  //T * xy = new T[dim];
+  
+  //FLAG();
   for(int i = 0; i < n; i++) {
     for(int j = 0; j < n; j++)
-      xy[i * n + j] = x[i] * y[j];
+      A[i * n + j] = A[i * n + j] + alpha * x[i] * y[j];
   }
-  for(int i = 0; i < dim; i++)
-    A[i] = A[i] + alpha * xy[i];
+  
+  //for(int i = 0; i < dim; i++)
+  //  A[i] = A[i] + alpha * xy[i];
+  
+  //delete [] xy;
 }
 
 template <class T>
