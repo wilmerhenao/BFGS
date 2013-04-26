@@ -204,7 +204,6 @@ void quasinewton<T>::printbefmainloop(){
 
 template<typename T>
 void quasinewton<T>::mainloop(){
-  it++;
   gtp = vecip<T>(g, p, n);   // g'*p
   if(gtp > 0){
     done = true;
@@ -293,9 +292,10 @@ void quasinewton<T>::runallsteps(){
       be completely different for constrained problems.  It will also call the virtual
       mainloopspecific which is implemented different for BFGS and LBFGS problems
   */
-  while(!done)
+  while(!done){
+    it++
     mainloop();
-
+  }
   // Show the final results in a nice output
   postmainloop();
 }
@@ -303,7 +303,7 @@ void quasinewton<T>::runallsteps(){
 template<typename T>
 void quasinewton<T>::get_ti_s(){
   // This function gets all the Ti points described in (4.1) of 8limited**
-  // It also sorts them at the end
+  // It also sorts them automatically
   for(int i = 0; i < n; i++){
     if(0.0 == g[i]){
       // Assign \Infty if g == 0
@@ -332,7 +332,7 @@ public:
   virtual ~BFGS();
   virtual void befmainloopspecific();
   virtual void mainloopspecific();
-  void createDoubleH();
+  void createDoubleHandDoubleB();
 };
 
 template<typename T>
@@ -383,7 +383,7 @@ void BFGS<T>::mainloopspecific(){
 
 // Hopefully this function will become obsolete if I include qd analysis
 template<typename T>
-void BFGS<T>::createDoubleH(){
+void BFGS<T>::createDoubleHandDoubleB(){
   for(int i = 0; i < this->n; i++){ //left this->n here on purpose for whoever is
                                     //reading.  This way you don't know the scope!
     for(int j = 0; j < quasinewton<T>::n; j++){
@@ -414,7 +414,7 @@ public:
 	std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
 	int&, double*&, double*&);
   virtual ~BFGSB();
-  void zBz();
+  void dBd();
   void dBz();
   void zeroethstep();
   void lapackzerostep();
@@ -474,16 +474,23 @@ void BFGSB<T>::zeroethstep(){
     when you exit this function. Xcauchy will have the first value after the gradient
     hits a boundary. d will basically contain the same value as g and freeVariable
     will register the value of the dimension of the boundary that was hit the first 
-    time.  Z will contain the variation between the two vectors (same a g for the 1st
-    step
+    time.  Z will contain the variation between the two points (same as g for the 1st
+    step.
+
+    The only reason why mainloop has a zero step.  Is because after the first
+    calculation you can save some time by using the update formulae on (4.9) and (4.10)
   */
   
+  // the first iter.  Will contain the information of the time when we first hit the 
+  // boundary
   iter = quasinewton<T>::bpmemory.begin();
   b = iter->second;
-  deltatj = t_double(iter->first); // Change from zero
-  
+  deltatj = t_double(iter->first); // Change from zero.  "time" to first boundary
+
+  // keep track of the ti_s that the define the intarval we are working on
   oldtj = 0.0;
   tj = deltatj;
+
   // Find the new x position.  Notice that in this case all the coordinates advance
   // (at least those with non-zero values in the gradient)
   // given that nothing will hit the boundary (until you hit the boundary corresponding
@@ -493,26 +500,29 @@ void BFGSB<T>::zeroethstep(){
 				  t_double(quasinewton<T>::g[_i]));
     z[_i] = t_double(quasinewton<T>::xcauchy[_i] - quasinewton<T>::x[_i]);
   }
+
+
   Matrix<double> temp(z, quasinewton<T>::n, 1);
   mZ = temp;
   
-  // Create di but Update new d_i coordinate
+  // Create di but Update new d_i coordinate.  this step it is basically just -gradient
+  // This is from formula (4.2) in the paper
   for(int i = 0; i < quasinewton<T>::n; i++){
-    di[i] = t_double(quasinewton<T>::g[i]);
+    di[i] = -1.0 * t_double(quasinewton<T>::g[i]);
   }
- 
-  update_d();
-  quasinewton<T>::freeVariable[b] = false;
-}
-
-template<typename T>
-void BFGSB<T>::zBz(){
-  adouble = squareForm(mZ, BFGS<T>::mBdouble, mZ);
+  
+  // Run lapack intensive calculations
+  lapackzerostep();
 }
 
 template<typename T>
 void BFGSB<T>::dBz(){
   adouble = squareForm(mdi, BFGS<T>::mBdouble, mZ);
+}
+
+template<typename T>
+void BFGSB<T>::dBd(){
+  adouble = squareForm(mdi, BFGS<T>::mBdouble, mdi);
 }
 
 template<typename T>
@@ -531,7 +541,7 @@ void BFGSB<T>::lapackzerostep(){
   
   // Calculation of variable fpj (page 6 of Nocedal's paper. Equation 4.4)
   // fpj =  g^Td + z^T*B*z
-  zBz(); // this function modifies adouble (which is zero until now)
+  dBz(); // this function modifies adouble (which is zero until now)
   fpj = adouble;
   for(int _i = 0; _i < this->n; _i++){
     fpj = fpj + grad[_i];
@@ -539,11 +549,12 @@ void BFGSB<T>::lapackzerostep(){
   
   // Calculation of variable fppj (page 6 of Nocedal's paper. Equation 4.5)
   // fppj = d^T*B*z
-  dBz();
+  dBd();
   fppj = adouble;
 
   tstarcalculation();  
   update_d();
+  quasinewton<T>::freeVariable[b] = false;
   oldtj = tj; // Because the next iteration tj will move one step to the front
   // garbage collection
   delete [] grad;
@@ -851,15 +862,17 @@ void BFGSB<T>::printFinalConditions(){
 
 template<typename T>
 void BFGSB<T>::mainloop(){
-  quasinewton<T>::it++;
-  vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
-  vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
+  /*
+    This is the function that does all of the heavy lifting in BFGSB.  It calculates
+    every single iteration.  Please notice that the projection step of BFGSB requires
+    a few more iterations which here are run inside
+  */
   quasinewton<T>::fprev = *quasinewton<T>::f;
-  quasinewton<T>::get_ti_s();
-  BFGS<T>::createDoubleH();
-  this->thisIterationConverged = false;  // 
+  quasinewton<T>::get_ti_s();//calculate the ti_s from (4.1) in paper.Define breakpoints
+  BFGS<T>::createDoubleHandDoubleB();//Convert stuff to double precision and create 
+                                     // Matrix<double> container.
+  this->thisIterationConverged = false;  //Once true leave cauchy iteration
   zeroethstep();
-  lapackzerostep();
   // check if I can finish now and graciously leave if that's the case.
   if (tstar < tj){
     if (tstar > 0){
