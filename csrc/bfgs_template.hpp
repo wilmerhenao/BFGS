@@ -107,7 +107,7 @@ public:
   quasinewton(T [], T *, int ,  T,  int(*)(T*, T*, T*, int), std::ofstream&,  
 	      T,  T,  int, short, short, const char *, int , int, double*, 
 	      double*);
-  ~quasinewton();
+  virtual ~quasinewton();
   void finish(){t2 = clock();};
   // The next functions prepare for the main loop
   void beforemainloop();
@@ -319,6 +319,7 @@ public:
   BFGS(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
        std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, int&,
        double*&, double*&);
+  virtual ~BFGS();
   virtual void befmainloopspecific();
   virtual void mainloopspecific();
   void createDoubleH();
@@ -340,6 +341,13 @@ BFGS<T>::BFGS(T*& x0, T*& fopt0, int& n0,  T& taud0,
   q = new T[quasinewton<T>::n1];
   H = new T[quasinewton<T>::n2];
   Hdouble = new double[quasinewton<T>::n * quasinewton<T>::n];
+}
+
+template<typename T>
+BFGS<T>::~BFGS(){
+  delete [] q;
+  delete [] H;
+  delete [] Hdouble;
 }
 
 template<typename T>
@@ -383,6 +391,7 @@ public:
   BFGSB(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
 	std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
 	int&, double*&, double*&);
+  virtual ~BFGSB();
   void zBz();
   void dBz();
   void zeroethstep();
@@ -419,6 +428,13 @@ BFGSB<T>::BFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
     di[_i] = 0.0;
   }
   C = new double[quasinewton<T>::n];
+}
+
+template<typename T>
+BFGSB<T>::~BFGSB(){
+  delete [] di;
+  delete [] z;
+  delete [] C;
 }
 
 template<typename T>
@@ -506,6 +522,8 @@ void BFGSB<T>::lapackzerostep(){
   tstarcalculation();  
   update_d();
   oldtj = tj; // Because the next iteration tj will move one step to the front
+  // garbage collection
+  delete [] grad;
 }
 
 template<typename T>
@@ -571,6 +589,8 @@ void BFGSB<T>::lapackmanipulations(){
     fpj = fpj + grad[_i];
   }
   
+  delete [] grad;
+
   // Calculation of variable fppj (page 6 of Nocedal's paper. Equation 4.5)
   // fppj = d^T*B*z
   dBz();
@@ -873,6 +893,7 @@ public:
   LBFGS(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
 	std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
 	int&, double*&, double*&);
+  virtual ~LBFGS();
   virtual void befmainloopspecific();
   virtual void mainloopspecific();
 };
@@ -893,6 +914,24 @@ LBFGS<T>::LBFGS(T*& x0, T*& fopt0, int& n0,  T& taud0,
   Y  = new T[quasinewton<T>::nm];
   rho = new T[quasinewton<T>::m1];
   a  = new T[quasinewton<T>::m1];
+
+  for(int i = 0; i < quasinewton<T>::nm; i++){
+    S[i] = Y[i] = 0.0;
+  }
+  
+  for(int i = 0; i < quasinewton<T>::m1; i++){
+    rho[i] = 0.0;
+    a[i] = 0.0;
+  }
+
+}
+
+template<typename T>
+LBFGS<T>::~LBFGS(){
+  delete [] S;
+  delete [] Y;
+  delete [] rho;
+  delete [] a;
 }
 
 template<typename T>
@@ -924,6 +963,7 @@ public:
   LBFGSB(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
 	 std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
 	 int&, double*&, double*&);
+  virtual ~LBFGSB();
 };
 
 template<typename T>
@@ -934,6 +974,11 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
 		  double*& u0, double*&l0):
   LBFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
 	  echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0){
+}
+
+template<typename T>
+LBFGSB<T>::~LBFGSB(){
+  
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -1008,6 +1053,13 @@ for(int i = 0; i < (gradientsamplingN); i++){
   
   double * solution = new double[n];
   myopt->fetchSolution(solution);
+
+  //garbage collection
+  delete [] gradpoints;
+  delete [] gradgrads;
+  delete [] solution;  //Warning.  Why delete so early?
+  delete myopt;
+
   return(true);
 }
 
@@ -1029,11 +1081,14 @@ void bfgs(T*& x, T*& fopt, int& n, short& lm, int& m, T& ftarget,
       mybfgs = new BFGSB<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol, 
 			   maxit, echo, lm, outputname, m, gradientsamplingN0, u0, l0);
       mybfgs->runallsteps();
+
+      delete mybfgs;
     } else {
       BFGS<T>* mybfgs;
       mybfgs = new BFGS<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol, 
 			   maxit, echo, lm, outputname, m, gradientsamplingN0, u0, l0);
       mybfgs->runallsteps();
+      delete mybfgs;
     }
   } else {
     if(boundedProblem){
@@ -1041,11 +1096,13 @@ void bfgs(T*& x, T*& fopt, int& n, short& lm, int& m, T& ftarget,
       mylbfgs = new LBFGSB<T>(x, fopt, n, taud, testFunction, output, ftarget,gnormtol, 
 			   maxit, echo, lm, outputname, m, gradientsamplingN0, u0, l0);
       mylbfgs->runallsteps();
+      delete mylbfgs;
     } else{
       LBFGS<T>* mylbfgs;
       mylbfgs = new LBFGS<T>(x, fopt, n, taud, testFunction, output, ftarget, gnormtol,
 			     maxit, echo, lm, outputname, m, gradientsamplingN0, u0,l0);
       mylbfgs->runallsteps();
+      delete mylbfgs;
     }
   }
   taux = taux + 1; J++; info[0] = info[0] + 1;

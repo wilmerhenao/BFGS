@@ -34,7 +34,7 @@ T linesearch_ww (T*& x, T*& f, T*& g, T*& d, const T& C1, const T& C2, int& n,
   T beta_max = 1e100;	/* upper bound on step length*/
   T beta  = beta_max;	
     
-  T t = 1;               /* try step length 1 first*/
+  T t = 1.0;               /* try step length 1 first*/
   T tprev = 0;           /* variable to store prev. t*/
     
   double done = 0;
@@ -53,12 +53,12 @@ T linesearch_ww (T*& x, T*& f, T*& g, T*& d, const T& C1, const T& C2, int& n,
     nexpandmax = 1000;
   }
   else{
-  nbisectmax = ceil( log( 100000*dnorm )/log(2.0) );
-  if (nbisectmax < 100) nbisectmax = 100;
-  nexpandmax = ceil( log( 100000 / dnorm )/log(2.0) );    
-  if (nexpandmax < 100) nexpandmax = 100;
+    nbisectmax = ceil( log( 100000*dnorm )/log(2.0) );
+    if (nbisectmax < 100) nbisectmax = 100;
+    nexpandmax = ceil( log( 100000 / dnorm )/log(2.0) );    
+    if (nexpandmax < 100) nexpandmax = 100;
   }
-
+  
   T gtd  = 0;
   T g0td;
   T armijo_rhs_p, wwolfe_rhs, f0;
@@ -85,7 +85,7 @@ T linesearch_ww (T*& x, T*& f, T*& g, T*& d, const T& C1, const T& C2, int& n,
       *exitflag = 1;
       return t;
     }
-        
+    
     /* inner product of current g and d (result is gtd):*/
     gtd = vecip<T>(g,d,n);
     if (*f > f0 + t*armijo_rhs_p) {	/* armijo fails, gone too far*/

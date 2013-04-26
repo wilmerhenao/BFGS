@@ -85,6 +85,7 @@ void algoparameters<T>::initializationcode(std::string locfunc){
   }
   try{
     pFunctions = new allfunctions<T>;
+    //*pFunctions = 0;
   } catch(std::bad_alloc& ex){
     std::cerr << "Problem allocating function map in algoparameters constructor" << 
       ex.what() << std::endl;
@@ -105,6 +106,17 @@ void algoparameters<T>::initializationcode(std::string locfunc){
     fun_ptr = it->second;
   else
     std::cerr << "This function was not found!" << std::endl;
+
+  fopt[0] = 0.0;
+  for(int i = 0; i < 4; i++){
+    info[i] = 0.0;
+  }
+  
+  for(int i = 0; i < n; i++){
+    u[i] = l[i] = 0.0;
+    xf[i] = x0[i] = 0.0;
+  }
+
   boundedProblem = false;
 }
 
@@ -148,6 +160,7 @@ algoparameters<T>::~algoparameters(){
     delete [] info;
     delete [] xf;
     delete [] x0;
+    delete pFunctions;
   } catch(std::exception ex){
     std::cerr << ex.what() << std::endl;
   }
