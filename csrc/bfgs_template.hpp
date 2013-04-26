@@ -110,7 +110,7 @@ public:
   virtual ~quasinewton();
   void finish(){t2 = clock();};
   // The next functions prepare for the main loop
-  void beforemainloop();
+  void FirstEvaluation();
   virtual void befmainloopspecific() = 0; //To be implemented by each child
   void printbefmainloop(); // These parts are commong to both BFGS and LBFGS
   virtual void mainloop();
@@ -179,12 +179,13 @@ quasinewton<T>::~quasinewton(){
 }
 
 template<typename T>
-void quasinewton<T>::beforemainloop(){
-  // This function runs everything before the main loop.  
-  // Puts all the other pieces together
+void quasinewton<T>::FirstEvaluation(){
+  /*
+    Initial evaluation of the function and its gradient
+  */
   testFunction(f, g, x, n);
   *nfeval = *nfeval + 1;
-  gnorm  = vecnorm<T>(g, n);
+  gnorm  = vecnorm<T>(g, n); // norm of the gradient (not used in BFGSB algos)
 }
 
 template<typename T>
@@ -271,7 +272,7 @@ void quasinewton<T>::postmainloop(){
     printallfinalinfo();
   }
   *fopt = *f;
-  std::cout << "valor final: " << *f << std::endl;
+  std::cout << "Final Value: " << *f << std::endl;
   
 }
 
@@ -282,11 +283,20 @@ void quasinewton<T>::printallfinalinfo(){
 
 template<typename T>
 void quasinewton<T>::runallsteps(){
-  beforemainloop();
+  FirstEvaluation(); // Evaluate function and gradient for the first time
   befmainloopspecific(); // Depending on whether BFGS or LBFGS is being implemented
-  printbefmainloop();
+                         // this is an abstract function and each class is forced to
+                         // implement it its own way.
+  printbefmainloop(); // No calculations performed.  Only output
+  /*  
+      In the next part run as many iterations as it is necessary.  This mainloop will
+      be completely different for constrained problems.  It will also call the virtual
+      mainloopspecific which is implemented different for BFGS and LBFGS problems
+  */
   while(!done)
     mainloop();
+
+  // Show the final results in a nice output
   postmainloop();
 }
 
@@ -312,9 +322,9 @@ void quasinewton<T>::get_ti_s(){
 template<typename T>
 class BFGS: public quasinewton<T>{
 protected:
-  T *q, *H;
-  double* Hdouble;
-  Matrix<double> mHdouble;
+  T *q, *H, *B;
+  double* Hdouble, *Bdouble;
+  Matrix<double> mHdouble, mBdouble;
 public:
   BFGS(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
        std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, int&,
