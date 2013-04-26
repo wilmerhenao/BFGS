@@ -382,7 +382,7 @@ protected:
   double tstar;
   char yTrans, nTrans;
   double alpha, beta, tj, fpj, fppj, deltatj, oldtj, adouble, dtstar;
-  int ndouble, one, b;
+  int ndouble, one, b, numberOfIterations;
   double *di, *z, *C;
   Matrix<double> mZ, mdi;
   // bear in mind that the following multimap is already ordered
@@ -428,6 +428,7 @@ BFGSB<T>::BFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
     di[_i] = 0.0;
   }
   C = new double[quasinewton<T>::n];
+  numberOfIterations = 0;
 }
 
 template<typename T>
@@ -623,10 +624,6 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
     tj = t_double(iter->first);
     b = iter->second;
     deltatj = tj - oldtj;
-       
-    for(int i = 0; i < quasinewton<T>::n; i++){
-      std::cout << "freevariable: " << quasinewton<T>::freeVariable[i] << std::endl;
-    }
     
     // update xcauchy and update the new z (the array, not the Matrix<double>)
     for(int i = 0; i < quasinewton<T>::n; i++){
@@ -636,10 +633,6 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
     // Create Matrix<double> material
     Matrix<double> temp(z, quasinewton<T>::n, 1);
     mZ = temp;
-    
-    for (int i = 0; i < quasinewton<T>::n; i++){
-      std::cout << "mdi element: " << i << ": " << mdi(i) << std::endl;
-    }
     
     lapackmanipulations();
     tstarcalculation();
@@ -705,7 +698,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   PRINTARRAY(quasinewton<T>::freeVariable, quasinewton<T>::n, 1);
   for(titer = this->bpmemory.begin(); titer != quasinewton<T>::bpmemory.end(); titer++){
     b = (*titer).second; //position of the ith. crossed boundary
-    SHOW(b);
+    // SHOW(b);
     if(quasinewton<T>::freeVariable[b]){
       // ZfM2 is a n x numfree matrix populated column-wise
       ZfM2[b + quasinewton<T>::n * i1] = 1.0; // fill with ones for free variables as 
@@ -728,7 +721,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     C[i] += t_double(quasinewton<T>::g[i]);
   }
   r = new double[numfree];
-  FLAG();
+  // FLAG();
   PRINTARRAY(ZfM2, quasinewton<T>::n, numfree);
   Matrix<double> mZfM2(ZfM2, quasinewton<T>::n, numfree);
   Matrix<double> mmC(C, quasinewton<T>::n, 1);
@@ -788,6 +781,9 @@ void BFGSB<T>::findMinimum2ndApproximation(){
 
   vpv<T>(quasinewton<T>::s, quasinewton<T>::x, 1, quasinewton<T>::n);
   vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1, quasinewton<T>::n);
+  numberOfIterations++;
+  SHOW(numberOfIterations);
+
   //PRINTARRAY(quasinewton<T>::s, quasinewton<T>::n, 1);
   //PRINTARRAY(quasinewton<T>::x, quasinewton<T>::n, 1);
   FLAG();
@@ -814,17 +810,12 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   if (0 != *quasinewton<T>::exitflag) quasinewton<T>::done = true;
 
   // Delete memory
-
   delete [] dnsize;
-  FLAG();
   delete [] dx;
-  FLAG();
   delete [] ZfM2;
-  FLAG();
   delete [] r;
-  FLAG();
-  SHOW(numfree);
-  FLAG();
+
+  //SHOW(numfree);
 }
 
 template<typename T>
