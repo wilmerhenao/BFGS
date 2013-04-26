@@ -343,14 +343,17 @@ BFGS<T>::BFGS(T*& x0, T*& fopt0, int& n0,  T& taud0,
 	      double*& u0, double*& l0):
   quasinewton<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
 		 echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
-  mHdouble(quasinewton<T>::n, quasinewton<T>::n){
+  mHdouble(quasinewton<T>::n, quasinewton<T>::n), mBdouble(quasinewton<T>::n, 
+							   quasinewton<T>::n){
   quasinewton<T>::n1 = quasinewton<T>::n;
   quasinewton<T>::n2 = quasinewton<T>::n * quasinewton<T>::n;
   quasinewton<T>::nm = 1;
   quasinewton<T>::m1 = 1; // on LBFGS this variable is m (the history)
   q = new T[quasinewton<T>::n1];
   H = new T[quasinewton<T>::n2];
+  B = new T[quasinewton<T>::n2];
   Hdouble = new double[quasinewton<T>::n * quasinewton<T>::n];
+  Bdouble = new double[quasinewton<T>::n * quasinewton<T>::n];
 }
 
 template<typename T>
@@ -358,11 +361,16 @@ BFGS<T>::~BFGS(){
   delete [] q;
   delete [] H;
   delete [] Hdouble;
+  delete [] B;
+  delete [] Bdouble;
 }
 
 template<typename T>
 void BFGS<T>::befmainloopspecific(){
   mat_set_eye(H, quasinewton<T>::n, quasinewton<T>::n);
+  mat_set_eye(B, quasinewton<T>::n, quasinewton<T>::n);
+
+  // This next variable doesn't need to be set during a run of constrained problems
   mxv<T>(quasinewton<T>::p, H, quasinewton<T>::g, -1.0, 0.0, quasinewton<T>::n, 
 	 quasinewton<T>::n);
 }
@@ -378,11 +386,15 @@ template<typename T>
 void BFGS<T>::createDoubleH(){
   for(int i = 0; i < this->n; i++){ //left this->n here on purpose for whoever is
                                     //reading.  This way you don't know the scope!
-    for(int j = 0; j < quasinewton<T>::n; j++)
+    for(int j = 0; j < quasinewton<T>::n; j++){
       Hdouble[i * quasinewton<T>::n + j] = t_double(H[i * quasinewton<T>::n + j]);
+      Bdouble[i * quasinewton<T>::n + j] = t_double(B[i * quasinewton<T>::n + j]);
+    }
   }
   Matrix<double> temp(Hdouble, quasinewton<T>::n, quasinewton<T>::n);
   mHdouble = temp;
+  Matrix<double> temp(Bdouble, quasinewton<T>::n, quasinewton<T>::n);
+  mBdouble = temp;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -495,12 +507,12 @@ void BFGSB<T>::zeroethstep(){
 
 template<typename T>
 void BFGSB<T>::zBz(){
-  adouble = squareForm(mZ, BFGS<T>::mHdouble, mZ);
+  adouble = squareForm(mZ, BFGS<T>::mBdouble, mZ);
 }
 
 template<typename T>
 void BFGSB<T>::dBz(){
-  adouble = squareForm(mdi, BFGS<T>::mHdouble, mZ);
+  adouble = squareForm(mdi, BFGS<T>::mBdouble, mZ);
 }
 
 template<typename T>
@@ -560,14 +572,14 @@ void BFGSB<T>::lapackmanipulations(){
   // LAPACK manipulations for each of the loops in the xcauchy calculations
 
   Matrix<double> temp(1, quasinewton<T>::n);
-  matrixMultiply(mZ, BFGS<T>::mHdouble, temp, 'T', 'N');
+  matrixMultiply(mZ, BFGS<T>::mBdouble, temp, 'T', 'N');
   // Next step uses formula (4.9) page 7 of the paper.
   fpj = fpj + deltatj * fppj + std::pow(t_double(quasinewton<T>::g[b]), 
 					2) + 
     t_double(quasinewton<T>::g[b]) * temp(b);
 
   Matrix<double> temp2(quasinewton<T>::n, 1);
-  matrixMultiply(BFGS<T>::mHdouble, mdi, temp2);
+  matrixMultiply(BFGS<T>::mBdouble, mdi, temp2);
   // Reassigning values to C
   for(int i = 0; i < quasinewton<T>::n; i++)
     C[i] = temp2(i);
@@ -622,7 +634,7 @@ template<typename T>
 void BFGSB<T>::tstarcalculation(){
   fppj = fppj + 2 * t_double(quasinewton<T>::g[b]) * C[b] + 
     std::pow(t_double(quasinewton<T>::g[b]), 2) * 
-    t_double(BFGS<T>::H[b * quasinewton<T>::n + b]);
+    t_double(BFGS<T>::B[b * quasinewton<T>::n + b]);
   dtstar = fpj / fppj;
   tstar = oldtj + dtstar;
 }
@@ -718,13 +730,13 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     }
   }
 
-  // Now let's define the r vector.  r = Z(g + H(Xcauchy - X))
+  // Now let's define the r vector.  r = Z(g + B(Xcauchy - X))
   // is it maybe worth representing r as in equation 5.4 instead?
   for(int i = 0; i < quasinewton<T>::n; i++)
     dx[i] = t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
   
   Matrix<double> mdx(dx, quasinewton<T>::n, 1), mC(C, quasinewton<T>::n, 1);
-  matrixMultiply(BFGS<T>::mHdouble, mdx, mC); // Result kept in mC 
+  matrixMultiply(BFGS<T>::mBdouble, mdx, mC); // Result kept in mC 
   
   for(int i = 0; i < quasinewton<T>::n; i++){
     C[i] = mC(i);  //Warning!.  I need to correct for this double assignation
@@ -739,7 +751,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   matrixMultiply(mZfM2, mmC, mr, 'T', 'N'); // the result is now on mr;
   // Find Bhat = Z^TBZ
   Matrix<double> mBHAT(numfree, numfree);
-  GensquareForm(mZfM2, BFGS<T>::mHdouble, mZfM2, mBHAT);
+  GensquareForm(mZfM2, BFGS<T>::mBdouble, mZfM2, mBHAT);
   
   // Solve the system 5.5 and 5.6
   // Notice that this system could easily be solved by inverting the matrix *BHAT
@@ -773,7 +785,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   //FLAG();
   matrixMultiply(mZfM2, md, mdnsize);
   
-  // Set up everything for the next phase.  Calibration of H
+  // Set up everything for the next phase.  Calibration of B
   // These s and x will be substracting from xfinal later
   vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
   vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
@@ -797,7 +809,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   //PRINTARRAY(quasinewton<T>::s, quasinewton<T>::n, 1);
   //PRINTARRAY(quasinewton<T>::x, quasinewton<T>::n, 1);
   FLAG();
-  update_bfgs_B<T>(BFGS<T>::H, quasinewton<T>::s, quasinewton<T>::y, BFGS<T>::q,
+  update_bfgs_B<T>(BFGS<T>::B, quasinewton<T>::s, quasinewton<T>::y, BFGS<T>::q,
 		   quasinewton<T>::n);
   FLAG();
   T alpha1 = static_cast<T>(alpha0);
@@ -818,13 +830,13 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   /* if exitflag was changed: exit main loop */
   SHOW(*quasinewton<T>::exitflag);
   if (0 != *quasinewton<T>::exitflag) quasinewton<T>::done = true;
-
+  
   // Delete memory
   delete [] dnsize;
   delete [] dx;
   delete [] ZfM2;
   delete [] r;
-
+  
   //SHOW(numfree);
 }
 
