@@ -694,6 +694,7 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
 	return;
       }
     }
+    
     if (fpj >= 0){
       std::cout << "found optimal cauchy point exactly at a breakpoint." << std::endl;
       tstar = oldtj;
@@ -712,9 +713,14 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
   tstar = tj;
   /*
   for(int i = 0; i < quasinewton<T>::n; i++){
-    this->x[i] = this->xcauchy[i];// previous xcauchy was
+     WARNING!:  Do I want to return xcauchy or do I want to return x?
+    //this->x[i] = this->xcauchy[i];// previous xcauchy was
     // the right point
+<<<<<<< HEAD
     }*/
+=======
+  }*/
+>>>>>>> d8640364d82ea774ca37739d1c22c2c46f17321e
   // I still need to implement the last segment to locate xcauchy correctly.
   std::cout<< "exiting after finding generalized cauchy point (not optimal)"<<std::endl;
   std::cout << "You are in a corner at this point" << std::endl;
