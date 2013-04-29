@@ -65,19 +65,6 @@ void bfgs(T*&, T*& fopt, int& n, short& lm, int& m, T& ftarget,  T& gnormtol,
 	  int& maxit,  long& J, T& taux,  T& taud, short& echo, 
 	  int(*&testFunction)(T*, T*, T*, int),  std::string& datafilename, 
           double*&, int&, double*&, double*&, bool&);
-/*
-template<typename T>
-void dBd();
-
-template<typename T>
-void dBz();
-
-template<typename T>
-void create_d();
-
-template<typename T>
-void update_d(BFGSB<T> &);
-*/
 
 /* Cast to double. */
 inline double t_double(const dd_real &a) {
@@ -417,7 +404,7 @@ protected:
   double tstar;
   char yTrans, nTrans;
   double alpha, beta, tj, fpj, fppj, deltatj, oldtj, adouble, dtstar;
-  int ndouble, one, b, numberOfIterations;
+  int ndouble, one, b;
   double *di, *z, *C;
   Matrix<double> mZ, mdi;
   // bear in mind that the following multimap is already ordered
@@ -460,12 +447,12 @@ BFGSB<T>::BFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
   one = 1;
   di = new double[quasinewton<T>::n];
   z = new double[quasinewton<T>::n];
+  C = new double[quasinewton<T>::n];
   for(int _i = 0; _i < quasinewton<T>::n; _i++){
     z[_i] = 0.0;
     di[_i] = 0.0;
+    C[_i] = 0.0;
   }
-  C = new double[quasinewton<T>::n];
-  numberOfIterations = 0;
 }
 
 template<typename T>
@@ -530,14 +517,14 @@ void BFGSB<T>::zeroethstep(){
   // keep track of the ti_s that the define the intarval we are working on
   oldtj = 0.0;
   tj = deltatj;
-
+  
   // Find the new x position.  Notice that in this case all the coordinates advance
   // (at least those with non-zero values in the gradient)
   // given that nothing will hit the boundary (until you hit the boundary corresponding
   // to dimension 'b' of course.
   for(int _i = 0; _i < quasinewton<T>::n; _i++){
     quasinewton<T>::xcauchy[_i] = (t_double(quasinewton<T>::x[_i]) - tj *
-				  t_double(quasinewton<T>::g[_i]));
+				   t_double(quasinewton<T>::g[_i]));
     z[_i] = t_double(quasinewton<T>::xcauchy[_i] - quasinewton<T>::x[_i]);
   }
   
@@ -549,13 +536,26 @@ void BFGSB<T>::zeroethstep(){
   for(int i = 0; i < quasinewton<T>::n; i++){
     di[i] = -1.0 * t_double(quasinewton<T>::g[i]);
   }
+  
   create_d();
-
+  
   // Run lapack intensive calculations
   lapackzerostep();
-
+  
   // Prepare everything for the next iteration
-				  nextIterationPrepare();
+  nextIterationPrepare();
+  
+  // check if I can finish now and graciously leave if that's the case.
+  if (tstar < tj){
+    if (tstar > 0){
+      std::cout << "optimal value was found" << std::endl;
+      this->thisIterationConverged = true; // you found the generalized cauchy point
+      tj = tstar;
+      for(int i = 0; i < quasinewton<T>::n; i++){
+	  this->xcauchy[i] = this->xcauchy[i] - (tj - dtstar) * mdi(i); //stp bck a ltl
+      }
+    }
+  }
 }
 
 template<typename T>
@@ -563,14 +563,6 @@ void BFGSB<T>::lapackzerostep(){
   /*
     This method includes all the lapack routines that have to be run at the beginning
     of the "find the cauchy point iteration"
-  */
-  /*
-  double * grad;
-  grad = new double[this->n];
-  
-  for(int _i = 0; _i < this->n; _i++){
-    grad[_i] = t_double(this->g[_i]) * di[_i];
-  }
   */
 
   // Calculation of variable fpj (page 6 of Nocedal's paper. Equation 4.4)
@@ -632,12 +624,15 @@ void BFGSB<T>::lapackmanipulations(){
 
 template<typename T>
 void BFGSB<T>::lapackmanipulations(){
-  // Literally just run the lapackzerostep method.  This is until I fix whether there
-  // is any change in methodology or not.  If anything... consider merging completely
+
   /*
+   Literally just run the lapackzerostep method.  This is until I fix whether there
+   is any change in methodology or not.  If anything... consider merging completely.
+
     This method includes all the lapack routines that have to be run at the beginning
     of the "find the cauchy point iteration"
   */
+
   /*
   double * grad;
   grad = new double[this->n];
@@ -646,6 +641,7 @@ void BFGSB<T>::lapackmanipulations(){
     grad[_i] = t_double(this->g[_i]) * di[_i];
   }
   */
+
   // Calculation of variable fpj (page 6 of Nocedal's paper. Equation 4.4)
   // fpj =  g^Td + z^T*B*z
   dBz(); // this function modifies adouble (which is zero until now)
@@ -653,14 +649,12 @@ void BFGSB<T>::lapackmanipulations(){
   for(int _i = 0; _i < this->n; _i++){
     fpj = fpj + t_double(this->g[_i]) * di[_i]; //grad[_i];
   }
-  
   //delete [] grad;
 
   // Calculation of variable fppj (page 6 of Nocedal's paper. Equation 4.5)
   // fppj = d^T*B*z
   dBd();
   fppj = adouble;
-
   tstarcalculation();
 }
 
@@ -671,16 +665,6 @@ void BFGSB<T>::tstarcalculation(){
   tstar = dtstar + oldtj;
 }
 
-/*
-template<typename T>
-void BFGSB<T>::tstarcalculation(){
-  fppj = fppj + 2 * t_double(quasinewton<T>::g[b]) * C[b] + 
-    std::pow(t_double(quasinewton<T>::g[b]), 2) * 
-    t_double(BFGS<T>::B[b * quasinewton<T>::n + b]);
-  dtstar = fpj / fppj;
-  tstar = oldtj + dtstar;
-}
-*/
 template<typename T>
 void BFGSB<T>::findGeneralizedCauchyPoint(){
   iter++;  // this is a class member.  Starts at t_1 and the first time it moves to t_2
@@ -717,7 +701,7 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
       for(int i = 0; i < quasinewton<T>::n; i++){
 	this->xcauchy[i] = this->xcauchy[i] - (tj - oldtj) * mdi(i); // previous 
 	                                                       // xcauchy was
-	                                                       // the right point
+	                                                       // the right point 
       }
       return;
     }
@@ -726,12 +710,14 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
   
   // In case nothing was found.  Return the last point
   tstar = tj;
+  /*
   for(int i = 0; i < quasinewton<T>::n; i++){
     this->x[i] = this->xcauchy[i];// previous xcauchy was
     // the right point
-  }
+    }*/
   // I still need to implement the last segment to locate xcauchy correctly.
-  std::cout << "exiting after finding generalized cauchy point (not optimal)"<<std::endl;
+  std::cout<< "exiting after finding generalized cauchy point (not optimal)"<<std::endl;
+  std::cout << "You are in a corner at this point" << std::endl;
 }
 
 template<typename T>
@@ -743,34 +729,35 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   double* ZfM2, *r, *dx, *dnsize;
   dx = new double[quasinewton<T>::n];
   dnsize = new double[quasinewton<T>::n];
-  
+ 
+
   for(int i = 0; i < quasinewton<T>::n; i++){
+    // initialize the previous vectors just because...
+    dnsize[i] = dx[i] = 0.0;
     if(quasinewton<T>::freeVariable[i])
       numfree++;
   }
   
+  // Construction of Matrix Z
   ZfM2 = new double[quasinewton<T>::n * numfree];
-  typename std::multimap<T, int>::iterator titer = quasinewton<T>::bpmemory.begin();
-  for(int i = 0; i < quasinewton<T>::n; i++, titer++){
-    for(int j = 0; j < numfree; j++)
-      ZfM2[i * numfree + j] = 0.0;
-  }
+  for(int i = 0; i < (quasinewton<T>::n * numfree); i++)
+    ZfM2[i] = 0.0;
   
-  int i1 = 0;
+  int i_ = 0;
   PRINTARRAY(quasinewton<T>::freeVariable, quasinewton<T>::n, 1);
-  for(titer = this->bpmemory.begin(); titer != quasinewton<T>::bpmemory.end(); titer++){
-    b = (*titer).second; //position of the ith. crossed boundary
+  for(iter = this->bpmemory.begin(); iter != quasinewton<T>::bpmemory.end(); iter++){
+    b = (*iter).second; //position of the ith. crossed boundary
     // SHOW(b);
     if(quasinewton<T>::freeVariable[b]){
       // ZfM2 is a n x numfree matrix populated column-wise
-      ZfM2[b + quasinewton<T>::n * i1] = 1.0; // fill with ones for free variables as 
+      ZfM2[b + quasinewton<T>::n * i_] = 1.0; // fill with ones for free variables as 
                                               // explained on paragraph 2 of page 10 of 
                                               // the paper.
-      i1++;
+      ++i_;
     }
   }
-
-  // Now let's define the r vector.  r = Z(g + B(Xcauchy - X))
+  
+  // Definition of r vector.  r = Z(g + B(Xcauchy - X))
   // is it maybe worth representing r as in equation 5.4 instead?
   for(int i = 0; i < quasinewton<T>::n; i++)
     dx[i] = t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
@@ -793,9 +780,12 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   Matrix<double> mBHAT(numfree, numfree);
   GensquareForm(mZfM2, BFGS<T>::mBdouble, mZfM2, mBHAT);
   
-  // Solve the system 5.5 and 5.6
-  // Notice that this system could easily be solved by inverting the matrix *BHAT
+  /*
+    Solve the system 5.5 and 5.6
+    Notice that this system could easily be solved by inverting the matrix *BHAT
+  */
   
+  // First step. Solve the system with 
   Matrix<double> md(numfree, 1);  // Where to put the solution 
   bfgssolver(mBHAT, mr, md);
   
@@ -803,22 +793,34 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   double alphacandidate = 0.0;
   
   // Define the new boundaries which appear on 5.6
-  double lbf;
-  double ubf;
+  double lbf, ubf;
   int ind = 0;
-  titer = quasinewton<T>::bpmemory.begin();
-  for(; titer != quasinewton<T>::bpmemory.end(); titer++, ind++){
-      b = (*titer).second;
+  
+  for(iter = quasinewton<T>::bpmemory.begin(); 
+      iter != quasinewton<T>::bpmemory.end(); iter++, ind++){
+    b = (*iter).second;
+
+    // only perform this analysis for free variables
+    if(quasinewton<T>::freeVariable[b]){
       lbf = quasinewton<T>::l[b] - quasinewton<T>::xcauchy[b];
       ubf = quasinewton<T>::u[b] - quasinewton<T>::xcauchy[b];
-      alphacandidate = MAX(ubf / md(ind), lbf / md(ind));
+      // alphacandidate = MAX(ubf / md(ind), lbf / md(ind));
+      if(md(ind) > 0){
+	alphacandidate = ubf / md(ind);
+      } else if(md(ind) < 0){
+	alphacandidate = lbf / md(ind);//both numbers are negative => div. is positive
+      } else{
+	alphacandidate = 1.0;
+      }
       alpha0 = MAX(alpha0, alphacandidate);
     }
-  alpha0 = MIN(alpha0, 1.0);
+  }
+  // if alpha == 1.0 that means the solution doesn't touch any constraint :)
+  alpha0 = MIN(alpha0, 1.0); 
   md *= alpha0;
-  // Find the new solution
   
-  titer = quasinewton<T>::bpmemory.begin();
+  // Calculate the new solution
+  iter = quasinewton<T>::bpmemory.begin();
   // Z_k * d
   // FLAG();
   Matrix<double> mdnsize(dnsize, quasinewton<T>::n, 1);
@@ -834,24 +836,22 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   for(int i = 0; i < quasinewton<T>::n; i++){
     // Update the new position of x
     quasinewton<T>::x[i] = quasinewton<T>::xcauchy[i];
-    if((*titer).second == i){
-      quasinewton<T>::x[i] += mdnsize(i);
-    }
+    quasinewton<T>::x[i] += mdnsize(i);
   }
   quasinewton<T>::testFunction(quasinewton<T>::f, quasinewton<T>::g, 
 			       quasinewton<T>::x, quasinewton<T>::n);
 
   vpv<T>(quasinewton<T>::s, quasinewton<T>::x, 1, quasinewton<T>::n);
   vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1, quasinewton<T>::n);
-  numberOfIterations++;
-  SHOW(numberOfIterations);
-
+  
+  SHOW(quasinewton<T>::it);
+  SHOW(*quasinewton<T>::f);
   //PRINTARRAY(quasinewton<T>::s, quasinewton<T>::n, 1);
-  //PRINTARRAY(quasinewton<T>::x, quasinewton<T>::n, 1);
-  FLAG();
+  PRINTARRAY(quasinewton<T>::x, quasinewton<T>::n, 1);
+  //FLAG();
   update_bfgs_B<T>(BFGS<T>::B, quasinewton<T>::s, quasinewton<T>::y, BFGS<T>::q,
 		   quasinewton<T>::n);
-  FLAG();
+  //FLAG();
   T alpha1 = static_cast<T>(alpha0);
   
   if (2 == quasinewton<T>::echo)
@@ -902,17 +902,6 @@ void BFGSB<T>::mainloop(){
                                      // Matrix<double> container.
   this->thisIterationConverged = false;  //Once true leave cauchy iteration
   zeroethstep();
-  // check if I can finish now and graciously leave if that's the case.
-  if (tstar < tj){
-    if (tstar > 0){
-      std::cout << "optimal value was found" << std::endl;
-      this->thisIterationConverged = true; // you found the generalized cauchy point
-      tj = tstar;
-      for(int i = 0; i < quasinewton<T>::n; i++){
-	  this->xcauchy[i] = this->xcauchy[i] - (tj - dtstar) * mdi(i); //stp bck a ltl
-      }
-    }
-  }
   
   // Only continue if this iteration has not not converged
   if(!this->thisIterationConverged)
@@ -1041,9 +1030,9 @@ LBFGSB<T>::~LBFGSB(){
 /////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-bool quasinewton<T>::themin(double *gradpoints, int i1){
+bool quasinewton<T>::themin(double *gradpoints, int i_){
   double mindist = 1.0;
-  int mybase = i1 * n;
+  int mybase = i_ * n;
   int loc = 0;
   bool threshold = false;
   for(int i = 0; i < n; i++){

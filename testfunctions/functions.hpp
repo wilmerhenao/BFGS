@@ -26,6 +26,7 @@ template<class T> int test29f06(T *, T *, T *, int);
 template<class T> int test29f11(T *, T *, T *, int);
 template<class T> int test29f22(T *, T *, T *, int);
 template<class T> int yurirosen(T *, T *, T *, int);
+template<class T> int parabola(T *, T *, T *, int);
 template<class T> int yurirosen_ns1(T *, T *, T *, int);
 template<class T> int yurirosen_ns2(T *, T *, T *, int);
 
@@ -48,6 +49,7 @@ public:
   int (*ptest29f11)(T *f, T *g, T *x, int n) = &test29f11<T>;
   int (*ptest29f22)(T *f, T *g, T *x, int n) = &test29f22<T>;
   int (*pyurirosen)(T *f, T *g, T *x, int n) = &yurirosen<T>;
+  int (*pparabola)(T *f, T *g, T *x, int n) = &parabola<T>;
   int (*pyurirosen_ns1)(T *f, T *g, T *x, int n) = &yurirosen_ns1<T>;
   int (*pyurirosen_ns2)(T *f, T *g, T *x, int n) = &yurirosen_ns2<T>;
   std::map<std::string, int(*)(T*, T*, T*, int), StringComparerForMap> tMap;
@@ -72,6 +74,7 @@ int allfunctions<T>::fillMap(){
   tMap["test29f11"] = ptest29f11;
   tMap["test29f22"] = ptest29f22;
   tMap["yurirosen"] = pyurirosen;
+  tMap["parabola"] = pparabola;
   tMap["yurirosen_ns1"] = pyurirosen_ns1;
   tMap["yurirosen_ns2"] = pyurirosen_ns2;
   return 0;
@@ -659,6 +662,24 @@ int yurirosen(T *f, T *g, T *x, int n)
     g[i+1] = g[i + 1] + 2 * r;
     g[i] = g[i] - 8 * x[i] * r;
   }
+  return 0;
+}
+
+template<class T>
+int parabola(T *f, T *g, T *x, int n)
+{
+  // based on Chebyshev polynomials
+  // x_{i+1} = 2x_i^2 - 1 = T_2(x_i) = T_{2^i}(x_1) = cos(2^i arccos(x_1))
+
+  for(int i = 0; i < n; i++) 
+    g[i] = 0.0;	
+  
+  *f = 0.0;
+  for(int i = 0; i < n; i++){
+    *f = *f + x[i] * x[i];
+    g[i] = 2 * x[i];
+  }
+
   return 0;
 }
 
