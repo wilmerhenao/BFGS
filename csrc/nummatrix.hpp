@@ -48,6 +48,8 @@ public:
   ~Matrix();
   void initializeToZero();
   bool isSquare();
+  void print();
+  void print(char);
   template<typename H> friend void matrixMultiply(Matrix<H> &, Matrix<H> &, 
 						  Matrix<H> &, char transA = 'N',
 						  char transB = 'N');
@@ -57,7 +59,6 @@ public:
 						 Matrix<H>&, Matrix<H> &);
 
   template<typename H> friend void bfgssolver(Matrix<H>&, Matrix<H>&, Matrix<H>&);
-
   T& operator()(int& );
   //T& operator()(int);
   Matrix<T>& operator=(Matrix<T>& );
@@ -82,6 +83,27 @@ Matrix<T>::Matrix(Matrix<T>& other){
   matrix = new T[m * n];
   for(int i = 0; i < m * n; i++){
     matrix[i] = other(i);
+  }
+}
+
+template<typename T>
+void Matrix<T>::print(){
+  for(int i = 0; i < m; i++){
+    for(int j = 0; j < n; j++){
+      std::cout << matrix[i + j * m] << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
+template<typename T>
+void Matrix<T>::print(char a){
+  std::cout << "printing matrix<T>: " << a << std::endl;
+  for(int i = 0; i < m; i++){
+    for(int j = 0; j < n; j++){
+      std::cout << matrix[i + j * m] << " ";
+    }
+    std::cout << std::endl;
   }
 }
 

@@ -735,20 +735,26 @@ void BFGSB<T>::prepareNextMainLoop(){
   vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
   vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
   //PRINTARRAY(quasinewton<T>::s, quasinewton<T>::n, 1);
-  
-  for(int i = 0; i < quasinewton<T>::n; i++){
-    // Update the new position of x  this is the only point where this happens
-    quasinewton<T>::xcauchy[i] += dnsize[i];
-    quasinewton<T>::x[i] = quasinewton<T>::xcauchy[i];
-  }
-  
+
   // See if we moved in this step.  If we didn't.  Finish with success
   double normminstep;
   double * difference = new double[quasinewton<T>::n];
-  for(int i = 0; i < quasinewton<T>::n; i++){
-    difference[i] = quasinewton<T>::xcauchy[i] - t_double(quasinewton<T>::x[i]);
+  
+  //PRINTARRAY(quasinewton<T>::x, quasinewton<T>::n, 1);
+  PRINTARRAY(quasinewton<T>::xcauchy, quasinewton<T>::n, 1);
+  
+  for(int __i = 0; __i < quasinewton<T>::n; __i++){
+    // Update the new position of x  this is the only point where this happens
+    quasinewton<T>::xcauchy[__i] += dnsize[__i];
+    difference[ __i ] = quasinewton<T>::xcauchy[ __i ] - 
+      t_double(quasinewton<T>::x[ __i ]);
+    quasinewton<T>::x[ __i ] = quasinewton<T>::xcauchy[ __i ];
   }
+  
+  PRINTARRAY(quasinewton<T>::x, quasinewton<T>::n, 1);
+  PRINTARRAY(difference, quasinewton<T>::n, 1);
   normminstep = vecnorm(difference, quasinewton<T>::n);
+  
   SHOW(normminstep);
   if(normminstep < quasinewton<T>::taud)
     *quasinewton<T>::exitflag = 1;
@@ -802,7 +808,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // the quadratic approximation to the goal function
   int numfree = 0; // number of free variables
   b = 0;
-  double * ZfM2, *r, *dx;
+  double * ZfM2, * r, * dx;
   
   dx = new double[quasinewton<T>::n];
   
@@ -817,7 +823,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     // no free variables to work with.  This step can't be completed
     return;
   }
-  // Construction of Matrix Z
+  // Construction of Matrix Z 
   ZfM2 = new double[quasinewton<T>::n * numfree];
   for(int i = 0; i < (quasinewton<T>::n * numfree); i++)
     ZfM2[i] = 0.0;
@@ -844,6 +850,10 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   Matrix<double> mdx(dx, quasinewton<T>::n, 1), mC(C, quasinewton<T>::n, 1);
   matrixMultiply(BFGS<T>::mBdouble, mdx, mC); // Result kept in mC 
   
+  BFGS<T>::mBdouble.print('B');
+  
+  mC.print('c');
+  PRINTARRAY(quasinewton<T>::g, quasinewton<T>::n, 1);
   for(int i = 0; i < quasinewton<T>::n; i++){
     C[i] = mC(i);  //Warning!.  I need to correct for this double assignation
     C[i] += t_double(quasinewton<T>::g[i]);
@@ -855,6 +865,8 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   Matrix<double> mmC(C, quasinewton<T>::n, 1);
   Matrix<double> mr(r, numfree, 1);
   matrixMultiply(mZfM2, mmC, mr, 'T', 'N'); // the result is now on mr;
+  mmC.print('C');
+  mr.print('r');
   // Find Bhat = Z^TBZ
   Matrix<double> mBHAT(numfree, numfree);
   GensquareForm(mZfM2, BFGS<T>::mBdouble, mZfM2, mBHAT);
@@ -874,28 +886,40 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   double lbf, ubf;
   int ind = 0;
   alpha0 = 1.0;
+  
+  Matrix<double> mdtemp(quasinewton<T>::n, 1);
+  matrixMultiply(mZfM2, md, mdtemp); // the result is now on mr;
+  md.print('D');
   for(iter = quasinewton<T>::bpmemory.begin(); 
       iter != quasinewton<T>::bpmemory.end(); iter++, ind++){
     b = (*iter).second;
     
     // only perform this analysis for free variables
     if(quasinewton<T>::freeVariable[b]){
+      SHOW(b);
       lbf = quasinewton<T>::l[b] - quasinewton<T>::xcauchy[b];
       ubf = quasinewton<T>::u[b] - quasinewton<T>::xcauchy[b];
       // alphacandidate = MAX(ubf / md(ind), lbf / md(ind));
       if(md(ind) > 0){
-	alphacandidate = ubf / md(ind);
+	alphacandidate = ubf / mdtemp(ind);
+	// std::cout << md(ind) << std::endl;
       } else if(md(ind) < 0){
-	alphacandidate = lbf / md(ind);//both numbers are negative => div. is positive
+	//both numbers are negative => div. is positive
+	alphacandidate = lbf / mdtemp(ind);
+	// std::cout << md(ind) << std::endl;
       } else{
 	alphacandidate = 1.0;
       }
+      SHOW(alphacandidate);
       alpha0 = MIN(alpha0, alphacandidate);
     }
   }
+  
+  md.print('d');
+  mZfM2.print('Z');
   // if alpha == 1.0 that means the solution doesn't touch any constraint :)
   md *= alpha0;
-  
+  SHOW(alpha0);
   // Calculate the new solution
   iter = quasinewton<T>::bpmemory.begin();
   // Z_k * d
@@ -906,7 +930,9 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   
   for(int i = 0; i < quasinewton<T>::n; i++)
     dnsize[i] = mdnsize(i);
-
+  
+  PRINTARRAY(dnsize, quasinewton<T>::n, 1);  
+  
   // Delete memory
   // delete [] dnsize;
   delete [] dx;
