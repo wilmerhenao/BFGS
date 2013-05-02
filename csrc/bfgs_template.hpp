@@ -5,12 +5,12 @@
 %%  it under the terms of the GNU General Public License as published by
 %%  the Free Software Foundation, either version 3 of the License, or
 %%  (at your option) any later version.
-%%
+%%  
 %%  This program is distributed in the hope that it will be useful,
 %%  but WITHOUT ANY WARRANTY; without even the implied warranty of
 %%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 %%  GNU General Public License for more details.
-%%
+%%  
 %%  You should have received a copy of the GNU General Public License
 %%  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -35,7 +35,7 @@
           std::cout << std::endl; \
         }
 #else
-  #define SHOW(x)   
+  #define SHOW(x)
   #define FLAG()
   #define PRINTARRAY(Z,m,n)
 #endif
@@ -207,7 +207,7 @@ void quasinewton<T>::mainloop(){
   gtp = vecip<T>(g, p, n);   // g'*p
   if(gtp > 0){
     done = true;
-    *exitflag = -2;
+    *exitflag= -2;
   }
   vcopyp<T>(s, x, -1.0, n);
   vcopyp<T>(y, g, -1.0, n);
@@ -760,7 +760,7 @@ void BFGSB<T>::prepareNextMainLoop(){
     *quasinewton<T>::exitflag = 1;
   
   delete [] difference;
-
+  
   // Update the value of the function
   quasinewton<T>::testFunction(quasinewton<T>::f, quasinewton<T>::g, 
 			       quasinewton<T>::x, quasinewton<T>::n);
