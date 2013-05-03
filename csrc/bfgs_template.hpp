@@ -305,7 +305,7 @@ void quasinewton<T>::get_ti_s(){
   // This function gets all the Ti points described in (4.1) of 8limited**
   // It also sorts them automatically
   for(int i = 0; i < n; i++){
-    if(0.0 == g[i]){
+    if(0.0 == quasinewton<T>::g[i]){
       // Assign \Infty if g == 0
       bpmemory.insert(std::pair<T, int>(std::numeric_limits<T>::max(), i));
     } else {
@@ -742,7 +742,7 @@ void BFGSB<T>::prepareNextMainLoop(){
   
   //PRINTARRAY(quasinewton<T>::x, quasinewton<T>::n, 1);
   PRINTARRAY(quasinewton<T>::xcauchy, quasinewton<T>::n, 1);
-  
+  PRINTARRAY(dnsize, quasinewton<T>::n, 1);
   for(int __i = 0; __i < quasinewton<T>::n; __i++){
     // Update the new position of x  this is the only point where this happens
     quasinewton<T>::xcauchy[__i] += dnsize[__i];
@@ -884,14 +884,13 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   
   // Define the new boundaries which appear on 5.6
   double lbf, ubf;
-  int ind = 0;
   alpha0 = 1.0;
   
   Matrix<double> mdtemp(quasinewton<T>::n, 1);
   matrixMultiply(mZfM2, md, mdtemp); // the result is now on mr;
-  md.print('D');
+  mdtemp.print('D');
   for(iter = quasinewton<T>::bpmemory.begin(); 
-      iter != quasinewton<T>::bpmemory.end(); iter++, ind++){
+      iter != quasinewton<T>::bpmemory.end(); iter++){
     b = (*iter).second;
     
     // only perform this analysis for free variables
@@ -899,14 +898,12 @@ void BFGSB<T>::findMinimum2ndApproximation(){
       SHOW(b);
       lbf = quasinewton<T>::l[b] - quasinewton<T>::xcauchy[b];
       ubf = quasinewton<T>::u[b] - quasinewton<T>::xcauchy[b];
-      // alphacandidate = MAX(ubf / md(ind), lbf / md(ind));
-      if(md(ind) > 0){
-	alphacandidate = ubf / mdtemp(ind);
-	// std::cout << md(ind) << std::endl;
-      } else if(md(ind) < 0){
+      
+      if(mdtemp(b) > 0){
+	alphacandidate = ubf / mdtemp(b);
+      } else if(md(b) < 0){
 	//both numbers are negative => div. is positive
-	alphacandidate = lbf / mdtemp(ind);
-	// std::cout << md(ind) << std::endl;
+	alphacandidate = lbf / mdtemp(b);
       } else{
 	alphacandidate = 1.0;
       }
@@ -992,7 +989,6 @@ void BFGSB<T>::mainloop(){
   
   /* if exitflag was changed: exit main loop: */
   if (*quasinewton<T>::exitflag != 0) quasinewton<T>::done = true;
-
   // deletion
 }
 
