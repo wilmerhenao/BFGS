@@ -123,7 +123,7 @@ int main(int argc, char *argv[]){
     l[counter] = 1; u[counter] = 2.0;
   }
   l[3] = -1.0; // create one strange border
-  l[0] = -3.0; //
+  l[0] = -2.0; //
   
   algoparameters<double> * constrainedproblem;
   try{

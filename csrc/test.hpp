@@ -177,7 +177,7 @@ void algoparameters<T>::generateXF(){
 
   if(boundedProblem){
     for(int j = 0; j < n; j++)
-      xf[j] = (u[j] + l[j]) / 2;
+      xf[j] = (u[j] + l[j]) / 2.0;
   } else {
     srand(static_cast<unsigned> (time(NULL)));
     rand_real_vec<double>(x0, n, -1, 1);

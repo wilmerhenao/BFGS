@@ -19,7 +19,6 @@
 #ifndef _BFGS_TEMPLATE_HPP_
 #define _BFGS_TEMPLATE_HPP_
 
-
 #ifndef NDEBUG
   #define FLAG()								\
         std::cout  << "Checking position.  Reached line  " << __LINE__ << std::endl; \
@@ -120,7 +119,7 @@ public:
   void printallfinalinfo();
   void get_ti_s();
   bool themin(double*, int);
-  bool gradsamp(); // A few more iterations.  Defined only for double types
+  bool gradsamp(); // A few more iterations.  Defined only for double types 
 };
 
 template<typename T>
@@ -304,18 +303,23 @@ template<typename T>
 void quasinewton<T>::get_ti_s(){
   // This function gets all the Ti points described in (4.1) of 8limited**
   // It also sorts them automatically
+  T pp = 0.0;
   for(int i = 0; i < n; i++){
     if(0.0 == quasinewton<T>::g[i]){
       // Assign \Infty if g == 0
+      
       bpmemory.insert(std::pair<T, int>(std::numeric_limits<T>::max(), i));
     } else {
-      if(g[i] < 0) {
-	bpmemory.insert(std::pair<T, int>((x[i] - u[i]) / g[i], i));
+      if(quasinewton<T>::g[i] < 0) {
+	pp = (x[i] - u[i]) / quasinewton<T>::g[i];
+	bpmemory.insert(std::pair<T, int>((x[i] - u[i]) / quasinewton<T>::g[i], i));
       } else {
-	bpmemory.insert(std::pair<T, int>((x[i] - l[i]) / g[i], i));
+	pp = (x[i] - l[i]) / quasinewton<T>::g[i];
+	bpmemory.insert(std::pair<T, int>((x[i] - l[i]) / quasinewton<T>::g[i], i));
       }
     }
   }
+  std::cout << pp << std::endl;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -678,12 +682,18 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
     tj = t_double(iter->first);
     b = iter->second;
     deltatj = tj - oldtj;
-    
+
+    SHOW(deltatj);
+
     // update xcauchy and update the new z (the array, not the Matrix<double>)
+    T addDeviations = 0.0;
+    FLAG();
+    PRINTARRAY(quasinewton<T>::xcauchy, quasinewton<T>::n, 1);
     for(int i = 0; i < quasinewton<T>::n; i++){
+      addDeviations = addDeviations + std::abs(deltatj * di[i]);
       findXCauchymX(i);
     }
-    
+    PRINTARRAY(quasinewton<T>::xcauchy, quasinewton<T>::n, 1);
     // Create Matrix<double> material
     Matrix<double> temp(z, quasinewton<T>::n, 1);
     mZ = temp;
@@ -700,7 +710,9 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
 	return;
       }
     }
-    if (fpj >= 0){
+    SHOW(addDeviations)
+    if ((fpj >= 0) && (addDeviations > quasinewton<T>::taud)){
+      std::cout << "the sum of deviations is: " << addDeviations << std::endl;
       std::cout << "found optimal cauchy point exactly at a breakpoint." << std::endl;
       tstar = oldtj;
       this->thisIterationConverged = true;
@@ -1031,7 +1043,6 @@ LBFGS<T>::LBFGS(T*& x0, T*& fopt0, int& n0,  T& taud0,
     rho[i] = 0.0;
     a[i] = 0.0;
   }
-
 }
 
 template<typename T>
@@ -1050,16 +1061,27 @@ void LBFGS<T>::befmainloopspecific(){
 
 template<typename T>
 void LBFGS<T>::mainloopspecific(){
+  /*
+    This function calculates the new ol which varies between 1 and m.  All the memory is
+    stored on this arrays S and Y which contains the past s and y vectors (m of them).
+    Everything is in Nocedal's book lbfgs chapter
+
+    Notice that arrays S and Y are a huge array containing all the m 'y' and 's' vectors
+  */
+  
   if(quasinewton<T>::it <= quasinewton<T>::m) quasinewton<T>::cs++;
   quasinewton<T>::tmp = (quasinewton<T>::ol - 1) * quasinewton<T>::n;
   vcopy<T>(S + quasinewton<T>::tmp, quasinewton<T>::s, quasinewton<T>::n);
   vcopy<T>(Y + quasinewton<T>::tmp, quasinewton<T>::y, quasinewton<T>::n);
+  
   rho[quasinewton<T>::ol - 1] = 1.0 / vecip<T>(quasinewton<T>::y, quasinewton<T>::s, 
 					       quasinewton<T>::n);
   update_lbfgs<T>(quasinewton<T>::p, S, Y, rho, a, quasinewton<T>::g, 
 		  quasinewton<T>::cs, quasinewton<T>::ol, quasinewton<T>::m, 
 		  quasinewton<T>::n);
+  
   quasinewton<T>::ol = (quasinewton<T>::ol % quasinewton<T>::m) + 1;
+  
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
