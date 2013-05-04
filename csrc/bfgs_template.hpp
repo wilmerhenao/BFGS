@@ -324,7 +324,7 @@ void quasinewton<T>::get_ti_s(){
 
 /////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
-class BFGS: public quasinewton<T>{
+class BFGS: public virtual quasinewton<T>{
 protected:
   T *q, *H, *B;
   double* Hdouble, *Bdouble;
@@ -403,7 +403,7 @@ void BFGS<T>::createDoubleHandDoubleB(){
 
 /////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
-class BFGSB: public BFGS<T>{
+class BFGSB: public virtual BFGS<T>{
 protected:
   double tstar;
   char yTrans, nTrans;
@@ -1006,7 +1006,7 @@ void BFGSB<T>::mainloop(){
 
 /////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
-class LBFGS: public quasinewton<T>{
+class LBFGS: public virtual quasinewton<T>{
 protected:
   T *S, *Y, *rho, *a;
 public:
@@ -1087,15 +1087,20 @@ void LBFGS<T>::mainloopspecific(){
 /////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-class LBFGSB: public LBFGS<T>{
+class LBFGSB: public BFGSB<T>: public LBFGS<T>{
 protected:
+  
 public:
   LBFGSB(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
 	 std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
 	 int&, double*&, double*&);
   virtual ~LBFGSB();
+  virtual void createDoubleHandDoubleB();
+  virtual void lapackzerostep();
+
 };
 
+// Constructor
 template<typename T>
 LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,  
 		  int(*&tF)(T*, T*, T*, int), std::ofstream& output0,  T& ftarget0,  
@@ -1104,13 +1109,45 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
 		  double*& u0, double*&l0):
   LBFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
 	  echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0){
+  quasinewton<T>::nm = quasinewton<T>::n * quasinewton<T>::m;
+  quasinewton<T>::m1 = quasinewton<T>::m;
+  S  = new T[quasinewton<T>::nm];
+  Y  = new T[quasinewton<T>::nm];
+  rho = new T[quasinewton<T>::m1];
+  a  = new T[quasinewton<T>::m1];
+  for(int i = 0; i < quasinewton<T>::nm; i++){
+    S[i] = Y[i] = 0.0;
+  }
+  
+  for(int i = 0; i < quasinewton<T>::m1; i++){
+    rho[i] = 0.0;
+    a[i] = 0.0;
+  }
+}
+
+//destructor
+template<typename T>
+LBFGSB<T>::~LBFGSB(){
+ // Most memory will be freed by the corresponding parent classes. 
+}
+
+// Overload function createdoubleHanddoubleB so that it does nothing (time-waster 
+// otherwise
+template<typename T>
+LBFGSB<T>::createDoubleHandDoubleB(){
+// Do nothing since these matrices are not needed here
 }
 
 template<typename T>
-LBFGSB<T>::~LBFGSB(){
-  
-}
+void LBFGSB<T>::lapackzerostep(){
+  /*
+    This method will solve the same problems that the BFGSB version solves, but 
+    without using the matrix B
+  */
 
+
+  BFGSB<T>::tstarcalculation();
+}
 /////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
