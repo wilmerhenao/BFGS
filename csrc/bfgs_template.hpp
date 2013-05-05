@@ -182,6 +182,7 @@ void quasinewton<T>::FirstEvaluation(){
   /*
     Initial evaluation of the function and its gradient
   */
+
   testFunction(f, g, x, n);
   *nfeval = *nfeval + 1;
   gnorm  = vecnorm<T>(g, n); // norm of the gradient (not used in BFGSB algos)
@@ -423,8 +424,8 @@ public:
   void create_d();
   void update_d();
   void zeroethstep();
-  void nextIterationPrepare();
-  void lapackzerostep();
+  virtual void nextIterationPrepare();
+  virtual void lapackzerostep();
   void findXCauchymX(int);
   void lapackmanipulations();
   void tstarcalculation();
@@ -514,7 +515,7 @@ void BFGSB<T>::zeroethstep(){
     step.
 
     The only reason why mainloop has a zero step.  Is because after the first
-    calculation you can save some time by using the update formulae on (4.9) and (4.10)
+    calculation you can save some time byusing the update formulae on (4.9) and (4.10)
   */
   
   // the first iter.  Will contain the information of the time when we first hit the 
@@ -524,7 +525,7 @@ void BFGSB<T>::zeroethstep(){
   b = iter->second;
   deltatj = t_double(iter->first); // Change from zero.  "time" to first boundary
 
-  // keep track of the ti_s that the define the intarval we are working on
+  // keep track of the ti_s that define the interval we are working on
   oldtj = 0.0;
   tj = deltatj;
   
@@ -1081,7 +1082,6 @@ void LBFGS<T>::mainloopspecific(){
 		  quasinewton<T>::n);
   
   quasinewton<T>::ol = (quasinewton<T>::ol % quasinewton<T>::m) + 1;
-  
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -1089,7 +1089,11 @@ void LBFGS<T>::mainloopspecific(){
 template<typename T>
 class LBFGSB: public BFGSB<T>: public LBFGS<T>{
 protected:
-  
+  Matrix<double> mY(quasinewton<T>::n, quasinewton<T>::m);
+  Matrix<double> mS(quasinewton<T>::n, quasinewton<T>::m);
+  double* c;
+  double theta;
+  int index;
 public:
   LBFGSB(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
 	 std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
@@ -1097,7 +1101,7 @@ public:
   virtual ~LBFGSB();
   virtual void createDoubleHandDoubleB();
   virtual void lapackzerostep();
-
+  virtual void nextIterationPrepare();
 };
 
 // Constructor
@@ -1115,6 +1119,9 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
   Y  = new T[quasinewton<T>::nm];
   rho = new T[quasinewton<T>::m1];
   a  = new T[quasinewton<T>::m1];
+  c =  new T[quasinewton<T>::n];
+  theta = 1.0;
+  index = 0;
   for(int i = 0; i < quasinewton<T>::nm; i++){
     S[i] = Y[i] = 0.0;
   }
@@ -1123,19 +1130,23 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
     rho[i] = 0.0;
     a[i] = 0.0;
   }
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    c[i] = 0.0;
+  }
 }
 
 //destructor
 template<typename T>
 LBFGSB<T>::~LBFGSB(){
- // Most memory will be freed by the corresponding parent classes. 
+  // Most memory will be freed by the corresponding parent classes. 
+  delete [] c;
 }
 
 // Overload function createdoubleHanddoubleB so that it does nothing (time-waster 
 // otherwise
 template<typename T>
 LBFGSB<T>::createDoubleHandDoubleB(){
-// Do nothing since these matrices are not needed here
+  // Do nothing since these matrices are not needed here
 }
 
 template<typename T>
@@ -1144,9 +1155,52 @@ void LBFGSB<T>::lapackzerostep(){
     This method will solve the same problems that the BFGSB version solves, but 
     without using the matrix B
   */
-
-
+  
+  //Prepare first part of the S and Y vectors.
+  // While the matrices have dimension n x m.  I only pass here the first dimension
+  // for the multiplication
+  
+  //p is initialized to -g (the paper is wrong saying p = W^Td.We still don't have W  
+  vcopyp<T>(quasinewton<T>::p, quasinewton<T>::g, -1.0, quasinewton<T>::n);
+  
+  fpj = vecip<T>(g, d, quasinewton<T>::n);
+  fppj = -theta * fpj - vecip<T>(quasinewton<T>::p, quasinewton<T>::p, 
+				 quasinewton<T>::n);
   BFGSB<T>::tstarcalculation();
+}
+
+template<typename T>
+void LBFGSB<T>::nextIterationPrepare(){
+  update_d();
+  quasinewton<T>::freeVariable[b] = false;
+  oldtj = tj; // Because the next iteration tj will move one step to the front
+
+  // Update Sk, Yk and for Wk
+  mY.setN(index + 1);  // Do as if there are only (index+1) columns in the matrix
+  mS.setN(index + 1); 
+
+  // updating s and y in this step
+  vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
+  vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
+
+  for(int __i = 0; __i < quasinewton<T>::n; __i++){
+    // Update the new position of xcauchy.  Notice that we only need to do this
+    // update in case that we haven't found an optimal tstar.  So we are allowed to
+    // use the whole of deltatj as opposed to dtstar
+    quasinewton<T>::xcauchy[__i] += deltatj * BFGSB<T>::d[__i];
+  }
+
+  // Update the value of the function
+  quasinewton<T>::testFunction(quasinewton<T>::f, quasinewton<T>::g, 
+			       quasinewton<T>::xcauchy, quasinewton<T>::n);
+  
+  vpv<T>(quasinewton<T>::s, quasinewton<T>::x, 1, quasinewton<T>::n);
+  vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1, quasinewton<T>::n);
+  
+  // next step is to update s and y inside column index in the matrices
+  mS.insertColumn(s, index);
+  mY.insertColumn(y, index);
+  index = (++index) % quasinewton<T>::m;
 }
 /////////////////////////////////////////////////////////////////////////////////////
 

@@ -46,6 +46,11 @@ public:
   Matrix(int, int); // Constructor without data
   Matrix(Matrix<T>&); // copy constructor
   ~Matrix();
+  void setM(int);
+  void setN(int);
+  int getM(){return n;}
+  int getN(){return m;}
+  void insertColumn(T*& , int);
   void initializeToZero();
   bool isSquare();
   void print();
@@ -94,6 +99,23 @@ void Matrix<T>::print(){
     }
     std::cout << std::endl;
   }
+}
+
+template<typename T>
+void Matrix<T>::setN(int A){
+  n = A;
+}
+
+template<typename T>
+void Matrix<T>::setM(int A){
+  m = A;
+}
+
+template<typename T>
+void Matrix<T>::insertColumn(T*& x, int i){
+  int temp;
+  temp =  i * m;
+  vcopy<T>(matrix + temp, x, m);
 }
 
 template<typename T>
@@ -230,7 +252,6 @@ void bfgssolver(Matrix<T>& A, Matrix<T>& B, Matrix<T>& x){
 	" could not be computed" << std::endl;
     }
   }
-  
 }
 
 template<typename T>
