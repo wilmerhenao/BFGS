@@ -39,7 +39,9 @@ class Matrix{
 protected:  
   int m; // vertical coordinate of the matrix
   int n; // horizontal coordinate of the matrix
+  int potentialN;
   T * matrix;
+  bool fullMatrix;
 public:
   Matrix();
   Matrix(T *, int , int );
@@ -55,6 +57,7 @@ public:
   bool isSquare();
   void print();
   void print(char);
+  void insertMatrix(int, int, int, int, T*&)
   template<typename H> friend void matrixMultiply(Matrix<H> &, Matrix<H> &, 
 						  Matrix<H> &, char transA = 'N',
 						  char transB = 'N');
@@ -65,6 +68,8 @@ public:
 
   template<typename H> friend void bfgssolver(Matrix<H>&, Matrix<H>&, Matrix<H>&);
   T& operator()(int& );
+  T& operator(int&, int&);
+  const T& operator(int&, int&) const; 
   //T& operator()(int);
   Matrix<T>& operator=(Matrix<T>& );
   Matrix<T>& operator*=(double );
@@ -74,6 +79,17 @@ template<typename T>
 T& Matrix<T>::operator()(int& i){
   return matrix[i];
 }
+
+template<typename T>
+T& Matrix<T>::operator(int& i, int& j){
+  return matrix[i + j * n];
+}
+
+template<typename T>
+const T& Matrix<T>::operator(int& i, int& j) const{
+  return matrix[i + j * n];
+}
+
 /*
 template<typename T>
 T& Matrix<T>::operator()(int i){
@@ -89,6 +105,8 @@ Matrix<T>::Matrix(Matrix<T>& other){
   for(int i = 0; i < m * n; i++){
     matrix[i] = other(i);
   }
+  potentialN = n;
+  fullMatrix = false;
 }
 
 template<typename T>
@@ -98,6 +116,27 @@ void Matrix<T>::print(){
       std::cout << matrix[i + j * m] << " ";
     }
     std::cout << std::endl;
+  }
+}
+
+template<typename T>
+void insertMatrix(int i, int j, int ii, int jj, T*& V){
+/*
+In this function I take a vector and insert it in the position indicated by the
+integers
+*/
+
+  // perform some checks
+  if((jj - j) * (i * ii) != V.getM() * V.getN()){
+    std::cout << "wrong dimensions in insertMatrix procedure" << std::endl;
+  }
+  int counter = 0;
+
+  for(int k = j; k < jj; k++){
+    for(int l = i; l < ii; l++){
+      matrix[l + k * m] = V(counter);
+      counter++;
+    }
   }
 }
 
@@ -116,6 +155,10 @@ void Matrix<T>::insertColumn(T*& x, int i){
   int temp;
   temp =  i * m;
   vcopy<T>(matrix + temp, x, m);
+  // update the size of the matrix.  If the matrix is empty add a column to the end
+  if (!fullMatrix)
+    n = 
+  if (potentialN == n)
 }
 
 template<typename T>

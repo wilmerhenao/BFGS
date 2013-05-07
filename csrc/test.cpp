@@ -120,10 +120,8 @@ int main(int argc, char *argv[]){
   // dummy initialization just to have something to work with...
   for(int counter = 0; counter < static_cast<int>(strtoul(argv[2], NULL, 0)) ;
       counter++){
-    l[counter] = 1; u[counter] = 2.0;
+    u[counter] = 1.0; l[counter] = -1.0;
   }
-  l[3] = -1.0; // create one strange border
-  l[0] = -2.0; //
   
   algoparameters<double> * constrainedproblem;
   try{
@@ -142,6 +140,7 @@ int main(int argc, char *argv[]){
     std::cerr << "General Problem during execution. " << ex.what() << std::endl;
     assert(false);
   }
+
 
   try{
     delete [] u;

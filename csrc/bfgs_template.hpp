@@ -47,6 +47,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <list>
 #include <map>
 #include <algorithm>
 #include <limits>
@@ -1091,6 +1092,8 @@ class LBFGSB: public BFGSB<T>: public LBFGS<T>{
 protected:
   Matrix<double> mY(quasinewton<T>::n, quasinewton<T>::m);
   Matrix<double> mS(quasinewton<T>::n, quasinewton<T>::m);
+  std::list<std::vector<T>> Ycontainer;
+  std::list<std::vector<T>> Scontainer; 
   double* c;
   double theta;
   int index;
@@ -1174,11 +1177,9 @@ void LBFGSB<T>::nextIterationPrepare(){
   update_d();
   quasinewton<T>::freeVariable[b] = false;
   oldtj = tj; // Because the next iteration tj will move one step to the front
-
+  
   // Update Sk, Yk and for Wk
-  mY.setN(index + 1);  // Do as if there are only (index+1) columns in the matrix
-  mS.setN(index + 1); 
-
+  
   // updating s and y in this step
   vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
   vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
@@ -1189,7 +1190,7 @@ void LBFGSB<T>::nextIterationPrepare(){
     // use the whole of deltatj as opposed to dtstar
     quasinewton<T>::xcauchy[__i] += deltatj * BFGSB<T>::d[__i];
   }
-
+  
   // Update the value of the function
   quasinewton<T>::testFunction(quasinewton<T>::f, quasinewton<T>::g, 
 			       quasinewton<T>::xcauchy, quasinewton<T>::n);
@@ -1198,9 +1199,79 @@ void LBFGSB<T>::nextIterationPrepare(){
   vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1, quasinewton<T>::n);
   
   // next step is to update s and y inside column index in the matrices
-  mS.insertColumn(s, index);
-  mY.insertColumn(y, index);
+  std::vector<T> svector(quasinewton<T>::s, s + sizeof(quasinewton<T>::s) / 
+			 sizeof(quasinewton<T>::s[0]));
+  std::vector<T> yvector(quasinewton<T>::y, y + sizeof(quasinewton<T>::y) /
+			 sizeof(quasinewton<T>::y[0]));
+  Ycontainer.push_front(std::vector<T>());  // pass svector right away?
+  Scontainer.push_front(std::vector<T>());
+
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    Ycontainer[0].push_back(quasinewton<T>::y[i]);
+    Scontainer[0].push_back(quasinewton<T>::s[i]);
+  }
+
+  // if the number of elements is already larger than the limit.  Delete the oldest
+  if(quasinewton<T>::m < Ycontainer.size()){
+    Ycontainer.pop_back();
+    Scontainer.pop_back();
+  }
+  
   index = (++index) % quasinewton<T>::m;
+
+  // assign the D part of the matrix
+  Matrix<double> Mmatrix(2 * quasinewton<T>::m, 2 * quasinewton<T>::m);
+  for(int i = (quasinewton<T>::m); i > 0; i--){
+    T tempval = 1;
+    int invi = quasinewton<T>::m - i;
+
+    if(i > Ycontainer.size()){
+      tempval = 0;
+      //calculate the dot product Ycontainer[i] * Scontainer[i]
+      for(int j = 0; j < quasinewton<T>::n; j++){
+	tempval = tempval + Ycontainer[invi].at(j) * Scontainer[invi].at(j);
+      }
+      Mmatrix(i, i) = -tempval;
+    }
+  }
+  
+  // Assign the L matrix
+
+  Matrix<double> Lmatrix(quasinewton<T>::m, quasinewton<T>::m);
+  for (int i = 0; i < quasinewton<T>::m; i++){
+    for(int j = 0; j < i; j++){ // only for i < j
+      T mytemp = 0.0;
+      for(int z = 0; z < quasinewton<T>::n; z++){
+	// WARNING! Review these.  what if there's not enough history?
+        int index1 = quasinewton<T>::m - i + 1;  // try and review these 
+	int index2 = quasinewton<T>::m - j - 1;
+	mytemp = mytemp + Scontainer[index1].at(z) * Ycontainer[index2].at(z);
+      }
+      Lmatrix(i, j) = mytemp;
+    }
+  }
+  
+  // Assign Lmatrix to Mmatrix
+
+  Mmatrix.insertMatrix(quasinewton<T>::m, 0, 2 * quasinewton<T>::m, 
+		       quasinewton<T>::m, Lmatrix);
+  // Assign the S^TS matrix
+
+  Matrix<double> Smatrix(quasinewton<T>::m, quasinewton<T>::m);
+  for (int i = 0; i < quasinewton<T>::m; i++){
+    for(int j = 0; j <= i; j++){
+      T mytemp = 0.0;
+      for(int z = 0; z < quasinewton<T>::n; z++)
+	mytemp = mytemp + Scontainer[i].at(z) * Scontainer[i].at(z);
+    }
+  }
+
+  // Reflec the matrix.
+  for(int i = 0; i < 2* quasinewton<T>::m; i++){
+    for(int j = i; j < 2 * quasinewton<T>::m; j++){
+      Mmatrix(i, j) = Mmatrix(j, i);
+    }
+  }
 }
 /////////////////////////////////////////////////////////////////////////////////////
 
