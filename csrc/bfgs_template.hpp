@@ -1096,7 +1096,7 @@ protected:
   std::list<std::vector<T>> Scontainer; 
   double* c;
   double theta;
-  int index;
+  int index, currentm;
 public:
   LBFGSB(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
 	 std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
@@ -1125,6 +1125,7 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
   c =  new T[quasinewton<T>::n];
   theta = 1.0;
   index = 0;
+  currentm = 0;
   for(int i = 0; i < quasinewton<T>::nm; i++){
     S[i] = Y[i] = 0.0;
   }
@@ -1183,7 +1184,7 @@ void LBFGSB<T>::nextIterationPrepare(){
   // updating s and y in this step
   vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
   vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
-
+  
   for(int __i = 0; __i < quasinewton<T>::n; __i++){
     // Update the new position of xcauchy.  Notice that we only need to do this
     // update in case that we haven't found an optimal tstar.  So we are allowed to
@@ -1210,41 +1211,37 @@ void LBFGSB<T>::nextIterationPrepare(){
     Ycontainer[0].push_back(quasinewton<T>::y[i]);
     Scontainer[0].push_back(quasinewton<T>::s[i]);
   }
-
+  
   // if the number of elements is already larger than the limit.  Delete the oldest
   if(quasinewton<T>::m < Ycontainer.size()){
     Ycontainer.pop_back();
     Scontainer.pop_back();
   }
   
-  index = (++index) % quasinewton<T>::m;
-
+  currentm = Ycontainer.size();
+  //index = (++index) % quasinewton<T>::m;
+  
   // assign the D part of the matrix
-  Matrix<double> Mmatrix(2 * quasinewton<T>::m, 2 * quasinewton<T>::m);
-  for(int i = (quasinewton<T>::m); i > 0; i--){
-    T tempval = 1;
-    int invi = quasinewton<T>::m - i;
-
-    if(i > Ycontainer.size()){
-      tempval = 0;
-      //calculate the dot product Ycontainer[i] * Scontainer[i]
-      for(int j = 0; j < quasinewton<T>::n; j++){
-	tempval = tempval + Ycontainer[invi].at(j) * Scontainer[invi].at(j);
-      }
-      Mmatrix(i, i) = -tempval;
+  Matrix<double> Mmatrix(2 * currentm, 2 * currentm);
+  for(int i = (currentm); i > 0; i--){
+    T tempval = 0;
+    int invi = currentm - i;
+    //calculate the dot product Ycontainer[i] * Scontainer[i]
+    for(int j = 0; j < quasinewton<T>::n; j++){
+      tempval = tempval + Ycontainer[invi].at(j) * Scontainer[invi].at(j);
     }
+    Mmatrix(i, i) = -tempval;
   }
   
   // Assign the L matrix
-
-  Matrix<double> Lmatrix(quasinewton<T>::m, quasinewton<T>::m);
-  for (int i = 0; i < quasinewton<T>::m; i++){
+  Matrix<double> Lmatrix(currentm, currentm);
+  for (int i = 0; i < currentm; i++){
     for(int j = 0; j < i; j++){ // only for i < j
       T mytemp = 0.0;
       for(int z = 0; z < quasinewton<T>::n; z++){
 	// WARNING! Review these.  what if there's not enough history?
-        int index1 = quasinewton<T>::m - i + 1;  // try and review these 
-	int index2 = quasinewton<T>::m - j - 1;
+        int index1 = currentm - i + 1;  // try and review these 
+	int index2 = currentm - j - 1;
 	mytemp = mytemp + Scontainer[index1].at(z) * Ycontainer[index2].at(z);
       }
       Lmatrix(i, j) = mytemp;
@@ -1252,13 +1249,12 @@ void LBFGSB<T>::nextIterationPrepare(){
   }
   
   // Assign Lmatrix to Mmatrix
-
-  Mmatrix.insertMatrix(quasinewton<T>::m, 0, 2 * quasinewton<T>::m, 
-		       quasinewton<T>::m, Lmatrix);
+  Mmatrix.insertMatrix(currentm, 0, 2 * currentm, 
+		       currentm, Lmatrix);
   // Assign the S^TS matrix
 
-  Matrix<double> Smatrix(quasinewton<T>::m, quasinewton<T>::m);
-  for (int i = 0; i < quasinewton<T>::m; i++){
+  Matrix<double> Smatrix(currentm, currentm);
+  for (int i = 0; i < currentm; i++){
     for(int j = 0; j <= i; j++){
       T mytemp = 0.0;
       for(int z = 0; z < quasinewton<T>::n; z++)
@@ -1266,12 +1262,17 @@ void LBFGSB<T>::nextIterationPrepare(){
     }
   }
 
-  // Reflec the matrix.
-  for(int i = 0; i < 2* quasinewton<T>::m; i++){
-    for(int j = i; j < 2 * quasinewton<T>::m; j++){
+  // Reflect the matrix.
+  for(int i = 0; i < 2* currentm; i++){
+    for(int j = i; j < 2 * currentm; j++){
       Mmatrix(i, j) = Mmatrix(j, i);
     }
   }
+  
+  // Calculate the inverse.
+  Mmatrix.inverse();
+
+
 }
 /////////////////////////////////////////////////////////////////////////////////////
 

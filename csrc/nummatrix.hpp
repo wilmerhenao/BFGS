@@ -67,6 +67,8 @@ public:
 						 Matrix<H>&, Matrix<H> &);
 
   template<typename H> friend void bfgssolver(Matrix<H>&, Matrix<H>&, Matrix<H>&);
+  void matrixInverse();
+
   T& operator()(int& );
   T& operator(int&, int&);
   const T& operator(int&, int&) const; 
@@ -131,7 +133,7 @@ integers
     std::cout << "wrong dimensions in insertMatrix procedure" << std::endl;
   }
   int counter = 0;
-
+  
   for(int k = j; k < jj; k++){
     for(int l = i; l < ii; l++){
       matrix[l + k * m] = V(counter);
@@ -426,5 +428,21 @@ void GensquareForm(Matrix<H> & A, Matrix<H> & B, Matrix<H>& C, Matrix<H>& res){
   matrixMultiply(temp, C, res, 'N', 'N');
 }
 
+template<typename T>
+void Matrix<T>::matrixInverse(){
+  // find the inverse of a matrix.
+
+  if(!isSquare(A))
+    std::cerr << "the matrix is not square" << std::endl; 
+
+  int N = n;
+  int LWORK = n * n;
+  double* WORK = new double[LWORK];
+  int* IPIV = new int[A.m];
+  int INFO;
+
+  dgetri_(&N, matrix, &N, IPIV, WORK, &LWORK, &INFO, &INFO);
+
+}
 
 #endif // _NUMMATRIX_HPP_

@@ -12,5 +12,5 @@ extern "C" int dpotrf_(char *UPLO, int* N, double* A, int* LDA, int* INFO);
 extern "C" int spotrf_(char *UPLO, int* N, float* A, int* LDA, int* INFO);
 extern "C" void dgesv_(int*, int*, double*, int*, int*, double*, int*, int*);
 extern "C" void sgesv_(int*, int*, float*, int*, int*, float*, int*, int*);
-
+extern "C" void dgetri_(int*, double*, int*, int*, double, int*, int*);
 #endif // LAPACKC_HPP
