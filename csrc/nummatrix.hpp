@@ -39,12 +39,14 @@ class Matrix{
 protected:  
   int m; // vertical coordinate of the matrix
   int n; // horizontal coordinate of the matrix
+  int potentialM;
   int potentialN;
   T * matrix;
   bool fullMatrix;
 public:
   Matrix();
-  Matrix(T *, int , int );
+  Matrix(T *, int, int);
+  Matrix(T *, int, int, int, int);
   Matrix(int, int); // Constructor without data
   Matrix(Matrix<T>&); // copy constructor
   ~Matrix();
@@ -68,7 +70,7 @@ public:
 
   template<typename H> friend void bfgssolver(Matrix<H>&, Matrix<H>&, Matrix<H>&);
   void matrixInverse();
-
+  
   T& operator()(int& );
   T& operator(int&, int&);
   const T& operator(int&, int&) const; 
@@ -76,6 +78,54 @@ public:
   Matrix<T>& operator=(Matrix<T>& );
   Matrix<T>& operator*=(double );
 };
+
+// copy constructor
+template<typename T>
+Matrix<T>::Matrix(Matrix<T>& other){
+  m = other.m;
+  n = other.n;
+  matrix = new T[m * n];
+  for(int i = 0; i < m * n; i++){
+    matrix[i] = other(i);
+  }
+  potentialN = n;
+  fullMatrix = false;
+}
+
+// 2 integer constructor
+template<typename T>
+Matrix<T>::Matrix(T* A, int m0, int n0):m(m0), n(n0), potentialM(m0), 
+					potentialN(n0){
+  if (0 >= m || 0 >= n){
+    std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
+    std::cerr << "m: " << m << " n: " << n << std::endl;
+  }
+  matrix = new T[m * n];
+  for(int i = 0; i < m * n; i++){
+    matrix[i] = A[i];
+  }
+}
+
+// 4 integer constructor
+template<typename T>
+Matrix<T>::Matrix(T* A, int m0, int n0, int potM, int potN):
+  m(m0), n(n0), potentialM(potM), potentialN(potN){
+  if (0 >= m || 0 >= n){
+    std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
+    std::cerr << "m: " << m << " n:" << n << std::endl;
+  }
+  matrix = new T[m * n];
+  for(int i = 0; i < m * n; i++){
+    matrix[i] = A[i];
+  }
+}
+
+// destructor
+template<typename T>
+Matrix<T>::~Matrix(){
+  delete [] matrix;
+}
+
 
 template<typename T>
 T& Matrix<T>::operator()(int& i){
@@ -98,18 +148,6 @@ T& Matrix<T>::operator()(int i){
   return matrix[i];
 }
 */
-//copy constructor
-template<typename T>
-Matrix<T>::Matrix(Matrix<T>& other){
-  m = other.m;
-  n = other.n;
-  matrix = new T[m * n];
-  for(int i = 0; i < m * n; i++){
-    matrix[i] = other(i);
-  }
-  potentialN = n;
-  fullMatrix = false;
-}
 
 template<typename T>
 void Matrix<T>::print(){
@@ -222,24 +260,6 @@ Matrix<T>::Matrix(int m0, int n0):m(m0), n(n0){
   }
 }
 
-
-template<typename T>
-Matrix<T>::Matrix(T* A, int m0, int n0):m(m0), n(n0){
-  if (0 >= m || 0 >= n){
-    std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
-    std::cerr << "m: " << m << " n:" << n << std::endl;
-  }
-  matrix = new T[m * n];
-  for(int i = 0; i < m * n; i++){
-    matrix[i] = A[i];
-  }
-}
-
-template<typename T>
-Matrix<T>::~Matrix(){
-  delete [] matrix;
-}
-
 template<typename T>
 void Matrix<T>::initializeToZero(){
   for (int i = 0; i < m * n ; i++)
@@ -297,6 +317,98 @@ void bfgssolver(Matrix<T>& A, Matrix<T>& B, Matrix<T>& x){
 	" could not be computed" << std::endl;
     }
   }
+}
+
+template<typename T>
+void matrixMultiplywithPadding(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C, 
+			       char transA = 'N', char transB = 'N'){
+  /*  Multiplies A * B = C */
+  
+  // Perform some basic checks (dependent on transA and transB)
+  
+  if('N' == transA && 'N' == transB){
+    if(A.n != B.m)
+      std::cerr << "Matrix Dimensions for the multiplicating matrix  do not agree" <<
+	std::endl;
+    if(A.m != C.m){
+      std::cerr << "Size m of the result matrix is wrong" << std::endl;
+      std::cerr << "A.m: " << A.m << " C.m: " << C.m << std::endl;
+    }
+    if(B.n != C.n){
+      std::cerr << "Size n of the result matrix is wrong" << std::endl;
+      std::cerr << "B.n: " << B.n << " C.n: " << C.n << std::endl;
+    }
+  } else if('T' == transA && 'N' == transB){
+    if(A.m != B.m)
+      std::cerr << "Matrix Dimensions for the multiplicating matrix  do not agree" <<
+	std::endl;
+    if(A.n != C.m){
+      std::cerr << "Size m of the result matrix is wrong" << std::endl;
+      std::cerr << "A.n: " << A.n << " C.m: " << C.m << std::endl;
+    }
+    if(B.n != C.n){
+      std::cerr << "Size n of the result matrix is wrong" << std::endl;
+      std::cerr << "B.n: " << B.n << " C.n: " << C.n << std::endl;
+    }
+  } else if('N' == transA && 'T' == transB){
+    if(A.n != B.n)
+      std::cerr << "Matrix Dimensions for the multiplicating matrix  do not agree" <<
+	std::endl;
+    if(A.m != C.m){
+      std::cerr << "Size m of the result matrix is wrong" << std::endl;
+      std::cerr << "A.m: " << A.m << " C.m: " << C.m << std::endl;
+    }
+    if(B.m != C.n){
+      std::cerr << "Size n of the result matrix is wrong" << std::endl;
+      std::cerr << "B.m: " << B.m << " C.n: " << C.n << std::endl;
+    }
+  } else if('T' == transA && 'N' == transB){
+    if(A.m != B.m)
+      std::cerr << "Matrix Dimensions for the multiplicating matrix  do not agree" <<
+	std::endl;
+    if(A.n != C.m){
+      std::cerr << "Size m of the result matrix is wrong" << std::endl;
+      std::cerr << "A.n: " << A.n << " B.m: " << B.m << std::endl;
+    }
+    if(B.n != C.n){
+      std::cerr << "Size n of the result matrix is wrong" << std::endl;
+      std::cerr << "B.n: " << B.n << " C.n: " << C.n << std::endl;
+    }
+  }
+
+  // declare some local variables so that external variables do not get destroyed
+  // Will make local copies of A and B.  This may sound like a waste of time.  But
+  // avoids the problem of unintentionally
+  // UPDATE: Not necessary for this function.  A and B will be unchanged on exit
+  
+  int m0;
+  int n0;
+  int k0;
+  int LDA = A.m;
+  int LDB = B.m;
+  int LDC = C.m;
+  double alpha = 1.0;
+  double beta = 0.0;
+  
+  if('N' == transA || 'n' == transA){
+    m0 = A.m;
+    k0 = A.n;
+  }
+  
+  if('T' == transA || 't' == transA){
+    m0 = A.n;
+    k0 = A.m;
+  }
+
+  if('N' == transB || 'n' == transB){
+    n0 = B.n;
+  } else{
+    n0 = B.m;
+  }
+  
+  dgemm_(&transA, &transB, &m0, &n0, &k0, &alpha, A.matrix, &LDA, B.matrix, 
+	 &LDB, &beta, C.matrix, &LDC);
+
 }
 
 template<typename T>
