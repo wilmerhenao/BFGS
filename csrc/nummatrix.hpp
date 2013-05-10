@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include "../lib/qpspecial/lapackc.hpp"
+#include "libmatrix_template.hpp"
 
 // multiplication routine in lapack
 /*extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*, 
@@ -59,10 +60,17 @@ public:
   bool isSquare();
   void print();
   void print(char);
-  void insertMatrix(int, int, int, int, T*&)
+  void insertMatrix(int, int, int, int, T*&);
   template<typename H> friend void matrixMultiply(Matrix<H> &, Matrix<H> &, 
 						  Matrix<H> &, char transA = 'N',
 						  char transB = 'N');
+  template<typename H> friend void matrixMultiplywithPadding(Matrix<H>& A, Matrix<H>& B,
+							     Matrix<H>& C, 
+							     char transA = 'N', 
+							     char transB = 'N', 
+							     int paddingA = 1, 
+							     int paddingB = 1,
+							     int paddingC = 1);
   template<typename H> friend double squareForm(Matrix<H> &, Matrix<H> &, 
 						Matrix<H>&);
   template<typename H> friend void GensquareForm(Matrix<H> &, Matrix<H> &, 
@@ -72,8 +80,8 @@ public:
   void matrixInverse();
   
   T& operator()(int& );
-  T& operator(int&, int&);
-  const T& operator(int&, int&) const; 
+  T& operator()(int&, int&);
+  const T& operator()(int&, int&) const; 
   //T& operator()(int);
   Matrix<T>& operator=(Matrix<T>& );
   Matrix<T>& operator*=(double );
@@ -133,12 +141,12 @@ T& Matrix<T>::operator()(int& i){
 }
 
 template<typename T>
-T& Matrix<T>::operator(int& i, int& j){
+T& Matrix<T>::operator()(int& i, int& j){
   return matrix[i + j * n];
 }
 
 template<typename T>
-const T& Matrix<T>::operator(int& i, int& j) const{
+const T& Matrix<T>::operator()(int& i, int& j) const{
   return matrix[i + j * n];
 }
 
@@ -160,7 +168,7 @@ void Matrix<T>::print(){
 }
 
 template<typename T>
-void insertMatrix(int i, int j, int ii, int jj, T*& V){
+void Matrix<T>::insertMatrix(int i, int j, int ii, int jj, T*& V){
 /*
 In this function I take a vector and insert it in the position indicated by the
 integers
@@ -197,8 +205,9 @@ void Matrix<T>::insertColumn(T*& x, int i){
   vcopy<T>(matrix + temp, x, m);
   // update the size of the matrix.  If the matrix is empty add a column to the end
   if (!fullMatrix)
-    n = 
+    n = n + 1;
   if (potentialN == n)
+    fullMatrix = true;
 }
 
 template<typename T>
@@ -321,7 +330,8 @@ void bfgssolver(Matrix<T>& A, Matrix<T>& B, Matrix<T>& x){
 
 template<typename T>
 void matrixMultiplywithPadding(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C, 
-			       char transA = 'N', char transB = 'N'){
+			       char transA = 'N', char transB = 'N', int paddingA = 1,
+			       int paddingB = 1, int paddingC = 1){
   /*  Multiplies A * B = C */
   
   // Perform some basic checks (dependent on transA and transB)
@@ -384,9 +394,6 @@ void matrixMultiplywithPadding(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C,
   int m0;
   int n0;
   int k0;
-  int LDA = A.m;
-  int LDB = B.m;
-  int LDC = C.m;
   double alpha = 1.0;
   double beta = 0.0;
   
@@ -406,9 +413,8 @@ void matrixMultiplywithPadding(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C,
     n0 = B.m;
   }
   
-  dgemm_(&transA, &transB, &m0, &n0, &k0, &alpha, A.matrix, &LDA, B.matrix, 
-	 &LDB, &beta, C.matrix, &LDC);
-
+  dgemm_(&transA, &transB, &m0, &n0, &k0, &alpha, A.matrix, &paddingA, B.matrix, 
+	 &paddingB, &beta, C.matrix, &paddingC);
 }
 
 template<typename T>
@@ -500,7 +506,6 @@ void matrixMultiply(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C, char transA = 'N',
   
   dgemm_(&transA, &transB, &m0, &n0, &k0, &alpha, A.matrix, &LDA, B.matrix, 
 	 &LDB, &beta, C.matrix, &LDC);
-
 }
 
 template<typename T>
@@ -544,13 +549,13 @@ template<typename T>
 void Matrix<T>::matrixInverse(){
   // find the inverse of a matrix.
 
-  if(!isSquare(A))
+  if(m != n)
     std::cerr << "the matrix is not square" << std::endl; 
-
+  
   int N = n;
   int LWORK = n * n;
   double* WORK = new double[LWORK];
-  int* IPIV = new int[A.m];
+  int* IPIV = new int[m];
   int INFO;
 
   dgetri_(&N, matrix, &N, IPIV, WORK, &LWORK, &INFO, &INFO);
