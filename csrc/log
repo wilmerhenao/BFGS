@@ -1,0 +1,84 @@
+BFGS called with 3arguments
+output file../testresults/yurirosen/yurirosen_5.txt
+Objects were created safely.  Running BFGS next
+echo is: 2 datafilename is: ../testresults/yurirosen/yurirosen_5.txt
+valor final: 0
+echo is: 2 datafilename is: ../testresults/yurirosen/yurirosen_5.txt
+valor final: 0.00000000000000000000000000000000e+00
+echo is: 2 datafilename is: ../testresults/yurirosen/yurirosen_5.txt
+valor final: 1.34063641218464201179453687360674e-312
+Constrained problem was created safely
+echo is: 2 datafilename is: ../testresults/yurirosen/yurirosen_5.txt
+freevariable: 1
+freevariable: 0
+freevariable: 1
+freevariable: 1
+freevariable: 1
+mdi element: 0: -0.5
+mdi element: 1: 0
+mdi element: 2: 2
+mdi element: 3: 2
+mdi element: 4: 2
+found optimal cauchy point exactly at a breakpoint.
+Checking position.  Reached line  704
+in file bfgs_template.hpp
+Value of variable quasinewton<T>::n is: 5
+0 0 0 1 
+0 0 0 0 
+1 0 0 0 
+0 1 0 0 
+0 0 1 0 
+Checking position.  Reached line  708
+in file bfgs_template.hpp
+Checking position.  Reached line  710
+in file bfgs_template.hpp
+Checking position.  Reached line  713
+in file bfgs_template.hpp
+Before more lapack computations
+After more lapack computations
+Checking position.  Reached line  719
+in file bfgs_template.hpp
+Checking position.  Reached line  726
+in file bfgs_template.hpp
+Checking position.  Reached line  744
+in file bfgs_template.hpp
+Print final conditions to see if we converged
+values of vector g
+-0.5
+2
+2
+2
+2
+freevariable: 1
+freevariable: 0
+freevariable: 1
+freevariable: 1
+freevariable: 1
+mdi element: 0: -0.5
+mdi element: 1: 0
+mdi element: 2: 2
+mdi element: 3: 2
+mdi element: 4: 2
+found optimal cauchy point exactly at a breakpoint.
+Checking position.  Reached line  704
+in file bfgs_template.hpp
+Value of variable quasinewton<T>::n is: 5
+0 0 0 0 
+0 0 0 0 
+1 0 0 1 
+0 1 0 0 
+0 0 1 0 
+Checking position.  Reached line  708
+in file bfgs_template.hpp
+Checking position.  Reached line  710
+in file bfgs_template.hpp
+Checking position.  Reached line  713
+in file bfgs_template.hpp
+Before more lapack computations
+After more lapack computations
+Checking position.  Reached line  719
+in file bfgs_template.hpp
+Checking position.  Reached line  726
+in file bfgs_template.hpp
+Checking position.  Reached line  744
+in file bfgs_template.hpp
