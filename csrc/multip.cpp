@@ -62,9 +62,16 @@ int main (){
   
   Matrix<double> B3(b2, 1, 2);
   matrixMultiply(A, B3, C2, 'T', 'T');
+
+  std::cout << "mat results" << std::endl;
   for (int i = 0; i < 3; i++)
     std::cout << C2(i) << std::endl;
   
+  matrixMultiplywithPadding(A, B3, C2, 'T', 'T', 2, 1, 3);
+  std::cout << "padding results" << std::endl;
+  for (int i = 0; i < 3; i++)
+    std::cout << C2(i) << std::endl;
+
   std::cout << "ultimirris: " << std::endl;
   
   Matrix<double> B4(b4, 1, 3);
@@ -97,6 +104,31 @@ int main (){
 
   for (int i = 0; i < 2; i++)
     std::cout << X(i) << " ----  " << B(i) << std::endl;
+
+  std::cout << "testing the padded matrix code" << std::endl;
+
+  int sizebig = 3;
+  double * aa, *bb;
+  aa = new double[sizebig * sizebig];
+  bb = new double[sizebig * sizebig];
+
+  aa[0] = bb[0] = 0;
+  aa[1] = bb[1] = 1;
+  aa[sizebig] = bb[sizebig] = 2;
+  aa[(sizebig + 1)] = bb[(sizebig + 1)] = 3;
+
+  Matrix<double> Aa(aa, 2, 2);
+  Matrix<double> Aab(bb, 2, 2);
+  
+  double * cdd = new double[sizebig * sizebig];
+  Matrix<double> Ccc(cdd, 2, 2);
+  
+  for(int i = 0; i < sizebig * sizebig; i++)
+    std::cout << Aa(i) << std::endl;
+
+  matrixMultiplywithPadding(Aa, Aab, Ccc, 'N', 'N', sizebig, sizebig, sizebig);
+  for(int i = 0; i < sizebig * sizebig ; i++)
+    std::cout << "nunmber: " << i << "  " << Ccc(i) << std::endl;
   
   return 0;
 }
