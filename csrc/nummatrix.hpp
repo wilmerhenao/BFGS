@@ -147,7 +147,7 @@ T& Matrix<T>::operator()(int& i, int& j){
 
 template<typename T>
 const T& Matrix<T>::operator()(int& i, int& j) const{
-  return matrix[i + j * n];
+  return matrix[i + j * potentialN];
 }
 
 /*
@@ -182,7 +182,8 @@ integers
   
   for(int k = j; k < jj; k++){
     for(int l = i; l < ii; l++){
-      matrix[l + k * m] = V(counter);
+      // Notice I must use potentialM instead of M
+      matrix[l + k * potentialM] = V(counter);
       counter++;
     }
   }
@@ -529,6 +530,27 @@ double squareForm(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C){
   return squareFormResult;
 }
 
+template<typename T>
+T squareFormwithPadding(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C, int sizepad){
+  /* 
+     This one solves problems of the type x^TBz where x, and z are COLUMN vectors and
+     B is a square matrix.  No warnings are checked here since they will show up in 
+     the individual multiplications anyway
+  */
+
+  // Create a temporal instance for first multiplication result storage
+  Matrix<T> temp(1, B.n);
+  Matrix<T> finalresult(1, 1);
+  int posit = 0;
+  T squareFormResult;
+
+  matrixMultiplywithPadding(A, B, temp, 'T', 'N', A.getM(), sizepad, B.n);
+  matrixMultiply(temp, C, finalresult, 'N', 'N');
+  squareFormResult = finalresult(posit);
+
+  return squareFormResult;
+}
+
 template<typename H> 
 void GensquareForm(Matrix<H> & A, Matrix<H> & B, Matrix<H>& C, Matrix<H>& res){
   /* 
@@ -553,12 +575,13 @@ void Matrix<T>::matrixInverse(){
     std::cerr << "the matrix is not square" << std::endl; 
   
   int N = n;
+  int potN = potentialN;
   int LWORK = n * n;
   double* WORK = new double[LWORK];
   int* IPIV = new int[m];
   int INFO;
 
-  dgetri_(&N, matrix, &N, IPIV, WORK, &LWORK, &INFO, &INFO);
+  dgetri_(&N, matrix, &potN, IPIV, WORK, &LWORK, &INFO, &INFO);
 
 }
 

@@ -428,15 +428,16 @@ public:
   virtual void nextIterationPrepare();
   virtual void lapackzerostep();
   void findXCauchymX(int);
-  void lapackmanipulations();
+  virtual void lapackmanipulations();
   void tstarcalculation();
-  void findGeneralizedCauchyPoint();
+  virtual void findGeneralizedCauchyPoint();
   void findMinimum2ndApproximation();
   void mainloop();
   void printFinalConditions();
   void prepareNextMainLoop();
   void exitSignalHandling();
-};
+  virtual void updatec(int);
+};   
 
 // constructor
 template<typename T>
@@ -535,8 +536,8 @@ void BFGSB<T>::zeroethstep(){
   // given that nothing will hit the boundary (until you hit the boundary corresponding
   // to dimension 'b' of course.
   for(int _i = 0; _i < quasinewton<T>::n; _i++){
-    quasinewton<T>::xcauchy[_i] = (t_double(quasinewton<T>::x[_i]) - tj *
-				   t_double(quasinewton<T>::g[_i]));
+    quasinewton<T>::xcauchy[_i] = (t_double(quasinewton<T>::x[_i]) - 
+				   tj * t_double(quasinewton<T>::g[_i]));
     z[_i] = t_double(quasinewton<T>::xcauchy[_i] - quasinewton<T>::x[_i]);
   }
   
@@ -678,6 +679,11 @@ void BFGSB<T>::tstarcalculation(){
 }
 
 template<typename T>
+void BFGSB<T>::updatec(int){
+  // do nothing
+}
+
+template<typename T>
 void BFGSB<T>::findGeneralizedCauchyPoint(){
   iter++;  // this is a class member.  Starts at t_1 and the first time it moves to t_2
   for(; iter != quasinewton<T>::bpmemory.end(); iter++){
@@ -708,6 +714,7 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
 	this->thisIterationConverged = true;
 	for(int i = 0; i < quasinewton<T>::n; i++){
 	  this->xcauchy[i] = this->xcauchy[i] - (tj - dtstar) * mdi(i);//stpbck a lttl
+	  updatec(i);
 	}
 	return;
       }
@@ -1092,9 +1099,12 @@ class LBFGSB: public BFGSB<T>: public LBFGS<T>{
 protected:
   Matrix<double> mY(quasinewton<T>::n, quasinewton<T>::m);
   Matrix<double> mS(quasinewton<T>::n, quasinewton<T>::m);
+  Matrix<double> Mmatrix(2 * quasinewton<T>::m, 2 * quasinewton<T>::m);
   std::list<std::vector<T>> Ycontainer;
   std::list<std::vector<T>> Scontainer; 
   double* c;
+  Matrix<double> mc(2 * quasinewton<T>::m, 1);
+  double * pvector, * pvectorbackup;
   double theta;
   int index, currentm;
 public:
@@ -1105,6 +1115,8 @@ public:
   virtual void createDoubleHandDoubleB();
   virtual void lapackzerostep();
   virtual void nextIterationPrepare();
+  virtual void lapackmanipulations();
+  virtual void updatec(int);
 };
 
 // Constructor
@@ -1122,7 +1134,9 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
   Y  = new T[quasinewton<T>::nm];
   rho = new T[quasinewton<T>::m1];
   a  = new T[quasinewton<T>::m1];
-  c =  new T[quasinewton<T>::n];
+  c =  new T[2 * quasinewton<T>::n];
+  pvector =  new T[2 * quasinewton<T>::m];
+  pvectorbackup =  new T[2 * quasinewton<T>::m];
   theta = 1.0;
   index = 0;
   currentm = 0;
@@ -1144,6 +1158,8 @@ template<typename T>
 LBFGSB<T>::~LBFGSB(){
   // Most memory will be freed by the corresponding parent classes. 
   delete [] c;
+  delete [] pvector;
+  delete [] pvectorbackup;
 }
 
 // Overload function createdoubleHanddoubleB so that it does nothing (time-waster 
@@ -1174,11 +1190,55 @@ void LBFGSB<T>::lapackzerostep(){
 }
 
 template<typename T>
+void LBFGSB<T>::updatec(int i){
+  c[i] = c[i] - (tj - dtstar) * pvectorbackup[i];
+}
+
+template<typename T>
+void LBFGSB<T>::lapackmanipulations(){
+  for(int i = 0; i < 2 * quasinewton<T>::m; i++){
+    c[i] = c[i] + deltatj * pvector[i];
+    mc(i, 1) = c[i];
+  }
+  
+  T * wbt = new T[2 * currentm];
+  
+  for (int i = 0; i < currentm; i++){
+    wbt[i] = Ycontainer[i].at(b);
+  }
+  
+  for (int i = currentm; i < 2 * currentm; i++){
+    wbt[i] = theta * Scontainer[i].at(b);
+  }
+  
+  Matrix<double> mpvector(pvector, 2 * quasinewton<T>::m, 1);
+  
+  Matrix<double> mwbt(wbt, 2 * currentm, 1);
+  fpj = fpj + deltatj * fppj + quasinewton<T>::g[b] * quasinewton<T>::g[b] + theta *
+    quasinewton<T>::g[b] * z[b] -
+    squareFormwithPadding(mwbt, M, mc, 2 * quasinewton<T>::m);
+
+  fppj = fppj - theta * quasinewton<T>::g[b] * quasinewton<T>::g[b] - 2 * 
+    quasinewton<T>::g[b] * squareFormwithPadding(mwbt, M, mpvector, 2 * 
+						 quasinewton<T>::m) - 
+    quasinewton<T>::g[b] * quasinewton<T>::g[b] * 
+    squareFormwithPadding(mwbt, M, mwbt, 2 * quasinewton<T>::m);
+  
+  for(int i = 0; i < 2 * quasinewton<T>::m; i++){
+    pvectorbackup[i] = pvector[i];
+    pvector[i] = pvector[i] + quasinewton<T>::g[b] * wbt[i];
+  }
+  BFGSB<T>::tstarcalculation();
+}
+
+template<typename T>
 void LBFGSB<T>::nextIterationPrepare(){
   update_d();
   quasinewton<T>::freeVariable[b] = false;
   oldtj = tj; // Because the next iteration tj will move one step to the front
-  
+  // these were the regular steps for BFGSB  ----------------------------------
+
+
   // Update Sk, Yk and for Wk
   
   // updating s and y in this step
@@ -1196,8 +1256,8 @@ void LBFGSB<T>::nextIterationPrepare(){
   quasinewton<T>::testFunction(quasinewton<T>::f, quasinewton<T>::g, 
 			       quasinewton<T>::xcauchy, quasinewton<T>::n);
   
-  vpv<T>(quasinewton<T>::s, quasinewton<T>::x, 1, quasinewton<T>::n);
-  vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1, quasinewton<T>::n);
+  vpv<T>(quasinewton<T>::s, quasinewton<T>::x, 1.0, quasinewton<T>::n);
+  vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1.0, quasinewton<T>::n);
   
   // next step is to update s and y inside column index in the matrices
   std::vector<T> svector(quasinewton<T>::s, s + sizeof(quasinewton<T>::s) / 
@@ -1206,7 +1266,7 @@ void LBFGSB<T>::nextIterationPrepare(){
 			 sizeof(quasinewton<T>::y[0]));
   Ycontainer.push_front(std::vector<T>());  // pass svector right away?
   Scontainer.push_front(std::vector<T>());
-
+  
   for(int i = 0; i < quasinewton<T>::n; i++){
     Ycontainer[0].push_back(quasinewton<T>::y[i]);
     Scontainer[0].push_back(quasinewton<T>::s[i]);
@@ -1219,11 +1279,13 @@ void LBFGSB<T>::nextIterationPrepare(){
   }
   
   currentm = Ycontainer.size();
-  //index = (++index) % quasinewton<T>::m;
+  // index = (++index) % quasinewton<T>::m;
   
   // assign the D part of the matrix
-  Matrix<double> Mmatrix(2 * currentm, 2 * currentm);
-  for(int i = (currentm); i > 0; i--){
+  
+  Mmatrix.setM(2 * currentm);
+  Mmatrix.setN(2 * currentm);
+  for(int i = currentm; i > 0; i--){
     T tempval = 0;
     int invi = currentm - i;
     //calculate the dot product Ycontainer[i] * Scontainer[i]
@@ -1236,12 +1298,12 @@ void LBFGSB<T>::nextIterationPrepare(){
   // Assign the L matrix
   Matrix<double> Lmatrix(currentm, currentm);
   for (int i = 0; i < currentm; i++){
-    for(int j = 0; j < i; j++){ // only for i < j
+    for(int j = 0; j < i; j++){ // only for j < i as stated in (3.5)
       T mytemp = 0.0;
       for(int z = 0; z < quasinewton<T>::n; z++){
 	// WARNING! Review these.  what if there's not enough history?
-        int index1 = currentm - i + 1;  // try and review these 
-	int index2 = currentm - j - 1;
+        int index1 = currentm - i;  // try and review these 
+	int index2 = currentm - j;
 	mytemp = mytemp + Scontainer[index1].at(z) * Ycontainer[index2].at(z);
       }
       Lmatrix(i, j) = mytemp;
@@ -1249,8 +1311,7 @@ void LBFGSB<T>::nextIterationPrepare(){
   }
   
   // Assign Lmatrix to Mmatrix
-  Mmatrix.insertMatrix(currentm, 0, 2 * currentm, 
-		       currentm, Lmatrix);
+  Mmatrix.insertMatrix(currentm, 0, 2 * currentm - 1, currentm - 1, Lmatrix);
   // Assign the S^TS matrix
 
   Matrix<double> Smatrix(currentm, currentm);
@@ -1259,10 +1320,13 @@ void LBFGSB<T>::nextIterationPrepare(){
       T mytemp = 0.0;
       for(int z = 0; z < quasinewton<T>::n; z++)
 	mytemp = mytemp + Scontainer[i].at(z) * Scontainer[i].at(z);
+      Smatrix(i, j) = theta * mytemp;
     }
   }
-
-  // Reflect the matrix.
+  
+  Mmatrix.insertMatrix(currentm, currentm, 2 * currentm - 1, 2 * currentm - 1, Smatrix);
+  
+  // Reflect the matrix across the diagonal
   for(int i = 0; i < 2* currentm; i++){
     for(int j = i; j < 2 * currentm; j++){
       Mmatrix(i, j) = Mmatrix(j, i);
@@ -1272,6 +1336,7 @@ void LBFGSB<T>::nextIterationPrepare(){
   // Calculate the inverse.
   Mmatrix.inverse();
 }
+
 /////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
