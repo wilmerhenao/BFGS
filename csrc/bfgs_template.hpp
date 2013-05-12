@@ -941,7 +941,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   // Calculate the new solution
   iter = quasinewton<T>::bpmemory.begin();
   // Z_k * d
-  // FLAG();
+  
   Matrix<double> mdnsize(dnsize, quasinewton<T>::n, 1);
   //FLAG();
   matrixMultiply(mZfM2, md, mdnsize);
@@ -949,7 +949,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
   for(int i = 0; i < quasinewton<T>::n; i++)
     dnsize[i] = mdnsize(i);
   
-  PRINTARRAY(dnsize, quasinewton<T>::n, 1);  
+  PRINTARRAY(dnsize, quasinewton<T>::n, 1);
   
   // Delete memory
   // delete [] dnsize;
@@ -1217,7 +1217,7 @@ void LBFGSB<T>::lapackmanipulations(){
   fpj = fpj + deltatj * fppj + quasinewton<T>::g[b] * quasinewton<T>::g[b] + theta *
     quasinewton<T>::g[b] * z[b] -
     squareFormwithPadding(mwbt, M, mc, 2 * quasinewton<T>::m);
-
+  
   fppj = fppj - theta * quasinewton<T>::g[b] * quasinewton<T>::g[b] - 2 * 
     quasinewton<T>::g[b] * squareFormwithPadding(mwbt, M, mpvector, 2 * 
 						 quasinewton<T>::m) - 
@@ -1335,6 +1335,158 @@ void LBFGSB<T>::nextIterationPrepare(){
   
   // Calculate the inverse.
   Mmatrix.inverse();
+}
+
+template<typename T>
+void LBFGSB<T>::findMinimum2ndApproximation(){
+  // Assuming xcauchy has been correctly found.  This function runs a minimization of
+  // the quadratic approximation to the goal function
+  int numfree = 0; // number of free variables
+  b = 0;
+  double * ZfM2, * r, * dx;
+  
+  dx = new double[quasinewton<T>::n];
+  
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    // initialize the previous vectors just because...
+    dnsize[i] = dx[i] = 0.0;
+    if(quasinewton<T>::freeVariable[i])
+      numfree++;
+  }
+  
+  if(0 == numfree){
+    // no free variables to work with.  This step can't be completed
+    return;
+  }
+  // Construction of Matrix Z 
+  ZfM2 = new double[quasinewton<T>::n * numfree];
+  for(int i = 0; i < (quasinewton<T>::n * numfree); i++)
+    ZfM2[i] = 0.0;
+  
+  int i_ = 0;
+  PRINTARRAY(quasinewton<T>::freeVariable, quasinewton<T>::n, 1);
+  for(iter = this->bpmemory.begin(); iter != quasinewton<T>::bpmemory.end(); iter++){
+    b = (*iter).second; //position of the ith. crossed boundary
+    // SHOW(b);
+    if(quasinewton<T>::freeVariable[b]){
+      // ZfM2 is a n x numfree matrix populated column-wise
+      ZfM2[b + quasinewton<T>::n * i_] = 1.0; // fill with ones for free variables as 
+                                              // explained on paragraph 2 of page 10 of 
+                                              // the paper.
+      ++i_;
+    }
+  }
+  // this function relies on matrix W.  So I will have to create it:
+  int mnow = Ycontainer.size(); // so many calls to size must be expensive
+  Matrix<double> Wmatrix(quasinewton<T>::n, 2 * mnow);
+  // Assign values to Wmatrix
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    for(int j = 0; j < mnow; j++){
+      // Fill W two positions at a time
+      Wmatrix(i, j) = Ycontainer[i].at(mnow - j - 1);
+      Wmatrix(i, j + mnow) = theta * Scontainer[i].at(mnow - j - 1);
+    }
+  }
+  // Form Matrix redgrad: eq. (5.4)
+  // First of all calculate (reduced gradient helper) redgrad as WM:
+  Matrix<double> redgrad(quasinewton<T>::n, 2 * mnow);
+  matrixMultiplywithPadding(Wmatrix, Mmatrix, redgrad, 'N', 'N', quasinewton<T>::n,
+			    quasinewton<T>::m, Wmatrix.genN());
+  
+  // Definition of r vector.  r = Z(g + B(Xcauchy - X))
+  // notice that in the LBFGSB case I represent B as (\theta - WM) instead.
+    ZfM2[i] = 0.0;
+  for(int i = 0; i < quasinewton<T>::n; i++)
+    dx[i] = t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
+  
+  Matrix<double> mdx(dx, quasinewton<T>::n, 1), mC(C, quasinewton<T>::n, 1);
+  matrixMultiply(BFGS<T>::mBdouble, mdx, mC); // Result kept in mC 
+  
+  BFGS<T>::mBdouble.print('B');
+  
+  mC.print('c');
+  PRINTARRAY(quasinewton<T>::g, quasinewton<T>::n, 1);
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    C[i] = mC(i);  //Warning!.  I need to correct for this double assignation
+    C[i] += t_double(quasinewton<T>::g[i]);
+  }
+  r = new double[numfree];
+  // FLAG();
+  // PRINTARRAY(ZfM2, quasinewton<T>::n, numfree);
+  Matrix<double> mZfM2(ZfM2, quasinewton<T>::n, numfree);
+  Matrix<double> mmC(C, quasinewton<T>::n, 1);
+  Matrix<double> mr(r, numfree, 1);
+  matrixMultiply(mZfM2, mmC, mr, 'T', 'N'); // the result is now on mr;
+  mmC.print('C');
+  mr.print('r');
+  // Find Bhat = Z^TBZ
+  Matrix<double> mBHAT(numfree, numfree);
+  GensquareForm(mZfM2, BFGS<T>::mBdouble, mZfM2, mBHAT);
+  
+  /*
+    Solve the system 5.5 and 5.6
+    Notice that this system could easily be solved by inverting the matrix *BHAT
+  */
+  
+  // First step. Solve the system with 
+  Matrix<double> md(numfree, 1);  // Where to put the solution 
+  bfgssolver(mBHAT, mr, md);
+  
+  double alphacandidate = 0.0;
+  
+  // Define the new boundaries which appear on 5.6
+  double lbf, ubf;
+  alpha0 = 1.0;
+  
+  Matrix<double> mdtemp(quasinewton<T>::n, 1);
+  matrixMultiply(mZfM2, md, mdtemp); // the result is now on mr;
+  mdtemp.print('D');
+  for(iter = quasinewton<T>::bpmemory.begin(); 
+      iter != quasinewton<T>::bpmemory.end(); iter++){
+    b = (*iter).second;
+    
+    // only perform this analysis for free variables
+    if(quasinewton<T>::freeVariable[b]){
+      SHOW(b);
+      lbf = quasinewton<T>::l[b] - quasinewton<T>::xcauchy[b];
+      ubf = quasinewton<T>::u[b] - quasinewton<T>::xcauchy[b];
+      
+      if(mdtemp(b) > 0){
+	alphacandidate = ubf / mdtemp(b);
+      } else if(md(b) < 0){
+	//both numbers are negative => div. is positive
+	alphacandidate = lbf / mdtemp(b);
+      } else{
+	alphacandidate = 1.0;
+      }
+      SHOW(alphacandidate);
+      alpha0 = MIN(alpha0, alphacandidate);
+    }
+  }
+  
+  md.print('d');
+  mZfM2.print('Z');
+  // if alpha == 1.0 that means the solution doesn't touch any constraint :)
+  md *= alpha0;
+  SHOW(alpha0);
+  // Calculate the new solution
+  iter = quasinewton<T>::bpmemory.begin();
+  // Z_k * d
+  // FLAG();
+  Matrix<double> mdnsize(dnsize, quasinewton<T>::n, 1);
+  //FLAG();
+  matrixMultiply(mZfM2, md, mdnsize);
+  
+  for(int i = 0; i < quasinewton<T>::n; i++)
+    dnsize[i] = mdnsize(i);
+  
+  PRINTARRAY(dnsize, quasinewton<T>::n, 1);  
+  
+  // Delete memory
+  // delete [] dnsize;
+  delete [] dx;
+  delete [] ZfM2;
+  delete [] r;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
