@@ -60,7 +60,7 @@ public:
   bool isSquare();
   void print();
   void print(char);
-  void insertMatrix(int, int, int, int, T*&);
+  void insertMatrix(int, int, int, int, Matrix<T>&);
   template<typename H> friend void matrixMultiply(Matrix<H> &, Matrix<H> &, 
 						  Matrix<H> &, char transA = 'N',
 						  char transB = 'N');
@@ -168,7 +168,7 @@ void Matrix<T>::print(){
 }
 
 template<typename T>
-void Matrix<T>::insertMatrix(int i, int j, int ii, int jj, T*& V){
+void Matrix<T>::insertMatrix(int i, int j, int ii, int jj, Matrix<T>& V){
 /*
 In this function I take a vector and insert it in the position indicated by the
 integers
@@ -474,7 +474,7 @@ void matrixMultiply(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C, char transA = 'N',
       std::cerr << "B.n: " << B.n << " C.n: " << C.n << std::endl;
     }
   }
-
+  
   // declare some local variables so that external variables do not get destroyed
   // Will make local copies of A and B.  This may sound like a waste of time.  But
   // avoids the problem of unintentionally
