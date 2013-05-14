@@ -1197,9 +1197,9 @@ void LBFGSB<T>::lapackzerostep(){
   //p is initialized to -g (the paper is wrong saying p = W^Td.We still don't have W  
   vcopyp<T>(quasinewton<T>::p, quasinewton<T>::g, -1.0, quasinewton<T>::n);
   
-  BFGSB<T>::fpj = t_double(vecip<T>(quasinewton<T>::g, BFGSB<T>::di, 
+  BFGSB<T>::fpj = t_double(veciptdd<T>(quasinewton<T>::g, BFGSB<T>::di, 
 				    quasinewton<T>::n));
-  BFGSB<T>::fppj = t_double(-theta * BFGSB<T>::fpj - vecip<T>(quasinewton<T>::p, 
+  BFGSB<T>::fppj = t_double(-theta * BFGSB<T>::fpj - veciptdd<T>(quasinewton<T>::p, 
 							      quasinewton<T>::p, 
 							      quasinewton<T>::n));
   BFGSB<T>::tstarcalculation();
@@ -1236,15 +1236,15 @@ void LBFGSB<T>::lapackmanipulations(){
     BFGSB<T>::z[BFGSB<T>::b] - squareFormwithPadding(mwbt, Mmatrix, mc, 2 * quasinewton<T>::m);
   
   BFGSB<T>::fppj = BFGSB<T>::fppj - theta * quasinewton<T>::g[BFGSB<T>::b] * 
-    quasinewton<T>::g[BFGS<T>::b] - 2 * 
-    quasinewton<T>::g[BFGS<T>::b] * squareFormwithPadding(mwbt, Mmatrix, mpvector, 2 * 
+    quasinewton<T>::g[BFGSB<T>::b] - 2 * 
+    quasinewton<T>::g[BFGSB<T>::b] * squareFormwithPadding(mwbt, Mmatrix, mpvector, 2 * 
 						 quasinewton<T>::m) - 
-    quasinewton<T>::g[BFGS<T>::b] * quasinewton<T>::g[BFGS<T>::b] * 
+    quasinewton<T>::g[BFGSB<T>::b] * quasinewton<T>::g[BFGSB<T>::b] * 
     squareFormwithPadding(mwbt, Mmatrix, mwbt, 2 * quasinewton<T>::m);
   
   for(int i = 0; i < 2 * quasinewton<T>::m; i++){
     pvectorbackup[i] = pvector[i];
-    pvector[i] = pvector[i] + quasinewton<T>::g[BFGS<T>::b] * wbt[i];
+    pvector[i] = pvector[i] + quasinewton<T>::g[BFGSB<T>::b] * wbt[i];
   }
   BFGSB<T>::tstarcalculation();
 }
@@ -1281,9 +1281,14 @@ void LBFGSB<T>::nextIterationPrepare(){
   }
   
   // Update the value of the function
+  T xtemp = new T[quasinewton<T>::n];
+  for(int i = 0; i < quasinewton<T>::n ; i++){
+    xtemp[i] = t_double(quasinewton<T>::xcauchy[i]);
+  }
   quasinewton<T>::testFunction(quasinewton<T>::f, quasinewton<T>::g, 
-			       quasinewton<T>::xcauchy, quasinewton<T>::n);
-  
+			       quasinewton<T>::xtemp, quasinewton<T>::n);
+  delete [] xtemp;
+
   vpv<T>(quasinewton<T>::s, quasinewton<T>::x, 1.0, quasinewton<T>::n);
   vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1.0, quasinewton<T>::n);
   

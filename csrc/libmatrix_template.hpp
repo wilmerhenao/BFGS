@@ -76,11 +76,11 @@ T vecip(T x[], T y[], int n) {
 }
 
 template <class T> 
-double vecip(T x[], double y[], int n) {
+double veciptdd(T x[], double y[], int n) {
   // Dot product between x and y vectors
   double ip = 0;
   for(int i = 0; i < n; i++)
-    ip += x[i] * t_double(y[i]);
+    ip += t_double(x[i]) * y[i];
   return ip;
 }
 
