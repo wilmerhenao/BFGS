@@ -76,6 +76,15 @@ T vecip(T x[], T y[], int n) {
 }
 
 template <class T> 
+double vecip(T x[], double y[], int n) {
+  // Dot product between x and y vectors
+  double ip = 0;
+  for(int i = 0; i < n; i++)
+    ip += x[i] * t_double(y[i]);
+  return ip;
+}
+
+template <class T> 
 T vecnorm(T v[], int n) {
   // calculates the euclidean norm of the vector
   T nv = 0.0;

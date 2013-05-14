@@ -478,7 +478,7 @@ template<typename T>
 void BFGSB<T>::update_d(){
   //Do not move in the direction that reached the boundary from now on
   T a = 1.0;
-  a++;
+  a = a + 1;
   di[b] = 0.0;
   Matrix<double> temp2(di, quasinewton<T>::n, 1);
   mdi = temp2;
@@ -1097,7 +1097,7 @@ void LBFGS<T>::mainloopspecific(){
 /////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-class LBFGSB: public BFGSB<T>, public LBFGS<T>{
+class LBFGSB: virtual public BFGSB<T>, virtual public LBFGS<T>{
 protected:
   Matrix<double> mY;
   Matrix<double> mS;
@@ -1121,6 +1121,8 @@ public:
   virtual void lapackmanipulations();
   virtual void updatec(int);
   virtual void findMinimum2ndApproximation();
+  virtual void befmainloopspecific();
+  virtual void mainloopspecific();
 };
 
 // Constructor
@@ -1142,9 +1144,9 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
   Mmatrix(2 * quasinewton<T>::m, 2 * quasinewton<T>::m), mc(2 * quasinewton<T>::m, 1){
   quasinewton<T>::nm = quasinewton<T>::n * quasinewton<T>::m;
   quasinewton<T>::m1 = quasinewton<T>::m;
-  c =  new T[2 * quasinewton<T>::n]; // WARNING! THIS IS A STRANGE DIMENSION NUMBER
-  pvector =  new T[2 * quasinewton<T>::m];
-  pvectorbackup =  new T[2 * quasinewton<T>::m];
+  c =  new double[2 * quasinewton<T>::n]; // WARNING! THIS IS A STRANGE DIMENSION NUMBER
+  pvector =  new double[2 * quasinewton<T>::m];
+  pvectorbackup =  new double[2 * quasinewton<T>::m];
   theta = 1.0;
   index = 0;
   currentm = 0;
@@ -1167,7 +1169,18 @@ LBFGSB<T>::~LBFGSB(){
 template<typename T>
 void LBFGSB<T>::createDoubleHandDoubleB(){
   // Do nothing since these matrices are not needed here
-  std::cout << "doing nothing " << std::endl;
+  std::cout << "" << std::endl;
+}
+
+template<typename T>
+void LBFGSB<T>::befmainloopspecific(){
+  // p = -g (LBFGS)
+  vcopyp<T>(quasinewton<T>::p, quasinewton<T>::g, -1.0, quasinewton<T>::n);
+}
+
+template<typename T>
+void LBFGSB<T>::mainloopspecific(){
+  std::cout << "" << std::endl;
 }
 
 template<typename T>
@@ -1184,10 +1197,11 @@ void LBFGSB<T>::lapackzerostep(){
   //p is initialized to -g (the paper is wrong saying p = W^Td.We still don't have W  
   vcopyp<T>(quasinewton<T>::p, quasinewton<T>::g, -1.0, quasinewton<T>::n);
   
-  BFGSB<T>::fpj = vecip<T>(quasinewton<T>::g, BFGSB<T>::d, quasinewton<T>::n);
-  BFGSB<T>::fppj = -theta * BFGSB<T>::fpj - vecip<T>(quasinewton<T>::p, 
-						     quasinewton<T>::p, 
-						     quasinewton<T>::n);
+  BFGSB<T>::fpj = t_double(vecip<T>(quasinewton<T>::g, BFGSB<T>::di, 
+				    quasinewton<T>::n));
+  BFGSB<T>::fppj = t_double(-theta * BFGSB<T>::fpj - vecip<T>(quasinewton<T>::p, 
+							      quasinewton<T>::p, 
+							      quasinewton<T>::n));
   BFGSB<T>::tstarcalculation();
 }
 
@@ -1198,19 +1212,20 @@ void LBFGSB<T>::updatec(int i){
 
 template<typename T>
 void LBFGSB<T>::lapackmanipulations(){
+  int one = 1;
   for(int i = 0; i < 2 * quasinewton<T>::m; i++){
-    c[i] = c[i] + BFGS<T>::deltatj * pvector[i];
-    mc(i, 1) = c[i];
+    c[i] = c[i] + BFGSB<T>::deltatj * pvector[i];
+    mc(i, one) = c[i];
   }
   
   T * wbt = new T[2 * currentm];
   
   for (int i = 0; i < currentm; i++){
-    wbt[i] = Ycontainer[i].at(BFGS<T>::b);
+    wbt[i] = Ycontainer[i].at(BFGSB<T>::b);
   }
   
   for (int i = currentm; i < 2 * currentm; i++){
-    wbt[i] = theta * Scontainer[i].at(BFGS<T>::b);
+    wbt[i] = theta * Scontainer[i].at(BFGSB<T>::b);
   }
   
   Matrix<double> mpvector(pvector, 2 * quasinewton<T>::m, 1);
@@ -1220,7 +1235,7 @@ void LBFGSB<T>::lapackmanipulations(){
     quasinewton<T>::g[BFGSB<T>::b] * quasinewton<T>::g[BFGSB<T>::b] + theta * quasinewton<T>::g[BFGSB<T>::b] * 
     BFGSB<T>::z[BFGSB<T>::b] - squareFormwithPadding(mwbt, Mmatrix, mc, 2 * quasinewton<T>::m);
   
-  BFGSB<T>::fppj = BFGSB<T>::fppj - theta * quasinewton<T>::g[BFGS<T>::b] * 
+  BFGSB<T>::fppj = BFGSB<T>::fppj - theta * quasinewton<T>::g[BFGSB<T>::b] * 
     quasinewton<T>::g[BFGS<T>::b] - 2 * 
     quasinewton<T>::g[BFGS<T>::b] * squareFormwithPadding(mwbt, Mmatrix, mpvector, 2 * 
 						 quasinewton<T>::m) - 
@@ -1247,7 +1262,7 @@ void LBFGSB<T>::nextIterationPrepare(){
 
   // the next 3 lines don't matter when calling from prepareNextMainLoop because every
   // thing will be overwritten
-  update_d();
+  BFGSB<T>::update_d();
   quasinewton<T>::freeVariable[BFGSB<T>::b] = false;
   BFGSB<T>::oldtj = BFGSB<T>::tj; // Because the next iteration tj will move one step to the front
   // these were the regular steps for BFGSB  ----------------------------------
@@ -1262,7 +1277,7 @@ void LBFGSB<T>::nextIterationPrepare(){
     // Update the new position of xcauchy.  Notice that we only need to do this
     // update in case that we haven't found an optimal tstar.  So we are allowed to
     // use the whole of deltatj as opposed to dtstar
-    quasinewton<T>::xcauchy[__i] += BFGSB<T>::deltatj * BFGSB<T>::d[__i];
+    quasinewton<T>::xcauchy[__i] += BFGSB<T>::deltatj * BFGSB<T>::di[__i];
   }
   
   // Update the value of the function
@@ -1307,7 +1322,7 @@ void LBFGSB<T>::nextIterationPrepare(){
     for(int j = 0; j < quasinewton<T>::n; j++){
       tempval = tempval + Ycontainer[invi].at(j) * Scontainer[invi].at(j);
     }
-    Mmatrix(i, i) = -tempval;
+    Mmatrix(i, i) = -t_double(tempval);
   }
   
   // Assign the L matrix
@@ -1315,13 +1330,13 @@ void LBFGSB<T>::nextIterationPrepare(){
   for (int i = 0; i < currentm; i++){
     for(int j = 0; j < i; j++){ // only for j < i as stated in (3.5)
       T mytemp = 0.0;
-      for(int z = 0; z < quasinewton<T>::n; z++){
+      for(int k = 0; k < quasinewton<T>::n; k++){
 	// WARNING! Review these.  what if there's not enough history?
         int index1 = currentm - i;  // try and review these 
 	int index2 = currentm - j;
-	mytemp = mytemp + Scontainer[index1].at(z) * Ycontainer[index2].at(z);
+	mytemp = mytemp + Scontainer[index1].at(k) * Ycontainer[index2].at(k);
       }
-      Lmatrix(i, j) = mytemp;
+      Lmatrix(i, j) = t_double(mytemp);
     }
   }
   
@@ -1333,9 +1348,9 @@ void LBFGSB<T>::nextIterationPrepare(){
   for (int i = 0; i < currentm; i++){
     for(int j = 0; j <= i; j++){
       T mytemp = 0.0;
-      for(int z = 0; z < quasinewton<T>::n; z++)
-	mytemp = mytemp + Scontainer[i].at(z) * Scontainer[i].at(z);
-      Smatrix(i, j) = theta * mytemp;
+      for(int k = 0; k < quasinewton<T>::n; k++)
+	mytemp = mytemp + t_double(Scontainer[i].at(k) * Scontainer[i].at(k));
+      Smatrix(i, j) = t_double(theta * mytemp);
     }
   }
   
@@ -1397,14 +1412,14 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   // Assuming xcauchy has been correctly found.  This function runs a minimization of
   // the quadratic approximation to the goal function
   int numfree = 0; // number of free variables
-  b = 0;
+  BFGS<T>::b = 0;
   double * ZfM2, * r, * dx;
   
   dx = new double[quasinewton<T>::n];
   
   for(int i = 0; i < quasinewton<T>::n; i++){
     // initialize the previous vectors just because...
-    dnsize[i] = dx[i] = 0.0;
+    BFGSB<T>::dnsize[i] = dx[i] = 0.0;
     if(quasinewton<T>::freeVariable[i])
       numfree++;
   }
@@ -1420,12 +1435,12 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   
   int i_ = 0;
   PRINTARRAY(quasinewton<T>::freeVariable, quasinewton<T>::n, 1);
-  for(iter = this->bpmemory.begin(); iter != quasinewton<T>::bpmemory.end(); iter++){
-    b = (*iter).second; //position of the ith. crossed boundary
+  for(BFGS<T>::iter = this->bpmemory.begin(); BFGS<T>::iter != quasinewton<T>::bpmemory.end(); BFGS<T>::iter++){
+    BFGS<T>::b = (*BFGS<T>::iter).second; //position of the ith. crossed boundary
     // SHOW(b);
-    if(quasinewton<T>::freeVariable[b]){
+    if(quasinewton<T>::freeVariable[BFGS<T>::b]){
       // ZfM2 is a n x numfree matrix populated column-wise
-      ZfM2[b + quasinewton<T>::n * i_] = 1.0; // fill with ones for free variables as 
+      ZfM2[BFGS<T>::b + quasinewton<T>::n * i_] = 1.0; // fill with ones for free variables as 
                                               // explained on paragraph 2 of page 10 of 
                                               // the paper.
       ++i_;
@@ -1433,13 +1448,15 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   }
   // this function relies on matrix W.  So I will have to create it:
   int mnow = Ycontainer.size(); // so many calls to size must be expensive
+  int k = 0;
   Matrix<double> Wmatrix(quasinewton<T>::n, 2 * mnow);
   // Assign values to Wmatrix
   for(int i = 0; i < quasinewton<T>::n; i++){
     for(int j = 0; j < mnow; j++){
       // Fill W two positions at a time
       Wmatrix(i, j) = Ycontainer[i].at(mnow - j - 1);
-      Wmatrix(i, j + mnow) = theta * Scontainer[i].at(mnow - j - 1);
+      k = j + mnow;
+      Wmatrix(i, k) = theta * Scontainer[i].at(mnow - j - 1);
     }
   }
   
@@ -1447,7 +1464,7 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   // First of all calculate (reduced gradient helper) redgrad as WM:
   Matrix<double> redgrad(quasinewton<T>::n, 2 * mnow);
   matrixMultiplywithPadding(Wmatrix, Mmatrix, redgrad, 'N', 'N', quasinewton<T>::n,
-			    quasinewton<T>::m, Wmatrix.genN());
+			    quasinewton<T>::m, Wmatrix.getN());
   
   // Definition of r vector.  r = Z(g + B(Xcauchy - X))
   // notice that in the LBFGSB case I represent B as (\theta - WM) instead.
@@ -1457,10 +1474,10 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   Matrix<double> mdx(dx, quasinewton<T>::n, 1);
   Matrix<double> redgrad2(quasinewton<T>::n, 1);
   matrixMultiply(redgrad, mc, redgrad2); // Result kept in mC 
- 
-  double * C = new double[quasinewton<T>::n]; 
+  
+  double * C = new double[quasinewton<T>::n]; int one = 1;
   for(int i = 0; i < quasinewton<T>::n; i++){
-    C[i] = t_double(quasinewton<T>::g[i]) + mdx(i, 1) - redgrad2(i, 1);
+    C[i] = t_double(quasinewton<T>::g[i]) + mdx(i, one) - redgrad2(i, one);
   }
   r = new double[numfree];
   // FLAG();
@@ -1486,7 +1503,7 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   // Step 4: Form N = (I - 1/theta * MW^TZZ^TW)
   // step 4.a Z^TW
   Matrix<double> ztw(numfree, 2 * mnow);
-  matrixMultiply(mZfm2, Wmatrix, ztw, 'T', 'N');
+  matrixMultiply(BFGS<T>::mZfm2, Wmatrix, ztw, 'T', 'N');
   // step 4.b Z^TW
   Matrix<double> wzzw(2 * mnow, 2 * mnow);
   matrixMultiply(ztw, ztw, wzzw, 'T', 'N');
@@ -1497,63 +1514,63 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
     wzzw(i, i) = wzzw(i, i) + 1.0;
   }
   // step 5: (Now wzzw is matrix N.  A poor choice of name but it just happened :(  )
-  wzzw.inverse();
+  wzzw.matrixInverse();
   Matrix<double> vprev(2 * mnow, 1);
   matrixMultiply(wzzw, vmatrix, vprev);
   // step 6: du
   Matrix<double> du(numfree, 1);
   matrixMultiply(ztw, vprev, du);
   for(int i = 0; i < numfree; i++){
-    du(i, 1) = (1 / (theta * theta)) * du(i, 1) + (1 / theta) * mr(i, 1);
+    du(i, one) = (1 / (theta * theta)) * du(i, one) + (1 / theta) * mr(i, one);
   }
   // step 7: Find \alpha^* satisfying 
   double alphacandidate = 0.0;
     // Define the new boundaries which appear on 5.6
   double lbf, ubf;
-  alpha0 = 1.0;
+  BFGSB<T>::alpha0 = 1.0;
   
   Matrix<double> dutemp(quasinewton<T>::n, 1);
-  matrixMultiply(mZfM2, du, dutemp); // the result is now on original n-dimensional sp.
+  matrixMultiply(mZfM2, du, dutemp); // the result is now on original n-dimensional sp
   dutemp.print('D');
-  for(iter = quasinewton<T>::bpmemory.begin(); 
-      iter != quasinewton<T>::bpmemory.end(); iter++){
-    b = (*iter).second;
+  for(BFGSB<T>::iter = quasinewton<T>::bpmemory.begin(); 
+      BFGSB<T>::iter != quasinewton<T>::bpmemory.end(); BFGSB<T>::iter++){
+    BFGSB<T>::b = (*BFGSB<T>::iter).second;
     
     // only perform this analysis for free variables
-    if(quasinewton<T>::freeVariable[b]){
-      SHOW(b);
-      lbf = quasinewton<T>::l[b] - quasinewton<T>::xcauchy[b];
-      ubf = quasinewton<T>::u[b] - quasinewton<T>::xcauchy[b];
+    if(quasinewton<T>::freeVariable[BFGSB<T>::b]){
+      SHOW(BFGSB<T>::b);
+      lbf = quasinewton<T>::l[BFGSB<T>::b] - quasinewton<T>::xcauchy[BFGSB<T>::b];
+      ubf = quasinewton<T>::u[BFGSB<T>::b] - quasinewton<T>::xcauchy[BFGSB<T>::b];
       
-      if(dutemp(b) > 0){
-	alphacandidate = ubf / dutemp(b);
-      } else if(du(b) < 0){
+      if(dutemp(BFGSB<T>::b) > 0){
+	alphacandidate = ubf / dutemp(BFGSB<T>::b);
+      } else if(du(BFGSB<T>::b) < 0){
 	//both numbers are negative => div. is positive
-	alphacandidate = lbf / dutemp(b);
+	alphacandidate = lbf / dutemp(BFGSB<T>::b);
       } else{
 	alphacandidate = 1.0;
       }
       SHOW(alphacandidate);
-      alpha0 = MIN(alpha0, alphacandidate);
+      BFGSB<T>::alpha0 = MIN(BFGSB<T>::alpha0, alphacandidate);
     }
   }
   
   du.print('d');
   mZfM2.print('Z');
   // if alpha == 1.0 that means the solution doesn't touch any constraint :)
-  du *= alpha0;
-  SHOW(alpha0);
+  du *= BFGSB<T>::alpha0;
+  SHOW(BFGSB<T>::alpha0);
   // Calculate the new solution
-  iter = quasinewton<T>::bpmemory.begin();
+  BFGSB<T>::iter = quasinewton<T>::bpmemory.begin();
   // Z_k * d
-  Matrix<double> dunsize(dnsize, quasinewton<T>::n, 1);
+  Matrix<double> dunsize(BFGSB<T>::dnsize, quasinewton<T>::n, 1);
   
   matrixMultiply(mZfM2, du, dunsize);
   
   for(int i = 0; i < quasinewton<T>::n; i++)
-    dnsize[i] = dunsize(i);
+    BFGSB<T>::dnsize[i] = dunsize(i);
   
-  PRINTARRAY(dnsize, quasinewton<T>::n, 1);  
+  PRINTARRAY(BFGSB<T>::dnsize, quasinewton<T>::n, 1);  
   
   // Delete memory
   // delete [] dnsize;

@@ -64,7 +64,7 @@ public:
   template<typename H> friend void matrixMultiply(Matrix<H> &, Matrix<H> &, 
 						  Matrix<H> &, char transA = 'N',
 						  char transB = 'N');
-  template<typename H> friend void matrixMultiplywithPadding(Matrix<H>& A, Matrix<H>& B,
+  template<typename H> friend void matrixMultiplywithPadding(Matrix<H>& A,Matrix<H>& B,
 							     Matrix<H>& C, 
 							     char transA = 'N', 
 							     char transB = 'N', 
@@ -81,7 +81,7 @@ public:
   
   T& operator()(int& );
   T& operator()(int&, int&);
-  const T& operator()(int&, int&) const; 
+  const T& operator()(int&, int&) const;
   //T& operator()(int);
   Matrix<T>& operator=(Matrix<T>& );
   Matrix<T>& operator*=(double );
@@ -134,7 +134,6 @@ Matrix<T>::~Matrix(){
   delete [] matrix;
 }
 
-
 template<typename T>
 T& Matrix<T>::operator()(int& i){
   return matrix[i];
@@ -149,13 +148,6 @@ template<typename T>
 const T& Matrix<T>::operator()(int& i, int& j) const{
   return matrix[i + j * potentialN];
 }
-
-/*
-template<typename T>
-T& Matrix<T>::operator()(int i){
-  return matrix[i];
-}
-*/
 
 template<typename T>
 void Matrix<T>::print(){
