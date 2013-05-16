@@ -1,19 +1,20 @@
+
 /*
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%  BFGS tools Copyright (C) 2013  Wilmer Henao
-%%  This program is free software: you can redistribute it and/or modify
-%%  it under the terms of the GNU General Public License as published by
-%%  the Free Software Foundation, either version 3 of the License, or
-%%  (at your option) any later version.
-%%  
-%%  This program is distributed in the hope that it will be useful,
-%%  but WITHOUT ANY WARRANTY; without even the implied warranty of
-%%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%%  GNU General Public License for more details.
-%%  
-%%  You should have received a copy of the GNU General Public License
-%%  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %%  BFGS tools Copyright (C) 2013  Wilmer Henao
+  %%  This program is free software: you can redistribute it and/or modify
+  %%  it under the terms of the GNU General Public License as published by
+  %%  the Free Software Foundation, either version 3 of the License, or
+  %%  (at your option) any later version.
+  %%  
+  %%  This program is distributed in the hope that it will be useful,
+  %%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  %%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  %%  GNU General Public License for more details.
+  %%  
+  %%  You should have received a copy of the GNU General Public License
+  %%  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 */
 
 #ifndef _BFGS_TEMPLATE_HPP_
@@ -326,7 +327,7 @@ void quasinewton<T>::get_ti_s(){
 
 /////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
-class BFGS: public virtual quasinewton<T>{
+class BFGS: public quasinewton<T>{
 protected:
   T *q, *H, *B;
   double* Hdouble, *Bdouble;
@@ -405,7 +406,7 @@ void BFGS<T>::createDoubleHandDoubleB(){
 
 /////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
-class BFGSB: public virtual BFGS<T>{
+class BFGSB: public BFGS<T>{
 protected:
   double tstar;
   char yTrans, nTrans;
@@ -1017,7 +1018,7 @@ void BFGSB<T>::mainloop(){
 
 /////////////////////////////////////////////////////////////////////////////////////
 template<typename T>
-class LBFGS: public virtual quasinewton<T>{
+class LBFGS: public quasinewton<T>{
 protected:
   T *S, *Y, *rho, *a;
 public:
@@ -1097,7 +1098,7 @@ void LBFGS<T>::mainloopspecific(){
 /////////////////////////////////////////////////////////////////////////////////////
 
 template<typename T>
-class LBFGSB: virtual public BFGSB<T>, virtual public LBFGS<T>{
+class LBFGSB: public BFGSB<T>{
 protected:
   Matrix<double> mY;
   Matrix<double> mS;
@@ -1132,14 +1133,14 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
 		  T& gnormtol0,  int& maxit0, short& echo0, short& lm0, 
 		  const char *& outputname0, int& m0, int& gradientsamplingN0,
 		  double*& u0, double*&l0):
-  quasinewton<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
-		 echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
-  BFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
-	  echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
+  //quasinewton<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
+  //		 echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
+  //BFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
+  //	  echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
   BFGSB<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
-	   echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
-  LBFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
-	   echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
+  	   echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
+  //LBFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
+  //	   echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
   mY(quasinewton<T>::n, quasinewton<T>::m), mS(quasinewton<T>::n, quasinewton<T>::m),
   Mmatrix(2 * quasinewton<T>::m, 2 * quasinewton<T>::m), mc(2 * quasinewton<T>::m, 1){
   quasinewton<T>::nm = quasinewton<T>::n * quasinewton<T>::m;
@@ -1282,6 +1283,7 @@ void LBFGSB<T>::nextIterationPrepare(){
   
   // Update the value of the function
   T xtemp = new T[quasinewton<T>::n];
+  
   for(int i = 0; i < quasinewton<T>::n ; i++){
     xtemp[i] = t_double(quasinewton<T>::xcauchy[i]);
   }
@@ -1695,7 +1697,7 @@ void bfgs(T*& x, T*& fopt, int& n, short& lm, int& m, T& ftarget,
     }
   } else {
     if(boundedProblem){
-      LBFGS<T>* mylbfgs;
+      BFGSB<T>* mylbfgs;
       mylbfgs = new LBFGSB<T>(x, fopt, n, taud, testFunction, output, ftarget,gnormtol, 
 			   maxit, echo, lm, outputname, m, gradientsamplingN0, u0, l0);
       mylbfgs->runallsteps();
