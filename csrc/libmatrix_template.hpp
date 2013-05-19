@@ -23,6 +23,8 @@
 #include <cmath>
 #include <qd/dd_real.h>
 #include <qd/qd_real.h>
+#include "tdouble.hpp"
+
 /*
 template<class T> void mxv(T y[], T [], T x[], T alpha, T beta, int m, int n);
 template <class T> T vecip(T x[], T y[], int n);
