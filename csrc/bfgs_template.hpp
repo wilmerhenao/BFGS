@@ -1221,12 +1221,15 @@ void LBFGSB<T>::lapackmanipulations(){
   
   T * wbt = new T[2 * currentm];
   
-  for (int i = 0; i < currentm; i++){
-    wbt[i] = Ycontainer[i].at(BFGSB<T>::b);
+  std::list<std::vector<T>>::iterator listit;
+
+  for (listit = Ycontainer.begin(); listit != Ycontainer.end(); ++listit){
+    wbt[i] = (*listit).at(BFGSB<T>::b);
   }
-  
-  for (int i = currentm; i < 2 * currentm; i++){
-    wbt[i] = theta * Scontainer[i].at(BFGSB<T>::b);
+  i = 0;
+  for (listit = Scontainer.begin(); listit != Scontainer.end(); ++listit){
+    wbt[i + currentm] = theta * (*listit).at(BFGSB<T>::b);
+    i++;
   }
   
   Matrix<double> mpvector(pvector, 2 * quasinewton<T>::m, 1);
