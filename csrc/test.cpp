@@ -131,7 +131,7 @@ int main(int argc, char *argv[]){
     assert(false);
   }
   assert(sizeof(constrainedproblem));
-
+  
   std::cout  << "Constrained problem was created safely" << std::endl;
   try{
     std::cout.precision(16);
@@ -140,8 +140,8 @@ int main(int argc, char *argv[]){
     std::cerr << "General Problem during execution. " << ex.what() << std::endl;
     assert(false);
   }
-
-
+  
+  
   try{
     delete [] u;
     delete [] l;
