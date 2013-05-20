@@ -1210,15 +1210,16 @@ void LBFGSB<T>::lapackmanipulations(){
   
   double * wbt = new double[2 * currentm];
   
-  std::list<std::vector<T>>::iterator listit;
-
+  typename std::list<std::vector<T>>::iterator listit;
+  int ind = 0;
   for (listit = Ycontainer.begin(); listit != Ycontainer.end(); ++listit){
-    wbt[i] = (*listit).at(BFGSB<T>::b);
+    wbt[ind] = (*listit).at(BFGSB<T>::b);
+    ind++;
   }
-  i = 0;
+  ind = 0;
   for (listit = Scontainer.begin(); listit != Scontainer.end(); ++listit){
-    wbt[i + currentm] = theta * (*listit).at(BFGSB<T>::b);
-    i++;
+    wbt[ind + currentm] = theta * (*listit).at(BFGSB<T>::b);
+    ind++;
   }
   
   Matrix<double> mpvector(pvector, 2 * quasinewton<T>::m, 1);
@@ -1299,10 +1300,14 @@ void LBFGSB<T>::nextIterationPrepare(){
 			 sizeof(quasinewton<T>::y[0]));
   Ycontainer.push_front(std::vector<T>());  // pass svector right away?
   Scontainer.push_front(std::vector<T>());
+
+  typename std::list<std::vector<T>>::iterator listityc, listitsc;
+  listityc = Ycontainer.begin();
+  listitsc = Scontainer.begin();
   
   for(int i = 0; i < quasinewton<T>::n; i++){
-    Ycontainer[0].push_back(quasinewton<T>::y[i]);
-    Scontainer[0].push_back(quasinewton<T>::s[i]);
+    (*listityc).push_back(quasinewton<T>::y[i]);
+    (*listitsc).push_back(quasinewton<T>::s[i]);
   }
   
   // if the number of elements is already larger than the limit.  Delete the oldest
@@ -1318,27 +1323,35 @@ void LBFGSB<T>::nextIterationPrepare(){
   
   Mmatrix.setM(2 * currentm);
   Mmatrix.setN(2 * currentm);
+  
+  typename std::list<std::vector<T>>::reverse_iterator revlistityc, revlistitsc;
+  revlistityc = Ycontainer.rbegin();
+  revlistitsc = Scontainer.rbegin();
+  
   for(int i = currentm; i > 0; i--){
     T tempval = 0.0;
-    int invi = currentm - i;
     //calculate the dot product Ycontainer[i] * Scontainer[i]
     for(int j = 0; j < quasinewton<T>::n; j++){
-      tempval = tempval + Ycontainer[invi].at(j) * Scontainer[invi].at(j);
+      tempval = tempval + (*revlistityc).at(j) * (*revlistitsc).at(j);
     }
+    ++revlistityc;
+    ++revlistitsc;
     Mmatrix(i, i) = -t_double(tempval);
   }
   
   // Assign the L matrix
   Matrix<double> Lmatrix(currentm, currentm);
+  revlistityc = Ycontainer.rbegin();
+  revlistitsc = Scontainer.rbegin();
   for (int i = 0; i < currentm; i++){
     for(int j = 0; j < i; j++){ // only for j < i as stated in (3.5)
       T mytemp = 0.0;
       for(int k = 0; k < quasinewton<T>::n; k++){
 	// WARNING! Review these.  what if there's not enough history?
-        int index1 = currentm - i;  // try and review these 
-	int index2 = currentm - j;
-	mytemp = mytemp + Scontainer[index1].at(k) * Ycontainer[index2].at(k);
+	mytemp = mytemp + (*revlistitsc).at(k) * (*revlistityc).at(k);
       }
+      ++revlistityc;
+      ++revlistitsc;
       Lmatrix(i, j) = t_double(mytemp);
     }
   }
