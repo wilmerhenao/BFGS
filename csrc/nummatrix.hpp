@@ -531,12 +531,12 @@ T squareFormwithPadding(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C, int sizepad)
   */
 
   // Create a temporal instance for first multiplication result storage
-  Matrix<T> temp(1, B.n);
+  Matrix<T> temp(1, B.getN());
   Matrix<T> finalresult(1, 1);
   int posit = 0;
   T squareFormResult;
 
-  matrixMultiplywithPadding(A, B, temp, 'T', 'N', A.getM(), sizepad, B.n);
+  matrixMultiplywithPadding(A, B, temp, 'T', 'N', A.getM(), sizepad, B.getN());
   matrixMultiply(temp, C, finalresult, 'N', 'N');
   squareFormResult = finalresult(posit);
 
@@ -573,7 +573,7 @@ void Matrix<T>::matrixInverse(){
   int* IPIV = new int[m];
   int INFO;
 
-  dgetri_(&N, matrix, &potN, IPIV, WORK, &LWORK, &INFO, &INFO);
+  dgetri_(&N, matrix, &potN, IPIV, WORK, &LWORK, &INFO);
 
 }
 

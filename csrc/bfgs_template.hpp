@@ -671,8 +671,9 @@ void BFGSB<T>::tstarcalculation(){
 }
 
 template<typename T>
-void BFGSB<T>::updatec(int){
+void BFGSB<T>::updatec(int aa){
   // do nothing
+  std::cout << aa << std::endl;
 }
 
 template<typename T>
@@ -909,6 +910,7 @@ void BFGSB<T>::findMinimum2ndApproximation(){
     // only perform this analysis for free variables
     if(quasinewton<T>::freeVariable[b]){
       SHOW(b);
+      
       lbf = quasinewton<T>::l[b] - quasinewton<T>::xcauchy[b];
       ubf = quasinewton<T>::u[b] - quasinewton<T>::xcauchy[b];
       
@@ -1140,7 +1142,8 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
   theta = 1.0;
   index = 0;
   currentm = 0;
-  for(int i = 0; i < 2 * quasinewton<T>::n; i++){
+  int i;
+  for(i = 0; i < (2 * quasinewton<T>::n); i++){
     c[i] = 0.0;
   }
 }
@@ -1213,12 +1216,13 @@ void LBFGSB<T>::lapackmanipulations(){
   typename std::list<std::vector<T>>::iterator listit;
   int ind = 0;
   for (listit = Ycontainer.begin(); listit != Ycontainer.end(); ++listit){
-    wbt[ind] = (*listit).at(BFGSB<T>::b);
+    wbt[ind] = t_double((*listit).at(static_cast<unsigned>(BFGSB<T>::b)));
     ind++;
   }
   ind = 0;
   for (listit = Scontainer.begin(); listit != Scontainer.end(); ++listit){
-    wbt[ind + currentm] = theta * (*listit).at(BFGSB<T>::b);
+    wbt[ind + currentm] = t_double(theta * 
+				   (*listit).at(static_cast<unsigned>(BFGSB<T>::b)));
     ind++;
   }
   
@@ -1226,16 +1230,19 @@ void LBFGSB<T>::lapackmanipulations(){
   
   Matrix<double> mwbt(wbt, 2 * currentm, 1);
   BFGSB<T>::fpj = t_double(BFGSB<T>::fpj + BFGSB<T>::deltatj * BFGSB<T>::fppj + 
-    quasinewton<T>::g[BFGSB<T>::b] * quasinewton<T>::g[BFGSB<T>::b] + theta * 
-    quasinewton<T>::g[BFGSB<T>::b] * BFGSB<T>::z[BFGSB<T>::b] - 
-    squareFormwithPadding(mwbt, Mmatrix, mc, 2 * quasinewton<T>::m));
+			   quasinewton<T>::g[BFGSB<T>::b] * quasinewton<T>::g[BFGSB<T>::b] + theta * 
+			   quasinewton<T>::g[BFGSB<T>::b] * BFGSB<T>::z[BFGSB<T>::b] - 
+			   squareFormwithPadding(mwbt, Mmatrix, mc, 2 * quasinewton<T>::m));
   
   BFGSB<T>::fppj = t_double(BFGSB<T>::fppj - theta * quasinewton<T>::g[BFGSB<T>::b] * 
-    quasinewton<T>::g[BFGSB<T>::b] - 2 * 
-    quasinewton<T>::g[BFGSB<T>::b] * squareFormwithPadding(mwbt, Mmatrix, mpvector, 2 * 
-						 quasinewton<T>::m) - 
-    quasinewton<T>::g[BFGSB<T>::b] * quasinewton<T>::g[BFGSB<T>::b] * 
-			    squareFormwithPadding(mwbt, Mmatrix, mwbt, 2 * quasinewton<T>::m));
+			    quasinewton<T>::g[BFGSB<T>::b] - 2 * 
+			    quasinewton<T>::g[BFGSB<T>::b] * 
+			    squareFormwithPadding(mwbt, Mmatrix, mpvector, 
+						  2 * quasinewton<T>::m) - 
+			    quasinewton<T>::g[BFGSB<T>::b] * 
+			    quasinewton<T>::g[BFGSB<T>::b] * 
+			    squareFormwithPadding(mwbt, Mmatrix, mwbt, 
+						  2 * quasinewton<T>::m));
   
   for(int i = 0; i < 2 * quasinewton<T>::m; i++){
     pvectorbackup[i] = t_double(pvector[i]);
@@ -1359,15 +1366,17 @@ void LBFGSB<T>::nextIterationPrepare(){
   // Assign Lmatrix to Mmatrix
   Mmatrix.insertMatrix(currentm, 0, 2 * currentm - 1, currentm - 1, Lmatrix);
   // Assign the S^TS matrix
-  
+  listitsc = Scontainer.begin();  
+
   Matrix<double> Smatrix(currentm, currentm);
   for (int i = 0; i < currentm; i++){
     for(int j = 0; j <= i; j++){
       T mytemp = 0.0;
       for(int k = 0; k < quasinewton<T>::n; k++)
-	mytemp = mytemp + t_double(Scontainer[i].at(k) * Scontainer[i].at(k));
+	mytemp = mytemp + t_double((*listitsc).at(k) * (*listitsc).at(k));
       Smatrix(i, j) = t_double(theta * mytemp);
     }
+    ++listitsc;
   }
   
   Mmatrix.insertMatrix(currentm, currentm, 2 * currentm - 1, 2 * currentm - 1, Smatrix);
@@ -1468,13 +1477,21 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   int k = 0;
   Matrix<double> Wmatrix(quasinewton<T>::n, 2 * mnow);
   // Assign values to Wmatrix
+  typename std::list<std::vector<T>>::iterator listityc, listitsc;
+
+  listitsc = Scontainer.begin();
+  listityc = Ycontainer.begin();
+  double tempdob;
   for(int i = 0; i < quasinewton<T>::n; i++){
     for(int j = 0; j < mnow; j++){
       // Fill W two positions at a time
-      Wmatrix(i, j) = Ycontainer[i].at(mnow - j - 1);
+      tempdob = t_double((*listityc).at(static_cast<unsigned>(mnow - j - 1)));
+      Wmatrix(i, j) = tempdob;
       k = j + mnow;
-      Wmatrix(i, k) = theta * Scontainer[i].at(mnow - j - 1);
+      Wmatrix(i, k) = theta * t_double((*listitsc).at(static_cast<unsigned>(mnow - j - 1)));
     }
+    ++listitsc;
+    ++listityc;
   }
   
   // Form Matrix redgrad: eq. (5.4)
