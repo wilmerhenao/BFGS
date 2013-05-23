@@ -339,17 +339,16 @@ BFGS<T>::BFGS(T*& x0, T*& fopt0, int& n0,  T& taud0,
 	      double*& u0, double*& l0):
   quasinewton<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
 		 echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
-  mHdouble(quasinewton<T>::n, quasinewton<T>::n), mBdouble(quasinewton<T>::n, 
-							   quasinewton<T>::n){
-  quasinewton<T>::n1 = quasinewton<T>::n;
-  quasinewton<T>::n2 = quasinewton<T>::n * quasinewton<T>::n;
+  mHdouble(n0, n0), mBdouble(n0, n0){
+  quasinewton<T>::n1 = n0;
+  quasinewton<T>::n2 = n0 * n0;
   quasinewton<T>::nm = 1;
   quasinewton<T>::m1 = 1; // on LBFGS this variable is m (the history)
   q = new T[quasinewton<T>::n1];
   H = new T[quasinewton<T>::n2];
   B = new T[quasinewton<T>::n2];
-  Hdouble = new double[quasinewton<T>::n * quasinewton<T>::n];
-  Bdouble = new double[quasinewton<T>::n * quasinewton<T>::n];
+  Hdouble = new double[n0 * n0];
+  Bdouble = new double[n0 * n0];
 }
 
 template<typename T>
@@ -438,17 +437,17 @@ BFGSB<T>::BFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
 		double*& u0, double*&l0):
   BFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
 	  echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0), 
-  mZ(quasinewton<T>::n, 1), mdi(quasinewton<T>::n, 1){
+  mZ(n0, 1), mdi(n0, 1){
   alpha0 = adouble = oldtj = deltatj = fppj = fpj = tj = dtstar = tstar = 0.0;
   yTrans = 'T'; nTrans = 'N';
   alpha = 1.0; beta = 0.0;
-  ndouble = quasinewton<T>::n;
+  ndouble = n0;
   one = 1;
-  di = new double[quasinewton<T>::n];
-  z = new double[quasinewton<T>::n];
-  C = new double[quasinewton<T>::n];
-  dnsize = new double[quasinewton<T>::n];
-  for(int _i = 0; _i < quasinewton<T>::n; _i++){
+  di = new double[n0];
+  z = new double[n0];
+  C = new double[n0];
+  dnsize = new double[n0];
+  for(int _i = 0; _i < n0; _i++){
     z[_i] = 0.0;
     di[_i] = 0.0;
     C[_i] = 0.0;
@@ -527,15 +526,15 @@ void BFGSB<T>::zeroethstep(){
   // (at least those with non-zero values in the gradient)
   // given that nothing will hit the boundary (until you hit the boundary corresponding
   // to dimension 'b' of course.
-  for(int _i = 0; _i < quasinewton<T>::n; _i++){
+  /*for(int _i = 0; _i < quasinewton<T>::n; _i++){
     quasinewton<T>::xcauchy[_i] = (t_double(quasinewton<T>::x[_i]) - 
-				   tj * t_double(quasinewton<T>::g[_i]));
+				   0.0 * t_double(quasinewton<T>::g[_i]));
     z[_i] = t_double(quasinewton<T>::xcauchy[_i] - quasinewton<T>::x[_i]);
   }
   
   Matrix<double> temp(z, quasinewton<T>::n, 1);
   mZ = temp;
-  
+  */
   // Create di but Update new d_i coordinate.  this step it is basically just -gradient
   // This is from formula (4.2) in the paper
   for(int i = 0; i < quasinewton<T>::n; i++){
@@ -548,7 +547,7 @@ void BFGSB<T>::zeroethstep(){
   lapackzerostep();
   FLAG();
   // Prepare everything for the next iteration
-  nextIterationPrepare();
+  //nextIterationPrepare();
   FLAG();  
   // check if I can finish now and graciously leave if that's the case.
   if (tstar < tj){
@@ -557,7 +556,7 @@ void BFGSB<T>::zeroethstep(){
       this->thisIterationConverged = true; // you found the generalized cauchy point
       tj = tstar;
       for(int i = 0; i < quasinewton<T>::n; i++){
-	  this->xcauchy[i] = this->xcauchy[i] - (tj - dtstar) * mdi(i); //stp bck a ltl
+	this->xcauchy[i] = this->xcauchy[i] + (tstar) * mdi(i); //stp bck a ltl
       }
     }
   }
@@ -679,14 +678,15 @@ void BFGSB<T>::updatec(int aa){
 
 template<typename T>
 void BFGSB<T>::findGeneralizedCauchyPoint(){
-  iter++;  // this is a class member.  Starts at t_1 and the first time it moves to t_2
-  for(; iter != quasinewton<T>::bpmemory.end(); iter++){
+  // this is a class member.  Starts at t_1 and the first time it moves to t_2
+  for(iter = quasinewton<T>::bpmemory.begin(); 
+      iter != quasinewton<T>::bpmemory.end(); iter++){
     tj = t_double(iter->first);
     b = iter->second;
     deltatj = tj - oldtj;
-
+    
     SHOW(deltatj);
-
+    
     // update xcauchy and update the new z (the array, not the Matrix<double>)
     T addDeviations = 0.0;
     FLAG();
@@ -1140,16 +1140,16 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
   //LBFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
   //	   echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
   mY(n0, m0), mS(n0, m0), Mmatrix(2 * m0, 2 * m0), mc(2 * m0, 1){
-  quasinewton<T>::nm = quasinewton<T>::n * quasinewton<T>::m;
-  quasinewton<T>::m1 = quasinewton<T>::m;
-  c =  new double[2 * quasinewton<T>::n]; // WARNING! THIS IS A STRANGE DIMENSION NUMBER
-  pvector =  new double[2 * quasinewton<T>::m];
-  pvectorbackup =  new double[2 * quasinewton<T>::m];
+  quasinewton<T>::nm = n0 * m0;
+  quasinewton<T>::m1 = m0;
+  c =  new double[2 * m0]; 
+  pvector =  new double[2 * m0];
+  pvectorbackup =  new double[2 * m0];
   theta = 1.0;
   index = 0;
   currentm = 0;
   int i;
-  for(i = 0; i < (2 * quasinewton<T>::n); i++){
+  for(i = 0; i < (2 * n0); i++){
     c[i] = 0.0;
   }
 }
@@ -1193,14 +1193,13 @@ void LBFGSB<T>::lapackzerostep(){
   // While the matrices have dimension n x m.  I only pass here the first dimension
   // for the multiplication
   
-  //p is initialized to -g (the paper is wrong saying p = W^Td.We still don't have W  
   vcopyp<T>(quasinewton<T>::p, quasinewton<T>::g, -1.0, quasinewton<T>::n);
   
   BFGSB<T>::fpj = t_double(veciptdd<T>(quasinewton<T>::g, BFGSB<T>::di, 
 				    quasinewton<T>::n));
-  BFGSB<T>::fppj = t_double(-theta * BFGSB<T>::fpj - vecip<T>(quasinewton<T>::p, 
-							      quasinewton<T>::p, 
-							      quasinewton<T>::n));
+  BFGSB<T>::fppj = t_double(-theta * BFGSB<T>::fpj);// - vecip<T>(quasinewton<T>::p, 
+						    //	      quasinewton<T>::p, 
+						    //	      quasinewton<T>::n));
   BFGSB<T>::tstarcalculation();
 }
 
@@ -1242,6 +1241,8 @@ void LBFGSB<T>::lapackmanipulations(){
 			   squareFormwithPadding(mwbt, Mmatrix, mc, 2 * 
 						 quasinewton<T>::m));
   FLAG();
+  squareFormwithPadding(mwbt, Mmatrix, mpvector, 2 * quasinewton<T>::m);
+  FLAG();
   BFGSB<T>::fppj = t_double(BFGSB<T>::fppj - theta * quasinewton<T>::g[BFGSB<T>::b] * 
 			    quasinewton<T>::g[BFGSB<T>::b] - 2 * 
 			    quasinewton<T>::g[BFGSB<T>::b] * 
@@ -1269,7 +1270,7 @@ void LBFGSB<T>::nextIterationPrepare(){
     3) find new s and y vectors and add them to the Y and S container lists
     4) Create the matrix 'M' from the paper
   */
-
+  
   // the next 3 lines don't matter when calling from prepareNextMainLoop because every
   // thing will be overwritten
   FLAG();
@@ -1281,14 +1282,15 @@ void LBFGSB<T>::nextIterationPrepare(){
   // Update Sk, Yk and for Wk
   
   // updating s and y in this step
-  vcopyp<T>(quasinewton<T>::s, quasinewton<T>::x, -1.0, quasinewton<T>::n);
+  vcopyp<T>(quasinewton<T>::s, quasinewton<T>::xcauchy, -1.0, quasinewton<T>::n);
   vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
   
   for(int __i = 0; __i < quasinewton<T>::n; __i++){
     // Update the new position of xcauchy.  Notice that we only need to do this
     // update in case that we haven't found an optimal tstar.  So we are allowed to
     // use the whole of deltatj as opposed to dtstar
-    quasinewton<T>::xcauchy[__i] += BFGSB<T>::deltatj * BFGSB<T>::di[__i];
+    quasinewton<T>::xcauchy[__i] = quasinewton<T>::xcauchy[__i] + 
+      BFGSB<T>::deltatj * BFGSB<T>::di[__i];
   }
   
   // Update the value of the function
@@ -1304,7 +1306,7 @@ void LBFGSB<T>::nextIterationPrepare(){
 			       quasinewton<T>::xtemp, quasinewton<T>::n);
   delete [] quasinewton<T>::xtemp;
 
-  vpv<T>(quasinewton<T>::s, quasinewton<T>::x, 1.0, quasinewton<T>::n);
+  vpv<T>(quasinewton<T>::s, quasinewton<T>::xcauchy, 1.0, quasinewton<T>::n);
   vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1.0, quasinewton<T>::n);
   FLAG();
   // next step is to update s and y inside column index in the matrices
@@ -1503,7 +1505,11 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   for(int i = 0; i < quasinewton<T>::n; i++){
     for(int j = 0; j < mnow; j++){
       // Fill W two positions at a time
-      tempdob = t_double((*listityc).at(static_cast<unsigned>(mnow - j - 1)));
+      FLAG();
+      unsigned tempor = static_cast<unsigned>(mnow - j - 1);
+      SHOW(tempor);
+      std::cout << i << "Y container size: " << Ycontainer.size() << std::endl;
+      tempdob = t_double((*listityc).at(tempor));
       FLAG();
       Wmatrix(i, j) = tempdob;
       FLAG();
@@ -1513,8 +1519,10 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
       FLAG();
     }
     FLAG();
-    ++listitsc;
-    ++listityc;
+    if(listityc != Ycontainer.end()){
+      ++listitsc;
+      ++listityc;
+    }
     FLAG();
   }
   FLAG();
