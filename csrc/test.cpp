@@ -56,7 +56,7 @@ int main(int argc, char *argv[]){
     std::cerr<<"You have called this function with too many parameters "<<std::endl;
     printhowtodoit();
   }
-
+  
   unsigned int old_cw;
   fpu_fix_start(&old_cw);
   
@@ -81,8 +81,8 @@ int main(int argc, char *argv[]){
   algoparameters<dd_real> * dd_realparameters;
   algoparameters<dd_real> * dd_realparLBFGS;
   try{
-    doubleparameters =  new algoparameters<double>(ninitial, str, strout, 0);
-    dd_realparameters =  new algoparameters<dd_real>(ninitial, str, strout, 0);
+    doubleparameters = new algoparameters<double>(ninitial, str, strout, 0);
+    dd_realparameters = new algoparameters<dd_real>(ninitial, str, strout, 0);
     dd_realparLBFGS = new algoparameters<dd_real>(ninitial, str, strout, 1);
   } catch(std::bad_alloc& ex){
     std::cerr << "Problem allocating memory in the stack" << ex.what() << std::endl;
@@ -113,21 +113,24 @@ int main(int argc, char *argv[]){
     assert(false);
   }
   
-  // This is for simple bounded problems.
+  // This is for simple bounded problems.  Definition of the border
   
   double * u = new double[static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ];
   double * l = new double[static_cast<unsigned>(strtoul(argv[2], NULL, 0)) ];
   // dummy initialization just to have something to work with...
   for(int counter = 0; counter < static_cast<int>(strtoul(argv[2], NULL, 0)) ;
       counter++){
-    u[counter] = 3.0; l[counter] = -3.0;
+    u[counter] = 3.0; l[counter] = 1.0;
   }
-
-  l[0] = 1.0;
+  
+  l[0] = -2.0;
+  l[3] = -2.0;
+  
+  // Declaration of the problem
   
   algoparameters<double> * constrainedproblem;
   try{
-    constrainedproblem = new algoparameters<double>(ninitial, str, strout, 0, u, l);
+    constrainedproblem = new algoparameters<double>(ninitial, str, strout, 1, u, l);
   } catch(std::exception ex) {
     std::cerr << "Problem assigning memory to constrained" << ex.what() << std::endl;
     assert(false);

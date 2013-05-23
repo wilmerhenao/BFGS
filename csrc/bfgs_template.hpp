@@ -514,7 +514,7 @@ void BFGSB<T>::zeroethstep(){
   
   // the first iter.  Will contain the information of the time when we first hit the 
   // boundary
-  FLAG();
+
   iter = quasinewton<T>::bpmemory.begin();
   b = iter->second;
   deltatj = t_double(iter->first); // Change from zero.  "time" to first boundary
@@ -546,10 +546,10 @@ void BFGSB<T>::zeroethstep(){
   
   // Run lapack intensive calculations
   lapackzerostep();
-  
+  FLAG();
   // Prepare everything for the next iteration
   nextIterationPrepare();
-  
+  FLAG();  
   // check if I can finish now and graciously leave if that's the case.
   if (tstar < tj){
     if (tstar > 0){
@@ -561,6 +561,7 @@ void BFGSB<T>::zeroethstep(){
       }
     }
   }
+  FLAG();
 }
 
 template<typename T>
@@ -698,9 +699,9 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
     // Create Matrix<double> material
     Matrix<double> temp(z, quasinewton<T>::n, 1);
     mZ = temp;
-    
+    FLAG();
     lapackmanipulations();
-    
+    FLAG();
     if (tstar >= oldtj){
       if (tstar <= tj){
 	std::cout << "found optimal cauchy point." << std::endl;
@@ -712,22 +713,27 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
 	return;
       }
     }
-    SHOW(addDeviations)
+    FLAG();
+    SHOW(addDeviations);
+    FLAG();
     if ((fpj >= 0) && (addDeviations > quasinewton<T>::taud)){
       std::cout << "the sum of deviations is: " << addDeviations << std::endl;
       std::cout << "found optimal cauchy point exactly at a breakpoint." << std::endl;
       tstar = oldtj;
+      FLAG();
       this->thisIterationConverged = true;
       for(int i = 0; i < quasinewton<T>::n; i++){
 	this->xcauchy[i] = this->xcauchy[i] - (tj - oldtj) * mdi(i); // previous 
 	                                                       // xcauchy was 
 	                                                       // the right point 
       }
+      FLAG();
       return;
     }
+    FLAG();
     nextIterationPrepare();
   }
-  
+  FLAG();
   // In case nothing was found.  Return the last point
   tstar = tj;
   /*
@@ -980,10 +986,11 @@ void BFGSB<T>::mainloop(){
   // Only continue if this iteration has not converged
   if(!this->thisIterationConverged)
     findGeneralizedCauchyPoint(); // If this function converges inside it has to exit
+  FLAG();
   PRINTARRAY(quasinewton<T>::xcauchy, quasinewton<T>::n, 1);
   // Beginning of the optimization part
   findMinimum2ndApproximation();
-  
+  FLAG();
   prepareNextMainLoop();
   exitSignalHandling();
   
@@ -1132,8 +1139,7 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
   	   echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
   //LBFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
   //	   echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
-  mY(quasinewton<T>::n, quasinewton<T>::m), mS(quasinewton<T>::n, quasinewton<T>::m),
-  Mmatrix(2 * quasinewton<T>::m, 2 * quasinewton<T>::m), mc(2 * quasinewton<T>::m, 1){
+  mY(n0, m0), mS(n0, m0), Mmatrix(2 * m0, 2 * m0), mc(2 * m0, 1){
   quasinewton<T>::nm = quasinewton<T>::n * quasinewton<T>::m;
   quasinewton<T>::m1 = quasinewton<T>::m;
   c =  new double[2 * quasinewton<T>::n]; // WARNING! THIS IS A STRANGE DIMENSION NUMBER
@@ -1227,13 +1233,15 @@ void LBFGSB<T>::lapackmanipulations(){
   }
   
   Matrix<double> mpvector(pvector, 2 * quasinewton<T>::m, 1);
-  
+  FLAG();
   Matrix<double> mwbt(wbt, 2 * currentm, 1);
   BFGSB<T>::fpj = t_double(BFGSB<T>::fpj + BFGSB<T>::deltatj * BFGSB<T>::fppj + 
-			   quasinewton<T>::g[BFGSB<T>::b] * quasinewton<T>::g[BFGSB<T>::b] + theta * 
+			   quasinewton<T>::g[BFGSB<T>::b] * 
+			   quasinewton<T>::g[BFGSB<T>::b] + theta * 
 			   quasinewton<T>::g[BFGSB<T>::b] * BFGSB<T>::z[BFGSB<T>::b] - 
-			   squareFormwithPadding(mwbt, Mmatrix, mc, 2 * quasinewton<T>::m));
-  
+			   squareFormwithPadding(mwbt, Mmatrix, mc, 2 * 
+						 quasinewton<T>::m));
+  FLAG();
   BFGSB<T>::fppj = t_double(BFGSB<T>::fppj - theta * quasinewton<T>::g[BFGSB<T>::b] * 
 			    quasinewton<T>::g[BFGSB<T>::b] - 2 * 
 			    quasinewton<T>::g[BFGSB<T>::b] * 
@@ -1243,7 +1251,7 @@ void LBFGSB<T>::lapackmanipulations(){
 			    quasinewton<T>::g[BFGSB<T>::b] * 
 			    squareFormwithPadding(mwbt, Mmatrix, mwbt, 
 						  2 * quasinewton<T>::m));
-  
+  FLAG();
   for(int i = 0; i < 2 * quasinewton<T>::m; i++){
     pvectorbackup[i] = t_double(pvector[i]);
     pvector[i] = pvector[i] + t_double(quasinewton<T>::g[BFGSB<T>::b] * wbt[i]);
@@ -1264,6 +1272,7 @@ void LBFGSB<T>::nextIterationPrepare(){
 
   // the next 3 lines don't matter when calling from prepareNextMainLoop because every
   // thing will be overwritten
+  FLAG();
   BFGSB<T>::update_d();
   quasinewton<T>::freeVariable[BFGSB<T>::b] = false;
   BFGSB<T>::oldtj = BFGSB<T>::tj; // Because the next iteration tj will move one step to the front
@@ -1297,7 +1306,7 @@ void LBFGSB<T>::nextIterationPrepare(){
 
   vpv<T>(quasinewton<T>::s, quasinewton<T>::x, 1.0, quasinewton<T>::n);
   vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1.0, quasinewton<T>::n);
-  
+  FLAG();
   // next step is to update s and y inside column index in the matrices
   std::vector<T> svector(quasinewton<T>::s, quasinewton<T>::s + 
 			 sizeof(quasinewton<T>::s) / 
@@ -1316,7 +1325,7 @@ void LBFGSB<T>::nextIterationPrepare(){
     (*listityc).push_back(quasinewton<T>::y[i]);
     (*listitsc).push_back(quasinewton<T>::s[i]);
   }
-  
+  FLAG();
   // if the number of elements is already larger than the limit.  Delete the oldest
   if((unsigned)quasinewton<T>::m < Ycontainer.size()){
     Ycontainer.pop_back();
@@ -1346,7 +1355,7 @@ void LBFGSB<T>::nextIterationPrepare(){
     ++revlistitsc;
     Mmatrix(i, i) = -t_double(tempval);
   }
-  
+  FLAG();
   // Assign the L matrix
   Matrix<double> Lmatrix(currentm, currentm);
   revlistityc = Ycontainer.rbegin();
@@ -1364,9 +1373,10 @@ void LBFGSB<T>::nextIterationPrepare(){
       Lmatrix(i, j) = t_double(mytemp);
     }
   }
-  
+  FLAG();
   // Assign Lmatrix to Mmatrix
   Mmatrix.insertMatrix(currentm, 0, 2 * currentm - 1, currentm - 1, Lmatrix);
+  FLAG();
   // Assign the S^TS matrix
   listitsc = Scontainer.begin();  
 
@@ -1381,18 +1391,21 @@ void LBFGSB<T>::nextIterationPrepare(){
     }
     ++listitsc;
   }
-  
+  FLAG();
   Mmatrix.insertMatrix(currentm, currentm, 2 * currentm - 1, 2 * currentm - 1, Smatrix);
-  
+  FLAG();
   // Reflect the matrix across the diagonal
   for(int i = 0; i < 2* currentm; i++){
     for(int j = i; j < 2 * currentm; j++){
       Mmatrix(i, j) = Mmatrix(j, i);
     }
   }
-  
+  FLAG();
   // Calculate the inverse.
+  Mmatrix.print();
   Mmatrix.matrixInverse();
+  Mmatrix.print();
+  FLAG();
 }
 
 template<typename T>
@@ -1439,6 +1452,7 @@ template<typename T>
 void LBFGSB<T>::findMinimum2ndApproximation(){
   // Assuming xcauchy has been correctly found.  This function runs a minimization of
   // the quadratic approximation to the goal function
+  FLAG();
   int numfree = 0; // number of free variables
   BFGSB<T>::b = 0;
   double * ZfM2, * r, * dx;
@@ -1481,22 +1495,29 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   Matrix<double> Wmatrix(quasinewton<T>::n, 2 * mnow);
   // Assign values to Wmatrix
   typename std::list<std::vector<T>>::iterator listityc, listitsc;
-
+  FLAG();
   listitsc = Scontainer.begin();
   listityc = Ycontainer.begin();
   double tempdob;
+  FLAG();
   for(int i = 0; i < quasinewton<T>::n; i++){
     for(int j = 0; j < mnow; j++){
       // Fill W two positions at a time
       tempdob = t_double((*listityc).at(static_cast<unsigned>(mnow - j - 1)));
+      FLAG();
       Wmatrix(i, j) = tempdob;
+      FLAG();
       k = j + mnow;
-      Wmatrix(i, k) = theta * t_double((*listitsc).at(static_cast<unsigned>(mnow - j - 1)));
+      Wmatrix(i, k) = theta * 
+	t_double((*listitsc).at(static_cast<unsigned>(mnow - j - 1)));
+      FLAG();
     }
+    FLAG();
     ++listitsc;
     ++listityc;
+    FLAG();
   }
-  
+  FLAG();
   // Form Matrix redgrad: eq. (5.4)
   // First of all calculate (reduced gradient helper) redgrad as WM:
   Matrix<double> redgrad(quasinewton<T>::n, 2 * mnow);
@@ -1507,7 +1528,7 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   // notice that in the LBFGSB case I represent B as (\theta - WM) instead.
   for(int i = 0; i < quasinewton<T>::n; i++)
     dx[i] = theta * t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
-  
+  FLAG();
   Matrix<double> mdx(dx, quasinewton<T>::n, 1);
   Matrix<double> redgrad2(quasinewton<T>::n, 1);
   matrixMultiply(redgrad, mc, redgrad2); // Result kept in mC 
@@ -1517,7 +1538,7 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
     Cvec[i] = t_double(quasinewton<T>::g[i]) + mdx(i, uno) - redgrad2(i, uno);
   }
   r = new double[numfree];
-  // FLAG();
+  FLAG();
   // PRINTARRAY(ZfM2, quasinewton<T>::n, numfree);
   Matrix<double> mZfM2(ZfM2, quasinewton<T>::n, numfree);
   Matrix<double> mmC(Cvec, quasinewton<T>::n, 1);
@@ -1538,6 +1559,7 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   Matrix<double> vfinal(2 * mnow, 1);
   matrixMultiplywithPadding(Mmatrix, vmatrix, vfinal, 'N', 'N', quasinewton<T>::m, 
 			    2 * mnow, 2 * mnow);
+  FLAG();
   // Step 4: Form N = (I - 1/theta * MW^TZZ^TW)
   // step 4.a Z^TW
   Matrix<double> ztw(numfree, 2 * mnow);
@@ -1732,6 +1754,7 @@ void bfgs(T*& x, T*& fopt, int& n, short& lm, int& m, T& ftarget,
       BFGSB<T>* mylbfgs;
       mylbfgs = new LBFGSB<T>(x, fopt, n, taud, testFunction, output, ftarget,gnormtol, 
 			   maxit, echo, lm, outputname, m, gradientsamplingN0, u0, l0);
+      //std::cout << "Hola LBFGSB" << std::endl;
       mylbfgs->runallsteps();
       delete mylbfgs;
     } else{

@@ -53,8 +53,12 @@ public:
   ~Matrix();
   void setM(int);
   void setN(int);
+  // Don't get confused here.  getM stands for m:  The number of steps to keep in memory
+  // for LBFGS
   int getM(){return n;}
+  // Don't get confused here.  getN stands for n:  The number of variables
   int getN(){return m;}
+  void printpotentialM(){std::cout << "dimensions: "<< potentialN << " "<< n << std::endl;}
   void insertColumn(T*& , int);
   void initializeToZero();
   bool isSquare();
@@ -97,10 +101,24 @@ Matrix<T>::Matrix(Matrix<T>& other){
     matrix[i] = other(i);
   }
   potentialN = n;
+  potentialM = m;
   fullMatrix = false;
 }
 
-// 2 integer constructor
+// 2 integer constructor.  Initialize to zeroes
+template<typename T>
+Matrix<T>::Matrix(int m0, int n0):m(m0), n(n0), potentialM(m0), potentialN(n0){
+  if (0 >= m || 0 >= n){
+    std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
+    std::cerr << "m: " << m << " n:" << n << std::endl;
+  }
+  matrix = new T[m * n];
+  for(int i = 0; i < m * n; i++){
+    matrix[i] = 0;
+  }
+}
+
+// 2 integer constructor with data
 template<typename T>
 Matrix<T>::Matrix(T* A, int m0, int n0):m(m0), n(n0), potentialM(m0), 
 					potentialN(n0){
@@ -161,13 +179,13 @@ void Matrix<T>::print(){
 
 template<typename T>
 void Matrix<T>::insertMatrix(int i, int j, int ii, int jj, Matrix<T>& V){
-/*
-In this function I take a vector and insert it in the position indicated by the
-integers
-*/
-
+  /*
+    In this function I take a vector and insert it in the position indicated by the
+    integers.  The position indicated by the integers are the submatrix indicated by 
+    (i,j) x (ii, jj)
+  */
   // perform some checks
-  if((jj - j) * (i * ii) != V.getM() * V.getN()){
+  if((jj - j) * (ii - i) != (V.getM() - 1) * (V.getN() - 1)){
     std::cout << "wrong dimensions in insertMatrix procedure" << std::endl;
   }
   int counter = 0;
@@ -248,18 +266,6 @@ template<typename T>
 Matrix<T>::Matrix():m(1), n(1){
   matrix = new T[1];
   matrix[0] = 0.0;
-}
-// Initialize to zeroes
-template<typename T>
-Matrix<T>::Matrix(int m0, int n0):m(m0), n(n0){
-  if (0 >= m || 0 >= n){
-    std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
-    std::cerr << "m: " << m << " n:" << n << std::endl;
-  }
-  matrix = new T[m * n];
-  for(int i = 0; i < m * n; i++){
-    matrix[i] = 0;
-  }
 }
 
 template<typename T>
@@ -405,7 +411,7 @@ void matrixMultiplywithPadding(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C,
   } else{
     n0 = B.m;
   }
-  
+  std::cout << "padding A: " << paddingA << std::endl;
   dgemm_(&transA, &transB, &m0, &n0, &k0, &alpha, A.matrix, &paddingA, B.matrix, 
 	 &paddingB, &beta, C.matrix, &paddingC);
 }
@@ -535,8 +541,9 @@ T squareFormwithPadding(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C, int sizepad)
   Matrix<T> finalresult(1, 1);
   int posit = 0;
   T squareFormResult;
-
-  matrixMultiplywithPadding(A, B, temp, 'T', 'N', A.getM(), sizepad, B.getN());
+  FLAG();
+  matrixMultiplywithPadding(A, B, temp, 'T', 'N', sizepad, sizepad, sizepad);
+  FLAG();
   matrixMultiply(temp, C, finalresult, 'N', 'N');
   squareFormResult = finalresult(posit);
 
@@ -572,7 +579,7 @@ void Matrix<T>::matrixInverse(){
   double* WORK = new double[LWORK];
   int* IPIV = new int[m];
   int INFO;
-
+  std::cout << potN << std::endl;
   dgetri_(&N, matrix, &potN, IPIV, WORK, &LWORK, &INFO);
 
 }
