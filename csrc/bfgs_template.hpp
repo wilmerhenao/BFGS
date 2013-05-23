@@ -1339,7 +1339,8 @@ void LBFGSB<T>::nextIterationPrepare(){
     T tempval = 0.0;
     //calculate the dot product Ycontainer[i] * Scontainer[i]
     for(int j = 0; j < quasinewton<T>::n; j++){
-      tempval = tempval + (*revlistityc).at(j) * (*revlistitsc).at(j);
+      tempval = tempval + (*revlistityc).at(static_cast<unsigned>(j)) * 
+	(*revlistitsc).at(static_cast<unsigned>(j));
     }
     ++revlistityc;
     ++revlistitsc;
@@ -1355,7 +1356,8 @@ void LBFGSB<T>::nextIterationPrepare(){
       T mytemp = 0.0;
       for(int k = 0; k < quasinewton<T>::n; k++){
 	// WARNING! Review these.  what if there's not enough history?
-	mytemp = mytemp + (*revlistitsc).at(k) * (*revlistityc).at(k);
+	mytemp = mytemp + (*revlistitsc).at(static_cast<unsigned>(k)) * 
+	  (*revlistityc).at(static_cast<unsigned>(k));
       }
       ++revlistityc;
       ++revlistitsc;
@@ -1373,7 +1375,8 @@ void LBFGSB<T>::nextIterationPrepare(){
     for(int j = 0; j <= i; j++){
       T mytemp = 0.0;
       for(int k = 0; k < quasinewton<T>::n; k++)
-	mytemp = mytemp + t_double((*listitsc).at(k) * (*listitsc).at(k));
+	mytemp = mytemp + t_double((*listitsc).at(static_cast<unsigned>(k)) * 
+				   (*listitsc).at(static_cast<unsigned>(k)));
       Smatrix(i, j) = t_double(theta * mytemp);
     }
     ++listitsc;
