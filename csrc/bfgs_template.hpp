@@ -685,23 +685,23 @@ void BFGSB<T>::findGeneralizedCauchyPoint(){
     b = iter->second;
     deltatj = tj - oldtj;
     
-    SHOW(deltatj);
+    //SHOW(deltatj);
     
     // update xcauchy and update the new z (the array, not the Matrix<double>)
     T addDeviations = 0.0;
-    FLAG();
-    PRINTARRAY(quasinewton<T>::xcauchy, quasinewton<T>::n, 1);
+    //FLAG();
+    //PRINTARRAY(quasinewton<T>::xcauchy, quasinewton<T>::n, 1);
     for(int i = 0; i < quasinewton<T>::n; i++){
       addDeviations = addDeviations + std::abs(deltatj * di[i]);
-      findXCauchymX(i);
+      //findXCauchymX(i);
     }
     PRINTARRAY(quasinewton<T>::xcauchy, quasinewton<T>::n, 1);
     // Create Matrix<double> material
-    Matrix<double> temp(z, quasinewton<T>::n, 1);
-    mZ = temp;
-    FLAG();
+    //Matrix<double> temp(z, quasinewton<T>::n, 1);
+    //mZ = temp;
+    //FLAG();
     lapackmanipulations();
-    FLAG();
+    //FLAG();
     if (tstar >= oldtj){
       if (tstar <= tj){
 	std::cout << "found optimal cauchy point." << std::endl;
@@ -1113,6 +1113,7 @@ public:
 	 std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
 	 int&, double*&, double*&);
   virtual ~LBFGSB();
+  virtual void findGeneralizedCauchyPoint();
   virtual void createDoubleHandDoubleB();
   virtual void lapackzerostep();
   virtual void nextIterationPrepare();
@@ -1209,6 +1210,71 @@ void LBFGSB<T>::updatec(int i){
 }
 
 template<typename T>
+void LBFGSB<T>::findGeneralizedCauchyPoint(){
+  // this is a class member.  Starts at t_1 and the first time it moves to t_2
+  for(BFGSB<T>::iter = quasinewton<T>::bpmemory.begin(); 
+      BFGSB<T>::iter != quasinewton<T>::bpmemory.end(); BFGSB<T>::iter++){
+    
+    BFGSB<T>::tj = t_double(BFGSB<T>::iter->first);
+    BFGSB<T>::b = BFGSB<T>::iter->second;
+    BFGSB<T>::deltatj = BFGSB<T>::tj - BFGSB<T>::oldtj;
+    BFGSB<T>::oldtj = BFGSB<T>::tj; //Because the next iteration tj will move one step 
+                                    // to the front
+    // addDeviations is only for a checkup later to see that this actually moved
+    T addDeviations = 0.0;
+    for(int i = 0; i < quasinewton<T>::n; i++){
+      addDeviations = addDeviations + std::abs(BFGSB<T>::deltatj * BFGSB<T>::di[i]);
+    }
+    nextIterationPrepare();
+    lapackmanipulations();
+    
+    if (BFGSB<T>::tstar >= BFGSB<T>::oldtj){
+      if (BFGSB<T>::tstar <= BFGSB<T>::tj){
+	std::cout << "found optimal cauchy point." << std::endl;
+	this->thisIterationConverged = true;
+	for(int i = 0; i < quasinewton<T>::n; i++){
+	  this->xcauchy[i] = this->xcauchy[i] - (BFGSB<T>::tj - BFGSB<T>::dtstar) * 
+	    BFGSB<T>::mdi(i);//stpbck a lttl
+	  updatec(i);
+	}
+	return;
+      }
+    }
+    FLAG();
+    SHOW(addDeviations);
+    FLAG();
+    if ((BFGSB<T>::fpj >= 0) && (addDeviations > quasinewton<T>::taud)){
+      std::cout << "the sum of deviations is: " << addDeviations << std::endl;
+      std::cout << "found optimal cauchy point exactly at a breakpoint." << std::endl;
+      BFGSB<T>::tstar = BFGSB<T>::oldtj;
+      FLAG();
+      this->thisIterationConverged = true;
+      for(int i = 0; i < quasinewton<T>::n; i++){
+	this->xcauchy[i] = this->xcauchy[i] - (BFGSB<T>::tj - BFGSB<T>::oldtj) * 
+	  BFGSB<T>::mdi(i); // previous 
+	// xcauchy was 
+	// the right point 
+      }
+      FLAG();
+      return;
+    }
+    FLAG();
+    PRINTARRAY(quasinewton<T>::xcauchy, quasinewton<T>::n, 1);
+  }
+  FLAG();
+  // In case nothing was found.  Return the last point
+  BFGSB<T>::tstar = BFGSB<T>::tj;
+  /*
+    for(int i = 0; i < quasinewton<T>::n; i++){
+    this->x[i] = this->xcauchy[i];// previous xcauchy was
+    // the right point
+    }*/
+  // I still need to implement the last segment to locate xcauchy correctly.
+  std::cout<< "exiting after finding generalized cauchy point (not optimal)"<<std::endl;
+  std::cout << "You are in a corner at this point" << std::endl;
+}
+
+template<typename T>
 void LBFGSB<T>::lapackmanipulations(){
   int uno = 1;
   for(int i = 0; i < 2 * quasinewton<T>::m; i++){
@@ -1241,7 +1307,7 @@ void LBFGSB<T>::lapackmanipulations(){
 			   squareFormwithPadding(mwbt, Mmatrix, mc, 2 * 
 						 quasinewton<T>::m));
   FLAG();
-  squareFormwithPadding(mwbt, Mmatrix, mpvector, 2 * quasinewton<T>::m);
+  //squareFormwithPadding(mwbt, Mmatrix, mpvector, 2 * quasinewton<T>::m);
   FLAG();
   BFGSB<T>::fppj = t_double(BFGSB<T>::fppj - theta * quasinewton<T>::g[BFGSB<T>::b] * 
 			    quasinewton<T>::g[BFGSB<T>::b] - 2 * 
@@ -1270,21 +1336,12 @@ void LBFGSB<T>::nextIterationPrepare(){
     3) find new s and y vectors and add them to the Y and S container lists
     4) Create the matrix 'M' from the paper
   */
-  
-  // the next 3 lines don't matter when calling from prepareNextMainLoop because every
-  // thing will be overwritten
-  FLAG();
-  BFGSB<T>::update_d();
-  quasinewton<T>::freeVariable[BFGSB<T>::b] = false;
-  BFGSB<T>::oldtj = BFGSB<T>::tj; // Because the next iteration tj will move one step to the front
-  // these were the regular steps for BFGSB  ----------------------------------
-  
+
   // Update Sk, Yk and for Wk
   
   // updating s and y in this step
   vcopyp<T>(quasinewton<T>::s, quasinewton<T>::xcauchy, -1.0, quasinewton<T>::n);
-  vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);
-  
+  vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);  
   for(int __i = 0; __i < quasinewton<T>::n; __i++){
     // Update the new position of xcauchy.  Notice that we only need to do this
     // update in case that we haven't found an optimal tstar.  So we are allowed to
@@ -1292,10 +1349,10 @@ void LBFGSB<T>::nextIterationPrepare(){
     quasinewton<T>::xcauchy[__i] = quasinewton<T>::xcauchy[__i] + 
       BFGSB<T>::deltatj * BFGSB<T>::di[__i];
   }
-  
-  // Update the value of the function
-  
-  //T * xtemp;
+  vpv<T>(quasinewton<T>::s, quasinewton<T>::xcauchy, 1.0, quasinewton<T>::n);
+  vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1.0, quasinewton<T>::n);  
+
+  // Update the value of the function for the new xcauchy position
   quasinewton<T>::xtemp = new T[quasinewton<T>::n];
   
   for(int i = 0; i < quasinewton<T>::n ; i++){
@@ -1306,19 +1363,17 @@ void LBFGSB<T>::nextIterationPrepare(){
 			       quasinewton<T>::xtemp, quasinewton<T>::n);
   delete [] quasinewton<T>::xtemp;
 
-  vpv<T>(quasinewton<T>::s, quasinewton<T>::xcauchy, 1.0, quasinewton<T>::n);
-  vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1.0, quasinewton<T>::n);
-  FLAG();
   // next step is to update s and y inside column index in the matrices
-  std::vector<T> svector(quasinewton<T>::s, quasinewton<T>::s + 
+  /*std::vector<T> svector(quasinewton<T>::s, quasinewton<T>::s + 
 			 sizeof(quasinewton<T>::s) / 
 			 sizeof(quasinewton<T>::s[0]));
   std::vector<T> yvector(quasinewton<T>::y, quasinewton<T>::y + 
 			 sizeof(quasinewton<T>::y) /
-			 sizeof(quasinewton<T>::y[0]));
-  Ycontainer.push_front(std::vector<T>());  // pass svector right away?
+			 sizeof(quasinewton<T>::y[0]));*/
+  
+  Ycontainer.push_front(std::vector<T>());  
   Scontainer.push_front(std::vector<T>());
-
+  
   typename std::list<std::vector<T>>::iterator listityc, listitsc;
   listityc = Ycontainer.begin();
   listitsc = Scontainer.begin();
@@ -1328,6 +1383,15 @@ void LBFGSB<T>::nextIterationPrepare(){
     (*listitsc).push_back(quasinewton<T>::s[i]);
   }
   FLAG();
+  typename std::list<std::vector<T>>::iterator pruebita;
+  pruebita = Ycontainer.begin();
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    std::cout << (*pruebita).at(static_cast<unsigned>(i)) << std::endl;
+  }
+
+
+
+
   // if the number of elements is already larger than the limit.  Delete the oldest
   if((unsigned)quasinewton<T>::m < Ycontainer.size()){
     Ycontainer.pop_back();
@@ -1408,6 +1472,8 @@ void LBFGSB<T>::nextIterationPrepare(){
   Mmatrix.matrixInverse();
   Mmatrix.print();
   FLAG();
+  BFGSB<T>::update_d();
+  quasinewton<T>::freeVariable[BFGSB<T>::b] = false;
 }
 
 template<typename T>
