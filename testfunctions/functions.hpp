@@ -9,6 +9,7 @@
 #include <iostream>
 #include <map>
 #include "../csrc/container.hpp"
+#include "nummatrix.hpp"
 
 template<class T> int chained_CB3v1(T *, T *, T *, int);
 template<class T> int chained_CB3v2(T *, T *, T *, int);
@@ -29,6 +30,7 @@ template<class T> int yurirosen(T *, T *, T *, int);
 template<class T> int parabola(T *, T *, T *, int);
 template<class T> int yurirosen_ns1(T *, T *, T *, int);
 template<class T> int yurirosen_ns2(T *, T *, T *, int);
+template<class T> int randomsq(T*, T*, T*, int);
 
 template<typename T>
 class allfunctions{
@@ -52,6 +54,7 @@ public:
   int (*pparabola)(T *f, T *g, T *x, int n) = &parabola<T>;
   int (*pyurirosen_ns1)(T *f, T *g, T *x, int n) = &yurirosen_ns1<T>;
   int (*pyurirosen_ns2)(T *f, T *g, T *x, int n) = &yurirosen_ns2<T>;
+  int (*prandomsq)(T *f, T *g, T *x, int n) = &randomsq<T>;
   std::map<std::string, int(*)(T*, T*, T*, int), StringComparerForMap> tMap;
   int fillMap();
 };
@@ -77,6 +80,7 @@ int allfunctions<T>::fillMap(){
   tMap["parabola"] = pparabola;
   tMap["yurirosen_ns1"] = pyurirosen_ns1;
   tMap["yurirosen_ns2"] = pyurirosen_ns2;
+  tMap["randomsq"] = prandomsq;
   return 0;
 }
 
@@ -801,6 +805,82 @@ int yurirosen_ns2(T *f, T *g, T *x, int n){
   }
   return 0;
 }
+
+template<class T>
+int randomsq(T *f, T *g, T *x, int n){
+  /*
+    This function recreates XZ^TDZX - B^TX
+  */
+  // Creation of square pos. Definite random matrix
+  int seed = 1;
+  srand(seed);
+  double * Z = new double[10 * 10]; // 10 x 10 matrix
+  double * D = new double[10 * 10]; // 10 x 10 matrix
+  double * B = new double[10];
+  
+  for(int i = 0; i < 10; i++){
+    for(int j = 0; j < 10; j++){
+      Z[i + 10 * j] = (double) rand() / (RAND_MAX);
+      D[i + 10 * j] =0;
+    }
+    D[i + 10 * i] = std::pow(0.5, i);
+    B[i] = (double) rand() / (RAND_MAX);
+  }
+  
+  Matrix<double> mZ(Z, 10, 10);
+  Matrix<double> mD(D, 10, 10);
+  Matrix<double> temp(10, 10);
+  Matrix<double> positiveDefinite(10, 10);
+  
+  matrixMultiply(mZ, D, temp, 'T', 'N');
+  matrixMultiply(temp, mZ, positiveDefinite, 'N', 'N');
+  
+  for(int i = 0; i < 10; i++){
+    finalresult = finalresult - B[i] * x[i];
+  }
+  
+  for (int i = 0; i < n; i++) 
+    g[i] = 0.0;	
+	
+  *f = fabs(1 - x[0]) / 4;	
+  T k;
+  if ((x[0] - 1) > 0) 
+    k = 1;
+  else if ((x[0] - 1) < 0)
+    k = -1;
+  else
+    k = 0.0;
+  g[0] = k / 4;
+
+  for (int i = 0; i < (n - 1); i++) {
+    T y = 1 + x[i + 1] - 2 * fabs(x[i]);
+    *f = *f + fabs(y);
+    T r;
+    if (y > 0)
+      r = 1.0;	    
+    else if (y < 0)
+      r = -1.0;
+    else
+      r = 0.0;
+
+    g[i+1] = g[i+1] + r;
+
+    T l;
+    if (x[i] > 0) {
+      l = 1.0;
+    }
+    else if (x[i] < 0) {
+      l = -1.0;
+    }
+    else {
+      l = 0.0;
+    }
+
+    g[i] = g[i] - 2 * l * r;
+  }
+  return 0;
+}
+
 
 /*
   % Nesterov's Chebyshev-Rosenbrock nonsmooth version 2

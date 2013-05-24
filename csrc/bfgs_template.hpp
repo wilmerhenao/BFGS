@@ -1340,6 +1340,7 @@ void LBFGSB<T>::nextIterationPrepare(){
   // Update Sk, Yk and for Wk
   
   // updating s and y in this step
+  PRINTARRAY(quasinewton<T>::xcauchy, quasinewton<T>::n, 1);
   vcopyp<T>(quasinewton<T>::s, quasinewton<T>::xcauchy, -1.0, quasinewton<T>::n);
   vcopyp<T>(quasinewton<T>::y, quasinewton<T>::g, -1.0, quasinewton<T>::n);  
   for(int __i = 0; __i < quasinewton<T>::n; __i++){
@@ -1349,9 +1350,7 @@ void LBFGSB<T>::nextIterationPrepare(){
     quasinewton<T>::xcauchy[__i] = quasinewton<T>::xcauchy[__i] + 
       BFGSB<T>::deltatj * BFGSB<T>::di[__i];
   }
-  vpv<T>(quasinewton<T>::s, quasinewton<T>::xcauchy, 1.0, quasinewton<T>::n);
-  vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1.0, quasinewton<T>::n);  
-
+  PRINTARRAY(quasinewton<T>::xcauchy, quasinewton<T>::n, 1);
   // Update the value of the function for the new xcauchy position
   quasinewton<T>::xtemp = new T[quasinewton<T>::n];
   
@@ -1362,31 +1361,32 @@ void LBFGSB<T>::nextIterationPrepare(){
   quasinewton<T>::testFunction(quasinewton<T>::f, quasinewton<T>::g, 
 			       quasinewton<T>::xtemp, quasinewton<T>::n);
   delete [] quasinewton<T>::xtemp;
+  
+  vpv<T>(quasinewton<T>::s, quasinewton<T>::xcauchy, 1.0, quasinewton<T>::n);
+  vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1.0, quasinewton<T>::n);  
 
-  // next step is to update s and y inside column index in the matrices
-  /*std::vector<T> svector(quasinewton<T>::s, quasinewton<T>::s + 
-			 sizeof(quasinewton<T>::s) / 
-			 sizeof(quasinewton<T>::s[0]));
-  std::vector<T> yvector(quasinewton<T>::y, quasinewton<T>::y + 
-			 sizeof(quasinewton<T>::y) /
-			 sizeof(quasinewton<T>::y[0]));*/
+  typename std::list<std::vector<T>>::iterator listityc, listitsc;  
+  // check the condition S^TY > 0  
+  if(vecip(quasinewton<T>::s, quasinewton<T>::y, quasinewton<T>::n) > 0 ||
+     0 == Ycontainer.size()){
+    
+    Ycontainer.push_front(std::vector<T>());  
+    Scontainer.push_front(std::vector<T>());
   
-  Ycontainer.push_front(std::vector<T>());  
-  Scontainer.push_front(std::vector<T>());
-  
-  typename std::list<std::vector<T>>::iterator listityc, listitsc;
-  listityc = Ycontainer.begin();
-  listitsc = Scontainer.begin();
-  
-  for(int i = 0; i < quasinewton<T>::n; i++){
-    (*listityc).push_back(quasinewton<T>::y[i]);
-    (*listitsc).push_back(quasinewton<T>::s[i]);
-  }
-  FLAG();
-  typename std::list<std::vector<T>>::iterator pruebita;
-  pruebita = Ycontainer.begin();
-  for(int i = 0; i < quasinewton<T>::n; i++){
-    std::cout << (*pruebita).at(static_cast<unsigned>(i)) << std::endl;
+    listityc = Ycontainer.begin();
+    listitsc = Scontainer.begin();
+    
+    for(int i = 0; i < quasinewton<T>::n; i++){
+      (*listityc).push_back(quasinewton<T>::y[i]);
+      (*listitsc).push_back(quasinewton<T>::s[i]);
+      std::cout << "y: " << quasinewton<T>::y[i] << std::endl;
+    }
+    FLAG();
+    typename std::list<std::vector<T>>::iterator pruebita;
+    pruebita = Ycontainer.begin();
+    for(int i = 0; i < quasinewton<T>::n; i++){
+      std::cout << "in list: "<< (*pruebita).at(static_cast<unsigned>(i)) << std::endl;
+    }
   }
 
 
