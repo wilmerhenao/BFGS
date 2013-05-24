@@ -9,7 +9,9 @@
 #include <iostream>
 #include <map>
 #include "../csrc/container.hpp"
-#include "nummatrix.hpp"
+#include "../csrc/nummatrix.hpp"
+#include "../lib/qpspecial/lapackc.hpp"
+//#include "../lib/qpspecial/lapackstuff.hpp"
 
 template<class T> int chained_CB3v1(T *, T *, T *, int);
 template<class T> int chained_CB3v2(T *, T *, T *, int);
@@ -808,76 +810,67 @@ int yurirosen_ns2(T *f, T *g, T *x, int n){
 
 template<class T>
 int randomsq(T *f, T *g, T *x, int n){
+  for(int i = 0; i < n; i++ ){
+    g[i] = x[i];
+  }
+  std::cout << *f << std::endl;
+  return 0;
+}
+//randomsq specialization
+template<>
+int randomsq<double>(double *f, double *g, double *x, int n){
   /*
     This function recreates XZ^TDZX - B^TX
   */
   // Creation of square pos. Definite random matrix
-  int seed = 1;
+  //int seed = time(NULL);
+  unsigned int seed = 1;
   srand(seed);
-  double * Z = new double[10 * 10]; // 10 x 10 matrix
-  double * D = new double[10 * 10]; // 10 x 10 matrix
-  double * B = new double[10];
+  double * Z = new double[n * n]; // 10 x 10 matrix
+  double * D = new double[n * n]; // 10 x 10 matrix
+  double * B = new double[n];
   
-  for(int i = 0; i < 10; i++){
-    for(int j = 0; j < 10; j++){
-      Z[i + 10 * j] = (double) rand() / (RAND_MAX);
-      D[i + 10 * j] =0;
+  for(int i = 0; i < n; i++){
+    for(int j = 0; j < n; j++){
+      Z[i + n * j] = (double) rand() / (RAND_MAX);
+      D[i + n * j] = 0.0;
     }
-    D[i + 10 * i] = std::pow(0.5, i);
+    D[i + n * i] = std::pow(0.5, i);
+    // Dsq[i + n * i] = std::pow(D[i + n * i], 0.5);
     B[i] = (double) rand() / (RAND_MAX);
   }
   
-  Matrix<double> mZ(Z, 10, 10);
-  Matrix<double> mD(D, 10, 10);
-  Matrix<double> temp(10, 10);
-  Matrix<double> positiveDefinite(10, 10);
+  Matrix<double> mZ(Z, n, n);
+  Matrix<double> mD(D, n, n);
+  Matrix<double> temp(Z, n, n);
+  Matrix<double> positiveDefinite(Z, n, n);
   
-  matrixMultiply(mZ, D, temp, 'T', 'N');
+  matrixMultiply(mZ, mD, temp, 'T', 'N');
   matrixMultiply(temp, mZ, positiveDefinite, 'N', 'N');
-  
-  for(int i = 0; i < 10; i++){
-    finalresult = finalresult - B[i] * x[i];
+
+  // Print the matrix
+  //positiveDefinite.print();
+  // Enter x into the equation.
+  int one = 1;
+  Matrix<double> mx(x, n, one);
+  Matrix<double> temp2(one, n);
+  Matrix<double> finalresult(one, one);
+  matrixMultiply(mx, positiveDefinite, temp2, 'T', 'N');
+  matrixMultiply(temp2, mx, finalresult);
+  int pos = 0;
+  *f = finalresult(pos);
+  for(int i = 0; i < n; i++){
+    *f = *f - B[i] * x[i];
   }
   
-  for (int i = 0; i < n; i++) 
-    g[i] = 0.0;	
-	
-  *f = fabs(1 - x[0]) / 4;	
-  T k;
-  if ((x[0] - 1) > 0) 
-    k = 1;
-  else if ((x[0] - 1) < 0)
-    k = -1;
-  else
-    k = 0.0;
-  g[0] = k / 4;
+  //assign the gradient
+  Matrix<double> mgrad(n, 1);
+  matrixMultiply(positiveDefinite, mx, mgrad, 'N', 'N');
 
-  for (int i = 0; i < (n - 1); i++) {
-    T y = 1 + x[i + 1] - 2 * fabs(x[i]);
-    *f = *f + fabs(y);
-    T r;
-    if (y > 0)
-      r = 1.0;	    
-    else if (y < 0)
-      r = -1.0;
-    else
-      r = 0.0;
-
-    g[i+1] = g[i+1] + r;
-
-    T l;
-    if (x[i] > 0) {
-      l = 1.0;
-    }
-    else if (x[i] < 0) {
-      l = -1.0;
-    }
-    else {
-      l = 0.0;
-    }
-
-    g[i] = g[i] - 2 * l * r;
+  for(int i = 0; i < n; i++){
+    g[i] = mgrad(i) * 2 - B[i];
   }
+  
   return 0;
 }
 

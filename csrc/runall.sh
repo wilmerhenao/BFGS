@@ -26,7 +26,10 @@ make
 make mytest
 
 # Remove this exit 0 line later when you are running the whole thing
+
+./mytest randomsq 10 ../testresults/randomsq/randomsq_10.txt
 ./mytest parabola 5 ../testresults/parabola/parabola_5.txt
+
 exit 0
 
 ./mytest yurirosen 5 ../testresults/yurirosen/yurirosen_5.txt

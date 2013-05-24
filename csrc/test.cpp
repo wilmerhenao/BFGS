@@ -95,7 +95,7 @@ int main(int argc, char *argv[]){
   std::cout << "Objects were created safely.  Running BFGS next" << std::endl;
   try{
     std::cout.precision(16);	
-    //doubleparameters->BFGSfunction();
+    doubleparameters->BFGSfunction();
     std::cout.precision(32);
     //dd_realparameters->BFGSfunction();
     //dd_realparLBFGS->BFGSfunction();  // This one redirects to the right LBFGS

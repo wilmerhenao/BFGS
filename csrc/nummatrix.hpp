@@ -46,7 +46,9 @@ protected:
   bool fullMatrix;
 public:
   Matrix();
-  Matrix(T *, int, int);
+  //Matrix(T *&, int, int);
+  //Matrix(T *&, int &, int);
+  Matrix(T *&, const int &, const int&);
   Matrix(T *, int, int, int, int);
   Matrix(int, int); // Constructor without data
   Matrix(Matrix<T>&); // copy constructor
@@ -119,8 +121,38 @@ Matrix<T>::Matrix(int m0, int n0):m(m0), n(n0), potentialM(m0), potentialN(n0){
 }
 
 // 2 integer constructor with data
+/*
+  template<typename T>
+  Matrix<T>::Matrix(T*& A, int m0, int n0):m(m0), n(n0), potentialM(m0), 
+  potentialN(n0){
+  if (0 >= m || 0 >= n){
+  std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
+  std::cerr << "m: " << m << " n: " << n << std::endl;
+  }
+  matrix = new T[m * n];
+  for(int i = 0; i < m * n; i++){
+    matrix[i] = A[i];
+  }
+}
+
+// 2 integer constructor with data
 template<typename T>
-Matrix<T>::Matrix(T* A, int m0, int n0):m(m0), n(n0), potentialM(m0), 
+Matrix<T>::Matrix(T*& A, int& m0, int n0):m(m0), n(n0), potentialM(m0), 
+					potentialN(n0){
+  if (0 >= m || 0 >= n){
+    std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
+    std::cerr << "m: " << m << " n: " << n << std::endl;
+    }
+  matrix = new T[m * n];
+  for(int i = 0; i < m * n; i++){
+    matrix[i] = A[i];
+  }
+  }*/
+
+
+// 2 integer constructor with data
+template<typename T>
+Matrix<T>::Matrix(T *& A, const int& m0, const int& n0):m(m0), n(n0), potentialM(m0), 
 					potentialN(n0){
   if (0 >= m || 0 >= n){
     std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
@@ -131,6 +163,7 @@ Matrix<T>::Matrix(T* A, int m0, int n0):m(m0), n(n0), potentialM(m0),
     matrix[i] = A[i];
   }
 }
+
 
 // 4 integer constructor
 template<typename T>
