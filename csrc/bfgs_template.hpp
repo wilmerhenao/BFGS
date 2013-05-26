@@ -413,7 +413,7 @@ public:
   void dBz();
   void create_d();
   void update_d();
-  void zeroethstep();
+  virtual void zeroethstep();
   virtual void nextIterationPrepare();
   virtual void lapackzerostep();
   void findXCauchymX(int);
@@ -1113,6 +1113,7 @@ public:
 	 std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
 	 int&, double*&, double*&);
   virtual ~LBFGSB();
+  virtual void zeroethstep();
   virtual void findGeneralizedCauchyPoint();
   virtual void createDoubleHandDoubleB();
   virtual void lapackzerostep();
@@ -1220,11 +1221,21 @@ void LBFGSB<T>::findGeneralizedCauchyPoint(){
     BFGSB<T>::deltatj = BFGSB<T>::tj - BFGSB<T>::oldtj;
     BFGSB<T>::oldtj = BFGSB<T>::tj; //Because the next iteration tj will move one step 
                                     // to the front
+    
+    // Don't do anything if deltatj is equal to zero
+    if(0.0 == BFGSB<T>::deltatj){
+      // Have to update in case the boundary is hit
+      BFGSB<T>::update_d();
+      quasinewton<T>::freeVariable[BFGSB<T>::b] = false;
+      continue;
+    }
+    
     // addDeviations is only for a checkup later to see that this actually moved
     T addDeviations = 0.0;
     for(int i = 0; i < quasinewton<T>::n; i++){
       addDeviations = addDeviations + std::abs(BFGSB<T>::deltatj * BFGSB<T>::di[i]);
     }
+    
     nextIterationPrepare();
     lapackmanipulations();
     
@@ -1327,6 +1338,76 @@ void LBFGSB<T>::lapackmanipulations(){
 }
 
 template<typename T>
+void LBFGSB<T>::zeroethstep(){
+  /*
+    First of all.  Run the zeroeth step from the multistep gradient projection
+    when you exit this function. Xcauchy will have the first value after the gradient
+    hits a boundary. d will basically contain the same value as g and freeVariable
+    will register the value of the dimension of the boundary that was hit the first 
+    time.  Z will contain the variation between the two points (same as g for the 1st
+    step.
+
+    The only reason why mainloop has a zero step.  Is because after the first
+    calculation you can save some time byusing the update formulae on (4.9) and (4.10)
+  */
+  
+  // the first iter.  Will contain the information of the time when we first hit the 
+  // boundary
+
+  BFGSB<T>::iter = quasinewton<T>::bpmemory.begin();
+  BFGSB<T>::b = BFGSB<T>::iter->second;
+  BFGSB<T>::deltatj = t_double(BFGSB<T>::iter->first); // Change from zero.  "time" to first boundary
+
+  // keep track of the ti_s that define the interval we are working on
+  BFGSB<T>::oldtj = 0.0;
+  BFGSB<T>::tj = BFGSB<T>::deltatj;
+  
+  // Find the new x position.  Notice that in this case all the coordinates advance
+  // (at least those with non-zero values in the gradient)
+  // given that nothing will hit the boundary (until you hit the boundary corresponding
+  // to dimension 'b' of course.
+  /*for(int _i = 0; _i < quasinewton<T>::n; _i++){
+    quasinewton<T>::xcauchy[_i] = (t_double(quasinewton<T>::x[_i]) - 
+				   0.0 * t_double(quasinewton<T>::g[_i]));
+    z[_i] = t_double(quasinewton<T>::xcauchy[_i] - quasinewton<T>::x[_i]);
+  }
+  
+  Matrix<double> temp(z, quasinewton<T>::n, 1);
+  mZ = temp;
+  */
+  // Create di but Update new d_i coordinate.  this step it is basically just -gradient
+  // This is from formula (4.2) in the paper
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    BFGSB<T>::di[i] = -1.0 * t_double(quasinewton<T>::g[i]);
+  }
+  
+  BFGSB<T>::create_d();
+  // initialize xcauchy
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    this->xcauchy[i] = this->x[i];
+  }
+  
+  // Run lapack intensive calculations
+  lapackzerostep();
+  FLAG();
+  // Prepare everything for the next iteration
+  //nextIterationPrepare();
+  FLAG();  
+  // check if I can finish now and graciously leave if that's the case.
+  if (BFGSB<T>::tstar < BFGSB<T>::tj){
+    if (BFGSB<T>::tstar > 0){
+      std::cout << "optimal value was found" << std::endl;
+      this->thisIterationConverged = true; // you found the generalized cauchy point
+      BFGSB<T>::tj = BFGSB<T>::tstar;
+      for(int i = 0; i < quasinewton<T>::n; i++){
+	this->xcauchy[i] = this->xcauchy[i] + (BFGSB<T>::tstar) * BFGSB<T>::mdi(i); //stp bck a ltl
+      }
+    }
+  }
+  FLAG();
+}
+
+template<typename T>
 void LBFGSB<T>::nextIterationPrepare(){
   
   /*
@@ -1365,7 +1446,7 @@ void LBFGSB<T>::nextIterationPrepare(){
   vpv<T>(quasinewton<T>::s, quasinewton<T>::xcauchy, 1.0, quasinewton<T>::n);
   vpv<T>(quasinewton<T>::y, quasinewton<T>::g, 1.0, quasinewton<T>::n);  
 
-  typename std::list<std::vector<T>>::iterator listityc, listitsc;  
+  typename std::list<std::vector<T>>::iterator listityc, listitsc, listitsc2;  
   // check the condition S^TY > 0  
   if(vecip(quasinewton<T>::s, quasinewton<T>::y, quasinewton<T>::n) > 0 ||
      0 == Ycontainer.size()){
@@ -1379,14 +1460,14 @@ void LBFGSB<T>::nextIterationPrepare(){
     for(int i = 0; i < quasinewton<T>::n; i++){
       (*listityc).push_back(quasinewton<T>::y[i]);
       (*listitsc).push_back(quasinewton<T>::s[i]);
-      std::cout << "y: " << quasinewton<T>::y[i] << std::endl;
+      //std::cout << "y: " << quasinewton<T>::y[i] << std::endl;
     }
     FLAG();
-    typename std::list<std::vector<T>>::iterator pruebita;
-    pruebita = Ycontainer.begin();
-    for(int i = 0; i < quasinewton<T>::n; i++){
-      std::cout << "in list: "<< (*pruebita).at(static_cast<unsigned>(i)) << std::endl;
-    }
+    //typename std::list<std::vector<T>>::iterator pruebita;
+    //pruebita = Ycontainer.begin();
+    //for(int i = 0; i < quasinewton<T>::n; i++){
+    // std::cout << "in list: "<< (*pruebita).at(static_cast<unsigned>(i)) << std::endl;
+    //}
   }
 
 
@@ -1411,31 +1492,37 @@ void LBFGSB<T>::nextIterationPrepare(){
   revlistitsc = Scontainer.rbegin();
   
   for(int i = currentm; i > 0; i--){
-    T tempval = 0.0;
+    T tempval = 0.0; 
     //calculate the dot product Ycontainer[i] * Scontainer[i]
     for(int j = 0; j < quasinewton<T>::n; j++){
       tempval = tempval + (*revlistityc).at(static_cast<unsigned>(j)) * 
 	(*revlistitsc).at(static_cast<unsigned>(j));
+    } 
+    if(i > 1){  // this is because otherwise you are running on inexistent memory
+    // if(revlistityc != Ycontainer.rend()) if you wish
+      ++revlistityc;
+      ++revlistitsc;
     }
-    ++revlistityc;
-    ++revlistitsc;
-    Mmatrix(i, i) = -t_double(tempval);
+    int tempi = i - 1;
+    Mmatrix(tempi, tempi) = -t_double(tempval);
   }
   FLAG();
   // Assign the L matrix
   Matrix<double> Lmatrix(currentm, currentm);
-  revlistityc = Ycontainer.rbegin();
   revlistitsc = Scontainer.rbegin();
   for (int i = 0; i < currentm; i++){
     for(int j = 0; j < i; j++){ // only for j < i as stated in (3.5)
       T mytemp = 0.0;
+      revlistityc = Ycontainer.rbegin();
       for(int k = 0; k < quasinewton<T>::n; k++){
 	// WARNING! Review these.  what if there's not enough history?
 	mytemp = mytemp + (*revlistitsc).at(static_cast<unsigned>(k)) * 
 	  (*revlistityc).at(static_cast<unsigned>(k));
+        if(revlistityc != Ycontainer.rend()) // check end of list
+	  ++revlistityc;
       }
-      ++revlistityc;
-      ++revlistitsc;
+      if(revlistitsc != Scontainer.rend()) //check end of list
+	++revlistitsc;
       Lmatrix(i, j) = t_double(mytemp);
     }
   }
@@ -1448,21 +1535,25 @@ void LBFGSB<T>::nextIterationPrepare(){
 
   Matrix<double> Smatrix(currentm, currentm);
   for (int i = 0; i < currentm; i++){
-    for(int j = 0; j <= i; j++){
+    listitsc2 = Scontainer.begin();
+    for(int j = 0; j <= i; j++){ // avoid half the calculations
       T mytemp = 0.0;
       for(int k = 0; k < quasinewton<T>::n; k++)
 	mytemp = mytemp + t_double((*listitsc).at(static_cast<unsigned>(k)) * 
-				   (*listitsc).at(static_cast<unsigned>(k)));
+				   (*listitsc2).at(static_cast<unsigned>(k)));
       Smatrix(i, j) = t_double(theta * mytemp);
+      if(i != j)
+	++listitsc2;
     }
-    ++listitsc;
+    if((i + 1) < currentm)
+      ++listitsc;
   }
   FLAG();
   Mmatrix.insertMatrix(currentm, currentm, 2 * currentm - 1, 2 * currentm - 1, Smatrix);
   FLAG();
   // Reflect the matrix across the diagonal
   for(int i = 0; i < 2* currentm; i++){
-    for(int j = i; j < 2 * currentm; j++){
+    for(int j = i + 1; j < 2 * currentm; j++){
       Mmatrix(i, j) = Mmatrix(j, i);
     }
   }

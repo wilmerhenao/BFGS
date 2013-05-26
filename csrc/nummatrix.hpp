@@ -50,7 +50,7 @@ public:
   //Matrix(T *&, int &, int);
   Matrix(T *&, const int &, const int&);
   Matrix(T *, int, int, int, int);
-  Matrix(int, int); // Constructor without data
+  Matrix(const int&, const int&); // Constructor without data
   Matrix(Matrix<T>&); // copy constructor
   ~Matrix();
   void setM(int);
@@ -109,7 +109,7 @@ Matrix<T>::Matrix(Matrix<T>& other){
 
 // 2 integer constructor.  Initialize to zeroes
 template<typename T>
-Matrix<T>::Matrix(int m0, int n0):m(m0), n(n0), potentialM(m0), potentialN(n0){
+Matrix<T>::Matrix(const int& m0, const int& n0):m(m0), n(n0), potentialM(m0), potentialN(n0){
   if (0 >= m || 0 >= n){
     std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
     std::cerr << "m: " << m << " n:" << n << std::endl;
@@ -192,19 +192,19 @@ T& Matrix<T>::operator()(int& i){
 
 template<typename T>
 T& Matrix<T>::operator()(int& i, int& j){
-  return matrix[i + j * n];
+  return matrix[i + j * potentialM];
 }
 
 template<typename T>
 const T& Matrix<T>::operator()(int& i, int& j) const{
-  return matrix[i + j * potentialN];
+  return matrix[i + j * potentialM];
 }
 
 template<typename T>
 void Matrix<T>::print(){
   for(int i = 0; i < m; i++){
     for(int j = 0; j < n; j++){
-      std::cout << matrix[i + j * m] << " ";
+      std::cout << matrix[i + j * potentialM] << " ";
     }
     std::cout << std::endl;
   }
@@ -223,8 +223,8 @@ void Matrix<T>::insertMatrix(int i, int j, int ii, int jj, Matrix<T>& V){
   }
   int counter = 0;
   
-  for(int k = j; k < jj; k++){
-    for(int l = i; l < ii; l++){
+  for(int k = j; k <= jj; k++){
+    for(int l = i; l <= ii; l++){
       // Notice I must use potentialM instead of M
       matrix[l + k * potentialM] = V(counter);
       counter++;
@@ -607,14 +607,29 @@ void Matrix<T>::matrixInverse(){
     std::cerr << "the matrix is not square" << std::endl; 
   
   int N = n;
-  int potN = potentialN;
+  // let's just create an array where to put the data and be done with this.
+  double * tmatrix = new double[n * n];
+  for(int i = 0; i < n; i++){
+    for(int j = 0; j < n; j++){
+      double hello = matrix[i + j * potentialM];
+      tmatrix[i + j * n] = hello;
+    }
+  }
   int LWORK = n * n;
   double* WORK = new double[LWORK];
-  int* IPIV = new int[m];
+  int* IPIV = new int[n];
   int INFO;
-  std::cout << potN << std::endl;
-  dgetri_(&N, matrix, &potN, IPIV, WORK, &LWORK, &INFO);
+    
 
+  dgetrf_(&N, &N, tmatrix, &N, IPIV, &INFO);
+  dgetri_(&N, tmatrix, &N, IPIV, WORK, &LWORK, &INFO);
+
+  // copy stuff back after the calculations
+  for(int i = 0; i < n; i++){
+    for(int j = 0; j < n; j++){
+      matrix[i + j * potentialM] = tmatrix[i + j * n];
+    }
+  }
 }
 
 #endif // _NUMMATRIX_HPP_
