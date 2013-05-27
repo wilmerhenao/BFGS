@@ -67,16 +67,14 @@ public:
   void print();
   void print(char);
   void insertMatrix(int, int, int, int, Matrix<T>&);
+  void setPositionbyForce(int i, T value){matrix[i] = value;}
   template<typename H> friend void matrixMultiply(Matrix<H> &, Matrix<H> &, 
 						  Matrix<H> &, char transA = 'N',
 						  char transB = 'N');
   template<typename H> friend void matrixMultiplywithPadding(Matrix<H>& A,Matrix<H>& B,
 							     Matrix<H>& C, 
 							     char transA = 'N', 
-							     char transB = 'N', 
-							     int paddingA = 1, 
-							     int paddingB = 1,
-							     int paddingC = 1);
+							     char transB = 'N');
   template<typename H> friend double squareForm(Matrix<H> &, Matrix<H> &, 
 						Matrix<H>&);
   template<typename H> friend void GensquareForm(Matrix<H> &, Matrix<H> &, 
@@ -363,8 +361,7 @@ void bfgssolver(Matrix<T>& A, Matrix<T>& B, Matrix<T>& x){
 
 template<typename T>
 void matrixMultiplywithPadding(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C, 
-			       char transA = 'N', char transB = 'N', int paddingA = 1,
-			       int paddingB = 1, int paddingC = 1){
+			       char transA = 'N', char transB = 'N'){
   /*  Multiplies A * B = C */
   
   // Perform some basic checks (dependent on transA and transB)
@@ -427,9 +424,30 @@ void matrixMultiplywithPadding(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C,
   int m0;
   int n0;
   int k0;
+  int LDA = A.m;
+  int LDB = B.m;
+  int LDC = C.m;
   double alpha = 1.0;
   double beta = 0.0;
-  
+
+  // create temporary matrices to hold the operations
+  Matrix<T> tempA(A.m, A.n);
+  Matrix<T> tempB(B.m, B.n);
+  Matrix<T> tempC(C.m, C.n);
+
+  // Copy all the values from A and B to tempA and tempC
+  for(int i = 0; i < A.m; i++){
+    for(int j = 0; j < A.n; j++){
+      tempA(i, j) = A(i, j);
+    }
+  }
+
+  for(int i = 0; i < B.m; i++){
+    for(int j = 0; j < B.n; j++){
+      tempB(i, j) = B(i, j);
+    }
+  }
+
   if('N' == transA || 'n' == transA){
     m0 = A.m;
     k0 = A.n;
@@ -446,8 +464,16 @@ void matrixMultiplywithPadding(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C,
     n0 = B.m;
   }
   
-  dgemm_(&transA, &transB, &m0, &n0, &k0, &alpha, A.matrix, &paddingA, B.matrix, 
-	 &paddingB, &beta, C.matrix, &paddingC);
+  dgemm_(&transA, &transB, &m0, &n0, &k0, &alpha, tempA.matrix, &LDA, tempB.matrix, 
+	 &LDB, &beta, tempC.matrix, &LDC);
+  
+  // Copy the results back to C
+  for(int i = 0; i < C.m; i++){
+    for(int j = 0; j < C.n; j++){
+      C(i, j) = tempC(i, j);
+    }
+  }
+
 }
 
 template<typename T>
@@ -563,7 +589,7 @@ double squareForm(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C){
 }
 
 template<typename T>
-T squareFormwithPadding(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C, int sizepad){
+T squareFormwithPadding(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C){
   /* 
      This one solves problems of the type x^TBz where x, and z are COLUMN vectors and
      B is a square matrix.  No warnings are checked here since they will show up in 
@@ -575,9 +601,8 @@ T squareFormwithPadding(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C, int sizepad)
   Matrix<T> finalresult(1, 1);
   int posit = 0;
   T squareFormResult;
-  FLAG();
-  matrixMultiplywithPadding(A, B, temp, 'T', 'N', sizepad, sizepad, sizepad);
-  FLAG();
+
+  matrixMultiplywithPadding(A, B, temp, 'T', 'N');
   matrixMultiply(temp, C, finalresult, 'N', 'N');
   squareFormResult = finalresult(posit);
 
