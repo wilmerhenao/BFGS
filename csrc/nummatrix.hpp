@@ -110,13 +110,14 @@ Matrix<T>::Matrix(Matrix<T>& other){
 // 2 integer constructor.  Initialize to zeroes
 template<typename T>
 Matrix<T>::Matrix(const int& m0, const int& n0):m(m0), n(n0), potentialM(m0), potentialN(n0){
-  if (0 >= m || 0 >= n){
+  if (0 >= m0 || 0 >= n0){
     std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
-    std::cerr << "m: " << m << " n:" << n << std::endl;
+    std::cerr << "m: " << m0 << " n:" << n0 << std::endl;
   }
-  matrix = new T[m * n];
-  for(int i = 0; i < m * n; i++){
-    matrix[i] = 0;
+  //std::cout << "m: " << m0 << "n: " << n0 << std::endl;
+  matrix = new T[m0 * n0];
+  for(int i_ = 0; i_ < (m0 * n0); i_++){
+    matrix[i_] = 0.0;
   }
 }
 
@@ -444,7 +445,7 @@ void matrixMultiplywithPadding(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C,
   } else{
     n0 = B.m;
   }
-  std::cout << "padding A: " << paddingA << std::endl;
+  
   dgemm_(&transA, &transB, &m0, &n0, &k0, &alpha, A.matrix, &paddingA, B.matrix, 
 	 &paddingB, &beta, C.matrix, &paddingC);
 }

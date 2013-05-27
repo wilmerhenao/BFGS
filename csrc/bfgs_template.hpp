@@ -155,6 +155,7 @@ quasinewton<T>::quasinewton(T x0[], T* fopt0, int n0,  T taud0,
   }
   u = u0;
   l = l0;
+  t = 0;
 }
 
 template<typename T>
@@ -1101,13 +1102,12 @@ protected:
   Matrix<double> mY;
   Matrix<double> mS;
   Matrix<double> Mmatrix;
-  std::list<std::vector<T>> Ycontainer;
-  std::list<std::vector<T>> Scontainer;
   double* c;
-  Matrix<double> mc;
   double * pvector, * pvectorbackup;
   double theta;
   int index, currentm;
+  std::list<std::vector<T>> Ycontainer;
+  std::list<std::vector<T>> Scontainer;
 public:
   LBFGSB(T*& x0, T*& fopt0, int&, T&, int(*&)(T*, T*, T*, int), 
 	 std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
@@ -1133,18 +1133,16 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
 		  T& gnormtol0,  int& maxit0, short& echo0, short& lm0, 
 		  const char *& outputname0, int& m0, int& gradientsamplingN0,
 		  double*& u0, double*&l0):
-  //quasinewton<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
-  //		 echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
-  //BFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
-  //	  echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
   BFGSB<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
   	   echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
-  //LBFGS<T>(x0, fopt0, n0, taud0, tF, output0, ftarget0, gnormtol0, maxit0, 
-  //	   echo0, lm0, outputname0, m0, gradientsamplingN0, u0, l0),
-  mY(n0, m0), mS(n0, m0), Mmatrix(2 * m0, 2 * m0), mc(2 * m0, 1){
+  mY(n0, m0), 
+  mS(n0, m0), 
+  Mmatrix(2 * m0, 2 * m0){
+  //mc(2 * m0, BFGSB<T>::one){
   quasinewton<T>::nm = n0 * m0;
   quasinewton<T>::m1 = m0;
   c =  new double[2 * m0]; 
+  //std::cout << "c has size: " << m0 << std::endl;
   pvector =  new double[2 * m0];
   pvectorbackup =  new double[2 * m0];
   theta = 1.0;
@@ -1152,7 +1150,7 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
   currentm = 0;
   int i;
   for(i = 0; i < (2 * n0); i++){
-    c[i] = 0.0;
+    pvector[i] = c[i] = 0.0;
   }
 }
 
@@ -1288,17 +1286,14 @@ void LBFGSB<T>::findGeneralizedCauchyPoint(){
 template<typename T>
 void LBFGSB<T>::lapackmanipulations(){
   int uno = 1;
-  for(int i = 0; i < 2 * quasinewton<T>::m; i++){
-    c[i] = c[i] + BFGSB<T>::deltatj * pvector[i];
-    mc(i, uno) = c[i];
-  }
-  
+
+  FLAG();
   double * wbt = new double[2 * currentm];
-  
+  FLAG();
   typename std::list<std::vector<T>>::iterator listit;
   int ind = 0;
   for (listit = Ycontainer.begin(); listit != Ycontainer.end(); ++listit){
-    wbt[ind] = t_double((*listit).at(static_cast<unsigned>(BFGSB<T>::b)));
+    wbt[ind] = t_double(listit->at(static_cast<unsigned>(this->b)));
     ind++;
   }
   ind = 0;
@@ -1306,6 +1301,14 @@ void LBFGSB<T>::lapackmanipulations(){
     wbt[ind + currentm] = t_double(theta * 
 				   (*listit).at(static_cast<unsigned>(BFGSB<T>::b)));
     ind++;
+  }
+
+  Matrix<double> mc(2 * quasinewton<T>::m, 1);
+
+  for(int obscurename = 0; obscurename < 2 * quasinewton<T>::m; obscurename++){
+    //std::cout << "I changed!!!" << std::endl;
+    c[obscurename] = c[obscurename] + BFGSB<T>::deltatj * pvector[obscurename];
+    mc(obscurename, uno) = c[obscurename];
   }
   
   Matrix<double> mpvector(pvector, 2 * quasinewton<T>::m, 1);
