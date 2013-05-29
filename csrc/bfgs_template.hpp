@@ -991,7 +991,7 @@ void BFGSB<T>::mainloop(){
   PRINTARRAY(quasinewton<T>::xcauchy, quasinewton<T>::n, 1);
   // Beginning of the optimization part
   findMinimum2ndApproximation();
-  
+
   prepareNextMainLoop();
   exitSignalHandling();
   
@@ -1128,6 +1128,7 @@ public:
   virtual void befmainloopspecific();
   virtual void mainloopspecific();
   virtual void updateYS();
+  virtual void updatetheta();
   virtual void calculateMmatrix();
 };
 
@@ -1332,6 +1333,7 @@ void LBFGSB<T>::lapackmanipulations(){
       wbt[ind] = t_double(listit->at(static_cast<unsigned>(this->b)));
       ind++;
     }
+
     ind = 0;
     for (listit = Scontainer.begin(); listit != Scontainer.end(); ++listit){
       wbt[ind + currentm] = t_double(theta * 
@@ -1339,19 +1341,17 @@ void LBFGSB<T>::lapackmanipulations(){
       ind++;
     }
 
-    // question here is do I add this up before or after calculations?
     for(int i = 0; i < 2 * currentm; i++){
       pvectorbackup[i] = t_double(pvector[i]);
       pvector[i] = pvector[i] + t_double(quasinewton<T>::g[BFGSB<T>::b] * wbt[i]);
-    }
-
+    }  
+    Matrix<double> mpvector(pvector, 2 * quasinewton<T>::m, 1);
+    
     for(int i = 0; i < 2 * quasinewton<T>::m; i++){
       //std::cout << "I changed!!!" << std::endl;
       c[i] = c[i] + BFGSB<T>::deltatj * pvector[i];
       mc.setPositionbyForce(i, c[i]);
     }
-  
-    Matrix<double> mpvector(pvector, 2 * quasinewton<T>::m, 1);
 
     // Correct the sizes of everything
     mc.setM(2 * currentm);
@@ -1461,6 +1461,8 @@ void LBFGSB<T>::updateYS(){
   
   quasinewton<T>::testFunction(quasinewton<T>::f, quasinewton<T>::g, 
 			       quasinewton<T>::xtemp, quasinewton<T>::n);
+  //(*quasinewton<T>::ftarget) = (*quasinewton<T>::f);
+  (*quasinewton<T>::nfeval) = (*quasinewton<T>::nfeval) + 1;
   delete [] quasinewton<T>::xtemp;
   
   vpv<T>(quasinewton<T>::s, quasinewton<T>::xcauchy, 1.0, quasinewton<T>::n);
@@ -1482,12 +1484,6 @@ void LBFGSB<T>::updateYS(){
       (*listitsc).push_back(quasinewton<T>::s[i]);
       //std::cout << "y: " << quasinewton<T>::y[i] << std::endl;
     }
-
-    //typename std::list<std::vector<T>>::iterator pruebita;
-    //pruebita = Ycontainer.begin();
-    //for(int i = 0; i < quasinewton<T>::n; i++){
-    // std::cout << "in list: "<< (*pruebita).at(static_cast<unsigned>(i)) << std::endl;
-    //}
   }
   
   // if the number of elements is already larger than the limit.  Delete the oldest
@@ -1496,6 +1492,17 @@ void LBFGSB<T>::updateYS(){
     Scontainer.pop_back();
   }
   calculateMmatrix();
+  updatetheta();
+}
+
+template<typename T>
+void LBFGSB<T>::updatetheta(){
+  T numerator, denominator;
+
+  denominator = vecip(quasinewton<T>::s, quasinewton<T>::y, quasinewton<T>::n);
+  numerator = vecip(quasinewton<T>::y, quasinewton<T>::y, quasinewton<T>::n);
+
+  this->theta = numerator / denominator;
 }
 
 template<typename T>
@@ -1644,9 +1651,6 @@ void LBFGSB<T>::prepareNextMainLoop(){
   
   delete [] difference;
   
-  // Update the value of the function
-  quasinewton<T>::testFunction(quasinewton<T>::f, quasinewton<T>::g, 
-			       quasinewton<T>::x, quasinewton<T>::n);
   SHOW(quasinewton<T>::it);
   SHOW(*quasinewton<T>::f);
   
@@ -1827,22 +1831,32 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   du.print('d');
   mZfM2.print('Z');
   // if alpha == 1.0 that means the solution doesn't touch any constraint :)
-  du *= BFGSB<T>::alpha0;
+  du *= -1 * BFGSB<T>::alpha0;
   SHOW(BFGSB<T>::alpha0);
   // Calculate the new solution
-  BFGSB<T>::iter = quasinewton<T>::bpmemory.begin();
-  // Z_k * d
   Matrix<double> dunsize(BFGSB<T>::dnsize, quasinewton<T>::n, 1);
   
   matrixMultiply(mZfM2, du, dunsize);
+
+
+  T * vecdu = new T[quasinewton<T>::n];
+  for(int i = 0; i < quasinewton<T>::n; i++){
+    vecdu[i] = dunsize(i);
+  }
+  T steplength;
+  steplength = linesearch_ww<T>(quasinewton<T>::x, quasinewton<T>::f, 
+				quasinewton<T>::g, vecdu, 0.0001, 0.9, 
+				quasinewton<T>::n, quasinewton<double>::testFunction, 
+				quasinewton<T>::nfeval, quasinewton<T>::f, quasinewton<T>::exitflag);
+  SHOW(steplength);
+  dunsize *= steplength;
   
   for(int i = 0; i < quasinewton<T>::n; i++){
     BFGSB<T>::dnsize[i] = dunsize(i);
     quasinewton<T>::xcauchy[i] = quasinewton<T>::xcauchy[i] + dunsize(i);
   }
-
+  
   updateYS();
-
   // Delete memory
   delete [] dx;
   delete [] ZfM2;
