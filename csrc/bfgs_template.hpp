@@ -1115,6 +1115,7 @@ public:
 	 std::ofstream&, T&, T&, int&, short&, short&, const char *&, int&, 
 	 int&, double*&, double*&);
   virtual ~LBFGSB();
+  virtual void dealwithFreeVariables(double);
   virtual void zeroethstep();
   virtual void findGeneralizedCauchyPoint();
   virtual void createDoubleHandDoubleB();
@@ -1157,6 +1158,7 @@ LBFGSB<T>::LBFGSB(T*& x0, T*& fopt0, int& n0,  T& taud0,
   for(i = 0; i < (2 * n0); i++){
     pvector[i] = c[i] = 0.0;
   }
+  cauchysteps = 0;
 }
 
 //destructor
@@ -1214,6 +1216,19 @@ void LBFGSB<T>::updatec(int i){
 }
 
 template<typename T>
+void LBFGSB<T>::dealwithFreeVariables(double thistime){
+  double thistj;
+  int thisb;
+  for(BFGSB<T>::iter = quasinewton<T>::bpmemory.begin(); 
+      BFGSB<T>::iter != quasinewton<T>::bpmemory.end(); BFGSB<T>::iter++){
+    thistj = t_double(BFGSB<T>::iter->first);
+    thisb = BFGSB<T>::iter->second;
+    if(thistime >= thistj)
+      quasinewton<T>::freeVariable[thisb] = false;
+  }
+}
+
+template<typename T>
 void LBFGSB<T>::findGeneralizedCauchyPoint(){
   // this is a class member.  Starts at t_1 and the first time it moves to t_2
   ++cauchysteps;
@@ -1253,9 +1268,7 @@ void LBFGSB<T>::findGeneralizedCauchyPoint(){
 	    BFGSB<T>::mdi(i);//stpbck a lttl
 	  updatec(i);
 	}
-	updateYS();
-	for(int i = 0; i < quasinewton<T>::n; i++)
-	  quasinewton<T>::x[i] = quasinewton<T>::xcauchy[i];
+	dealwithFreeVariables(BFGSB<T>::tstar);
 	return;
       }
     }
@@ -1272,9 +1285,7 @@ void LBFGSB<T>::findGeneralizedCauchyPoint(){
 	this->xcauchy[i] = this->xcauchy[i] - (BFGSB<T>::deltatj) * BFGSB<T>::mdi(i); 
         // previous xcauchy was the right point 
       }
-      updateYS();
-      for(int i = 0; i < quasinewton<T>::n; i++)
-	quasinewton<T>::x[i] = quasinewton<T>::xcauchy[i];
+      dealwithFreeVariables(BFGSB<T>::tstar);
       return;
     }
     BFGSB<T>::oldtj = BFGSB<T>::tj;
@@ -1284,11 +1295,11 @@ void LBFGSB<T>::findGeneralizedCauchyPoint(){
     if(cauchysteps > 2000){
       return;
     }
-  }
-  updateYS();
-  for(int i = 0; i < quasinewton<T>::n; i++)
-    quasinewton<T>::x[i] = quasinewton<T>::xcauchy[i];
-  findGeneralizedCauchyPoint();
+  }/*
+     for(int i = 0; i < quasinewton<T>::n; i++)
+     quasinewton<T>::x[i] = quasinewton<T>::xcauchy[i];
+     findGeneralizedCauchyPoint();
+   */
   // In case nothing was found.  Return the last point
   BFGSB<T>::tstar = BFGSB<T>::tj;
   /*
@@ -1372,6 +1383,7 @@ void LBFGSB<T>::lapackmanipulations(){
 			     BFGSB<T>::g[BFGSB<T>::b] * zb);
     BFGSB<T>::fppj = t_double(BFGSB<T>::fppj - theta * BFGSB<T>::g[BFGSB<T>::b] *
 			     BFGSB<T>::g[BFGSB<T>::b]);
+    
   }
 
   BFGSB<T>::tstarcalculation();
@@ -1393,28 +1405,15 @@ void LBFGSB<T>::zeroethstep(){
   
   // the first iter.  Will contain the information of the time when we first hit the 
   // boundary
-
+  
   BFGSB<T>::iter = quasinewton<T>::bpmemory.begin();
   BFGSB<T>::b = BFGSB<T>::iter->second;
   BFGSB<T>::deltatj = t_double(BFGSB<T>::iter->first); // Change from zero.  "time" to first boundary
-
+  
   // keep track of the ti_s that define the interval we are working on
   BFGSB<T>::oldtj = 0.0;
   BFGSB<T>::tj = BFGSB<T>::deltatj;
   
-  // Find the new x position.  Notice that in this case all the coordinates advance
-  // (at least those with non-zero values in the gradient)
-  // given that nothing will hit the boundary (until you hit the boundary corresponding
-  // to dimension 'b' of course.
-  /*for(int _i = 0; _i < quasinewton<T>::n; _i++){
-    quasinewton<T>::xcauchy[_i] = (t_double(quasinewton<T>::x[_i]) - 
-				   0.0 * t_double(quasinewton<T>::g[_i]));
-    z[_i] = t_double(quasinewton<T>::xcauchy[_i] - quasinewton<T>::x[_i]);
-  }
-  
-  Matrix<double> temp(z, quasinewton<T>::n, 1);
-  mZ = temp;
-  */
   // Create di but Update new d_i coordinate.  this step it is basically just -gradient
   // This is from formula (4.2) in the paper
   for(int i = 0; i < quasinewton<T>::n; i++){
@@ -1536,13 +1535,13 @@ void LBFGSB<T>::calculateMmatrix(){
 	// WARNING! Review these.  what if there's not enough history?
 	mytemp = mytemp + (*revlistitsc).at(static_cast<unsigned>(k)) * 
 	  (*revlistityc).at(static_cast<unsigned>(k));
-	if(revlistityc != Ycontainer.rend()) // check end of list
-	  ++revlistityc;
       }
-      if(revlistitsc != Scontainer.rend()) //check end of list
-	++revlistitsc;
+      if(j < (currentm - 1)) // check end of list
+	++revlistityc;
       Lmatrix(i, j) = t_double(mytemp);
     }
+    if(i < (currentm - 1)) //check end of list
+      ++revlistitsc;
   }
   // Assign Lmatrix to Mmatrix
   Mmatrix.insertMatrix(currentm, 0, 2 * currentm - 1, currentm - 1, Lmatrix);
@@ -1658,10 +1657,9 @@ template<typename T>
 void LBFGSB<T>::findMinimum2ndApproximation(){
   // Assuming xcauchy has been correctly found.  This function runs a minimization of
   // the quadratic approximation to the goal function
-
+  
   int numfree = 0; // number of free variables
   double * ZfM2, * r, * dx;
-  
   dx = new double[quasinewton<T>::n];
   
   for(int i = 0; i < quasinewton<T>::n; i++){
@@ -1679,7 +1677,7 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   ZfM2 = new double[quasinewton<T>::n * numfree];
   for(int i = 0; i < (quasinewton<T>::n * numfree); i++)
     ZfM2[i] = 0.0;
-
+  
   int i_ = 0;
   PRINTARRAY(quasinewton<T>::freeVariable, quasinewton<T>::n, 1);
   for(BFGSB<T>::iter = this->bpmemory.begin(); 
@@ -1693,95 +1691,107 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
       ++i_;
     }
   }
-  // this function relies on matrix W.  So I will have to create it:
+  
   currentm = static_cast<int>(Ycontainer.size()); // so many calls to size must be 
                                                   //expensive
-  int k = 0;
-
-  Matrix<double> Wmatrix(quasinewton<T>::n, 2 * currentm);
-  // Assign values to Wmatrix
-  typename std::list<std::vector<T>>::iterator listityc, listitsc;
-
-  std::cout << Ycontainer.size() << std::endl;
-  double tempdob; int j__;
-  for(j__ = 0, listityc = Ycontainer.begin(), listitsc = Scontainer.begin();
-      listityc != Ycontainer.end(); j__++, ++listityc, ++listitsc){
-    for(int i = 0; i < quasinewton<T>::n; i++){
-      // Fill W two positions at a time
-       unsigned tempor = static_cast<unsigned>(i);
-      tempdob = t_double((*listityc).at(tempor));
-      Wmatrix(i, j__) = tempdob;
-      k = currentm + j__;
-      Wmatrix(i, k) = theta * 
-	t_double((*listitsc).at(static_cast<unsigned>(i)));
-    }
-  }
-
-  // Form Matrix redgrad: eq. (5.4)
-  // First of all calculate (reduced gradient helper) redgrad as WM:
-  Matrix<double> redgrad(quasinewton<T>::n, 2 * currentm);
-
-  matrixMultiplywithPadding(Wmatrix, Mmatrix, redgrad, 'N', 'N');
-
-  // Definition of r vector.  r = Z(g + B(Xcauchy - X))
-  // notice that in the LBFGSB case I represent B as (\theta - WM) instead.
+  r = new double[numfree];  
+  Matrix<double> mr(r, numfree, 1); //will hold the full reduced gradient
   for(int i = 0; i < quasinewton<T>::n; i++)
     dx[i] = theta * t_double(quasinewton<T>::xcauchy[i] - quasinewton<T>::x[i]);
+  double * Cvec = new double[quasinewton<T>::n];  
+  int wmatrixsize = MAX(currentm, 1);
+  std::cout << "wmatrixsize: " <<wmatrixsize << std::endl;
+  Matrix<double> Wmatrix(quasinewton<T>::n, 2 * wmatrixsize);
   
-  Matrix<double> mdx(dx, quasinewton<T>::n, 1);
-  Matrix<double> redgrad2(quasinewton<T>::n, 1);
-  matrixMultiply(redgrad, mc, redgrad2); // Result kept in mC 
+  // Enter only if we have some history to construct matrix W
+  if(currentm > 0){
+    int k = 0;
+    // Assign values to Wmatrix
+    typename std::list<std::vector<T>>::iterator listityc, listitsc;
+    double tempdob; int j__;
+    
+    for(j__ = 0, listityc = Ycontainer.begin(), listitsc = Scontainer.begin();
+	listityc != Ycontainer.end(); j__++, ++listityc, ++listitsc){
+      for(int i = 0; i < quasinewton<T>::n; i++){
+	// Fill W two positions at a time
+	unsigned tempor = static_cast<unsigned>(i);
+	tempdob = t_double((*listityc).at(tempor));
+	Wmatrix(i, j__) = tempdob;
+	k = currentm + j__;
+	Wmatrix(i, k) = theta * 
+	  t_double((*listitsc).at(static_cast<unsigned>(i)));
+      }
+    }
+    
+    // Form Matrix redgrad: eq. (5.4)
+    // First of all calculate (reduced gradient helper) redgrad as WM:
+    Matrix<double> redgrad(quasinewton<T>::n, 2 * currentm);
+    matrixMultiplywithPadding(Wmatrix, Mmatrix, redgrad, 'N', 'N');
+    Matrix<double> redgrad2(quasinewton<T>::n, 1);
+    matrixMultiply(redgrad, mc, redgrad2); // Result kept in mC 
+    for(int i = 0; i < quasinewton<T>::n; i++){
+      Cvec[i] = t_double(quasinewton<T>::g[i]) + dx[i] - redgrad2(i);
+    }
+  }  
   
-  double * Cvec = new double[quasinewton<T>::n]; int uno = 1;
-  for(int i = 0; i < quasinewton<T>::n; i++){
-    Cvec[i] = t_double(quasinewton<T>::g[i]) + mdx(i, uno) - redgrad2(i, uno);
-  }
-  FLAG();
-  r = new double[numfree];
-  FLAG();
-  // PRINTARRAY(ZfM2, quasinewton<T>::n, numfree);
+  // If we don't have any history to compute matrix W then work without it
+  else if(0 == currentm){
+    for(int i = 0; i < quasinewton<T>::n; i++){
+      Cvec[i] = t_double(quasinewton<T>::g[i]) + dx[i];
+    }
+  } 
+
   Matrix<double> mZfM2(ZfM2, quasinewton<T>::n, numfree);
   Matrix<double> mmC(Cvec, quasinewton<T>::n, 1);
-
-  Matrix<double> mr(r, numfree, 1); //will hold the full reduced gradient
   matrixMultiply(mZfM2, mmC, mr, 'T', 'N'); // the result is now on mr;
   mmC.print('C');
   mr.print('r');
+  
   // at this point I have r.  Now calculate the steps as they appear on
   // "Direct Primal Method". Page 12 of the paper.
   // Step 1: Zr^c
-  Matrix<double> zrc(quasinewton<T>::n, 1);
-  matrixMultiply(mZfM2, mr, zrc, 'N', 'N');
-  // Step 2: v = W^T Zr^c
-  Matrix<double> vmatrix(2 * currentm, 1);
-  matrixMultiply(Wmatrix, zrc, vmatrix, 'T', 'N');
-  // Step 3: v = Mv;
-  Matrix<double> vfinal(2 * currentm, 1);
-  matrixMultiplywithPadding(Mmatrix, vmatrix, vfinal, 'N', 'N');
-  FLAG();
-  // Step 4: Form N = (I - 1/theta * MW^TZZ^TW)
-  // step 4.a Z^TW
-  Matrix<double> ztw(numfree, 2 * currentm);
-  matrixMultiply(mZfM2, Wmatrix, ztw, 'T', 'N');
-  // step 4.b Z^TW
-  Matrix<double> wzzw(2 * currentm, 2 * currentm);
-  matrixMultiply(ztw, ztw, wzzw, 'T', 'N');
-  // step 4.c divide by theta
-  for(int i = 0; i < 2 * currentm; i++){
-    for(int j = 0; j < 2 * currentm; j++)
-      wzzw(i,j) = (-1.0 / theta) * wzzw(i, j);
-    wzzw(i, i) = wzzw(i, i) + 1.0;
-  }
-  // step 5: (Now wzzw is matrix N.  A poor choice of name but it just happened :(  )
-  wzzw.matrixInverse();
-  Matrix<double> vprev(2 * currentm, 1);
-  matrixMultiply(wzzw, vmatrix, vprev);
-  // step 6: du
   Matrix<double> du(numfree, 1);
-  matrixMultiply(ztw, vprev, du);
-  for(int i = 0; i < numfree; i++){
-    du(i, uno) = (1 / (theta * theta)) * du(i, uno) + (1 / theta) * mr(i, uno);
+  if (currentm > 0){
+    Matrix<double> zrc(quasinewton<T>::n, 1);
+    matrixMultiply(mZfM2, mr, zrc, 'N', 'N');
+    // Step 2: v = W^T Zr^c
+    Matrix<double> vmatrix(2 * currentm, 1);
+    matrixMultiply(Wmatrix, zrc, vmatrix, 'T', 'N');
+    // Step 3: v = Mv;
+    Matrix<double> vfinal(2 * currentm, 1);
+    matrixMultiplywithPadding(Mmatrix, vmatrix, vfinal, 'N', 'N');
+    // Step 4: Form N = (I - 1/theta * MW^TZZ^TW)
+    // step 4.a Z^TW
+    Matrix<double> ztw(numfree, 2 * currentm);
+    matrixMultiply(mZfM2, Wmatrix, ztw, 'T', 'N');
+    // step 4.b Z^TW
+    Matrix<double> wzzw(2 * currentm, 2 * currentm);
+    matrixMultiply(ztw, ztw, wzzw, 'T', 'N');
+    // step 4.c divide by theta
+    for(int i = 0; i < 2 * currentm; i++){
+      for(int j = 0; j < 2 * currentm; j++){
+	wzzw(i,j) = (-1.0 / theta) * wzzw(i, j);
+      }
+      wzzw(i, i) = wzzw(i, i) + 1.0;
+    }
+    // step 5: (Now wzzw is matrix N.  A poor choice of name but it just happened :(  )
+    wzzw.matrixInverse();
+    Matrix<double> vprev(2 * currentm, 1);
+    matrixMultiply(wzzw, vmatrix, vprev);
+    // step 6: du
+    matrixMultiply(ztw, vprev, du);
+    for(int i = 0; i < numfree; i++){
+      du(i) = (1 / (theta * theta)) * du(i) + (1 / theta) * mr(i);
+    }
+  } 
+
+  else if(0 == currentm){
+    // this is just in case there is no Ycontainer and no W matrix
+    for(int i = 0; i < numfree; i++){
+      du(i) = (1 / theta) * mr(i);
+    }
   }
+  
   // step 7: Find \alpha^* satisfying 
   double alphacandidate = 0.0;
     // Define the new boundaries which appear on 5.6
@@ -1803,7 +1813,7 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
       
       if(dutemp(BFGSB<T>::b) > 0){
 	alphacandidate = ubf / dutemp(BFGSB<T>::b);
-      } else if(du(BFGSB<T>::b) < 0){
+      } else if(dutemp(BFGSB<T>::b) < 0){
 	//both numbers are negative => div. is positive
 	alphacandidate = lbf / dutemp(BFGSB<T>::b);
       } else{
@@ -1826,13 +1836,14 @@ void LBFGSB<T>::findMinimum2ndApproximation(){
   
   matrixMultiply(mZfM2, du, dunsize);
   
-  for(int i = 0; i < quasinewton<T>::n; i++)
+  for(int i = 0; i < quasinewton<T>::n; i++){
     BFGSB<T>::dnsize[i] = dunsize(i);
-  
-  PRINTARRAY(BFGSB<T>::dnsize, quasinewton<T>::n, 1);  
-  
+    quasinewton<T>::xcauchy[i] = quasinewton<T>::xcauchy[i] + dunsize(i);
+  }
+
+  updateYS();
+
   // Delete memory
-  // delete [] dnsize;
   delete [] dx;
   delete [] ZfM2;
   delete [] r;

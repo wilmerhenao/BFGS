@@ -83,9 +83,10 @@ public:
   template<typename H> friend void bfgssolver(Matrix<H>&, Matrix<H>&, Matrix<H>&);
   void matrixInverse();
   
-  T& operator()(int& );
-  T& operator()(int&, int&);
-  const T& operator()(int&, int&) const;
+  T& operator()(int& );                  //READ
+  const T& operator()(int &) const;      //WRITE
+  T& operator()(int&, int&);             //READ
+  const T& operator()(int&, int&) const; //WRITE
   //T& operator()(int);
   Matrix<T>& operator=(Matrix<T>& );
   Matrix<T>& operator*=(double );
@@ -118,36 +119,6 @@ Matrix<T>::Matrix(const int& m0, const int& n0):m(m0), n(n0), potentialM(m0), po
     matrix[i_] = 0.0;
   }
 }
-
-// 2 integer constructor with data
-/*
-  template<typename T>
-  Matrix<T>::Matrix(T*& A, int m0, int n0):m(m0), n(n0), potentialM(m0), 
-  potentialN(n0){
-  if (0 >= m || 0 >= n){
-  std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
-  std::cerr << "m: " << m << " n: " << n << std::endl;
-  }
-  matrix = new T[m * n];
-  for(int i = 0; i < m * n; i++){
-    matrix[i] = A[i];
-  }
-}
-
-// 2 integer constructor with data
-template<typename T>
-Matrix<T>::Matrix(T*& A, int& m0, int n0):m(m0), n(n0), potentialM(m0), 
-					potentialN(n0){
-  if (0 >= m || 0 >= n){
-    std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
-    std::cerr << "m: " << m << " n: " << n << std::endl;
-    }
-  matrix = new T[m * n];
-  for(int i = 0; i < m * n; i++){
-    matrix[i] = A[i];
-  }
-  }*/
-
 
 // 2 integer constructor with data
 template<typename T>
@@ -184,8 +155,14 @@ Matrix<T>::~Matrix(){
   delete [] matrix;
 }
 
+// accessors
 template<typename T>
 T& Matrix<T>::operator()(int& i){
+  return matrix[i];
+}
+
+template<typename T>
+const T& Matrix<T>::operator()(int& i) const{
   return matrix[i];
 }
 
