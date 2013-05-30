@@ -95,7 +95,7 @@ int main(int argc, char *argv[]){
   std::cout << "Objects were created safely.  Running BFGS next" << std::endl;
   try{
     std::cout.precision(16);	
-    //doubleparameters->BFGSfunction();
+    doubleparameters->BFGSfunction();
     std::cout.precision(32);
     //dd_realparameters->BFGSfunction();
     //dd_realparLBFGS->BFGSfunction();  // This one redirects to the right LBFGS
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]){
   // dummy initialization just to have something to work with...
   for(int counter = 0; counter < static_cast<int>(strtoul(argv[2], NULL, 0)) ;
       counter++){
-    u[counter] = 3.0; l[counter] = 1.0;
+    u[counter] = -1.0; l[counter] = 10.0;
   }
   l[0] = -5.0;
   l[3] = -5.0;
