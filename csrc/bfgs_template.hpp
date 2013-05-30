@@ -1350,7 +1350,7 @@ void LBFGSB<T>::findGeneralizedCauchyPoint(){
         // previous xcauchy was the right point 
       }
       dealwithFreeVariables(BFGSB<T>::oldtj); //look. Here it is tj as opposed to tstar
-      /*
+      
       double newtarget = *quasinewton<T>::f;
       T steplength;
       // Actual step length calculation
@@ -1362,7 +1362,7 @@ void LBFGSB<T>::findGeneralizedCauchyPoint(){
 					   quasinewton<T>::n, 
 					   quasinewton<double>::testFunction, 
 					   quasinewton<T>::nfeval, newtarget);
-					   (steplength > 0) ? ++steplength: --steplength;*/
+					   (steplength > 0) ? ++steplength: --steplength;
       return;
     }
     
