@@ -48,7 +48,7 @@ algoparameters<T>::algoparameters(size_t k, std::string locfunc, std::string out
   // All the parameters initialized with the same values
   // It is very possible that we may want to do this depending on the type
   try{
-    J = (long)MIN(15, ceil(2.0 * static_cast<double> (n) / 3.0));
+    J = static_cast<long>(MIN(15, ceil(2.0 * static_cast<double> (n) / 3.0)));
   } catch(std::exception ex){
     std::cerr << "issue with casting? " << ex.what() << std::endl;
   }

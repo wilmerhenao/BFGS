@@ -1,6 +1,8 @@
 #ifndef _LAPACKSTUFF_HPP_
 #define _LAPACKSTUFF_HPP_
 
+#include <vector>
+
 //Index must be defined in column major orderA
 #define INDEXCM(i, j)     field_start + i * m + j
 #define G(i, j)           G[INDEXCM(i, j)]
