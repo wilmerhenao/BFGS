@@ -10,7 +10,7 @@
 #include "container.hpp"
 #include "../testfunctions/functions.hpp"
 
-#define MIN(x, y) ((x) < (y) ? (x) : (y));
+//#define MIN(x, y) ((x) < (y) ? (x) : (y));
 
 void printhowtodoit(); // implemented on the cpp
 
