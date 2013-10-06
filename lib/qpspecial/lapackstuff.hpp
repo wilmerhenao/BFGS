@@ -1,6 +1,7 @@
 #ifndef _LAPACKSTUFF_HPP_
 #define _LAPACKSTUFF_HPP_
 
+#include "lapackc.hpp"
 #include <vector>
 
 //Index must be defined in column major orderA
@@ -12,17 +13,7 @@
 #define MAX(A,B)          ((A) > (B)) ? (A) : (B)
 #define MIN(A,B)          ((A) > (B)) ? (B) : (A)
 #define ABS(A)            ((A) >= 0) ? (A) : -(A)
-// LAPACK function declarations
-extern "C" void dgemm_(char *, char *, int*, int*,int*, double*, double*, int*, 
-		       double*, int*, double*, double*, int*);
-extern "C" void sgemm_(char *, char *, int*, int*,int*, float*, float*, int*, 
-		       float*, int*, float*, float*, int*);
-extern "C" double dlange_(char*, int*, int*, double*, int*, double* );
-extern "C" float slange_(char*, int*, int*, float*, int*, float*);
-extern "C" int dpotrf_(char *UPLO, int* N, double* A, int* LDA, int* INFO);
-extern "C" int spotrf_(char *UPLO, int* N, float* A, int* LDA, int* INFO);
-extern "C" int dgesv_(int*, int*, double*, int*, int*, double*, int*, int*);
-extern "C" int sgesv_(int*, int*, float*, int*, int*, float*, int*, int*);
+
 // LAPACK function overloading
 void mmul_(char transA, char transB, int M, int N,int K, double alpha, double*& A,
 	   int LDA, std::vector<double>& B, int LDB, double beta, 

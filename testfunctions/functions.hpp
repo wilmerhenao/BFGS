@@ -9,6 +9,8 @@
 #include <iostream>
 #include <map>
 #include "../csrc/container.hpp"
+#include "../csrc/nummatrix.hpp"
+#include "../lib/qpspecial/lapackc.hpp"
 
 template<class T> int chained_CB3v1(T *, T *, T *, size_t);
 template<class T> int chained_CB3v2(T *, T *, T *, size_t);
@@ -28,6 +30,7 @@ template<class T> int test29f22(T *, T *, T *, size_t);
 template<class T> int yurirosen(T *, T *, T *, size_t);
 template<class T> int yurirosen_ns1(T *, T *, T *, size_t);
 template<class T> int yurirosen_ns2(T *, T *, T *, size_t);
+template<class T> int randomsq(T*, T*, T*, size_t);
 
 template<typename T>
 class allfunctions{
@@ -50,6 +53,7 @@ public:
   int (*pyurirosen)(T *f, T *g, T *x, size_t n) = &yurirosen<T>;
   int (*pyurirosen_ns1)(T *f, T *g, T *x, size_t n) = &yurirosen_ns1<T>;
   int (*pyurirosen_ns2)(T *f, T *g, T *x, size_t n) = &yurirosen_ns2<T>;
+  int (*prandomsq)(T *f, T *g, T *x, size_t n) = &randomsq<T>;
   std::map<std::string, int(*)(T*, T*, T*, size_t), StringComparerForMap> tMap;
   int fillMap();
 };
@@ -74,6 +78,7 @@ int allfunctions<T>::fillMap(){
   tMap["yurirosen"] = pyurirosen;
   tMap["yurirosen_ns1"] = pyurirosen_ns1;
   tMap["yurirosen_ns2"] = pyurirosen_ns2;
+  tMap["randomsq"] = prandomsq;
   return 0;
 }
 
@@ -800,5 +805,72 @@ int yurirosen_ns2(T *f, T *g, T *x, size_t n){
   pars.title = 'Nesterov-Chebyshev-Rosenbrock'; % omit the 2
   pars.varytitle = pars.title;
 */
+
+template<class T>
+int randomsq(T *f, T *g, T *x, size_t n){
+  for(int i = 0; i < n; i++ ){
+    g[i] = x[i];
+  }
+  std::cout << *f << std::endl;
+  return 0;
+}
+//randomsq specialization
+template<>
+int randomsq<double>(double *f, double *g, double *x, size_t n){
+  /*
+    This function recreates XZ^TDZX - B^TX
+  */
+  // Creation of square pos. Definite random matrix
+  //int seed = time(NULL);
+  unsigned int seed = 1;
+  srand(seed);
+  double * Z = new double[n * n]; // 10 x 10 matrix
+  double * D = new double[n * n]; // 10 x 10 matrix
+  double * B = new double[n];
+  
+  for(int i = 0; i < static_cast<int>(n); i++){
+    for(int j = 0; j < static_cast<int>(n); j++){
+      Z[i + static_cast<int>(n) * j] = (double) rand() / (RAND_MAX);
+      D[i + static_cast<int>(n) * j] = 0.0;
+    }
+    D[i + static_cast<int>(n) * i] = std::pow(0.5, i);
+    // Dsq[i + n * i] = std::pow(D[i + n * i], 0.5);
+    B[i] = (double) rand() / (RAND_MAX);
+  }
+  
+  Matrix<double> mZ(Z, static_cast<int>(n), static_cast<int>(n));
+  Matrix<double> mD(D, static_cast<int>(n), static_cast<int>(n));
+  Matrix<double> temp(Z, static_cast<int>(n), static_cast<int>(n));
+  Matrix<double> positiveDefinite(Z, static_cast<int>(n), static_cast<int>(n));
+  
+  matrixMultiply(mZ, mD, temp, 'T', 'N');
+  matrixMultiply(temp, mZ, positiveDefinite, 'N', 'N');
+
+  // Print the matrix
+  //positiveDefinite.print();
+  // Enter x into the equation.
+  int one = 1;
+  Matrix<double> mx(x, static_cast<int>(n), one);
+  Matrix<double> temp2(one, static_cast<int>(n));
+  Matrix<double> finalresult(one, one);
+  matrixMultiply(mx, positiveDefinite, temp2, 'T', 'N');
+  matrixMultiply(temp2, mx, finalresult);
+  int pos = 0;
+  *f = finalresult(pos);
+  for(int i = 0; i < static_cast<int>(n); i++){
+    *f = *f - B[i] * x[i];
+  }
+  
+  //assign the gradient
+  Matrix<double> mgrad(static_cast<int>(n), 1);
+  matrixMultiply(positiveDefinite, mx, mgrad, 'N', 'N');
+
+  for(int i = 0; i < static_cast<int>(n); i++){
+    g[i] = mgrad(i) * 2 - B[i];
+  }
+  
+  return 0;
+}
+
 
 #endif // _FUNCTIONS_HPP_
