@@ -9,7 +9,7 @@
 #include <iostream>
 #include <map>
 #include "../csrc/container.hpp"
-#include "../csrc/nummatrix.hpp"
+#include "../lib/matrixlibrary/nummatrix.hpp"
 #include "../lib/qpspecial/lapackc.hpp"
 
 template<class T> int chained_CB3v1(T *, T *, T *, size_t);

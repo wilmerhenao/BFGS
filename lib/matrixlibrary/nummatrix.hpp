@@ -20,8 +20,7 @@
 #define _NUMMATRIX_HPP_
 
 #include <iostream>
-#include "../lib/qpspecial/lapackc.hpp"
-#include "libmatrix_template.hpp"
+#include "../qpspecial/lapackc.hpp"
 
 // multiplication routine in lapack
 /*
@@ -333,6 +332,7 @@ void bfgssolver(Matrix<T>& A, Matrix<T>& B, Matrix<T>& x){
 
 template<typename T>
 void matrixMultiplywithPadding(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C, 
+
 			       char transA = 'N', char transB = 'N'){
   /*  Multiplies A * B = C */
   

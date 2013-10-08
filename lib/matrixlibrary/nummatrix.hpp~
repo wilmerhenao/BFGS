@@ -1,0 +1,634 @@
+/*
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%  BFGS tools Copyright (C) 2013  Wilmer Henao
+%%  This program is free software: you can redistribute it and/or modify
+%%  it under the terms of the GNU General Public License as published by
+%%  the Free Software Foundation, either version 3 of the License, or
+%%  (at your option) any later version.
+%%
+%%  This program is distributed in the hope that it will be useful,
+%%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%%  GNU General Public License for more details.
+%%
+%%  You should have received a copy of the GNU General Public License
+%%  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+*/
+
+#ifndef _NUMMATRIX_HPP_
+#define _NUMMATRIX_HPP_
+
+#include <iostream>
+#include "../lib/qpspecial/lapackc.hpp"
+#include "libmatrix_template.hpp"
+
+// multiplication routine in lapack
+/*
+  The main idea of creatin this class is to use a library interacts with lapack and
+  seamlessly can solve problems without having to worry for lapack's messy syntax.
+*/
+
+template<typename T>
+class Matrix{
+  // this class defines the typical matrix of dimensions m x n
+protected:  
+  int m; // vertical coordinate of the matrix
+  int n; // horizontal coordinate of the matrix
+  int potentialM;
+  int potentialN;
+  T * matrix;
+  bool fullMatrix;
+public:
+  Matrix();
+  //Matrix(T *&, int, int);
+  //Matrix(T *&, int &, int);
+  Matrix(T *&, const int &, const int&);
+  Matrix(T *, int, int, int, int);
+  Matrix(const int&, const int&); // Constructor without data
+  Matrix(Matrix<T>&); // copy constructor
+  ~Matrix();
+  void setM(int);
+  void setN(int);
+  // Don't get confused here.  getM stands for m:  The number of steps to keep in memory
+  // for LBFGS
+  int getM(){return n;}
+  // Don't get confused here.  getN stands for n:  The number of variables
+  int getN(){return m;}
+  void printpotentialM(){std::cout << "dimensions: "<< potentialN << " "<< n << std::endl;}
+  void insertColumn(T*& , int);
+  void initializeToZero();
+  bool isSquare();
+  void print();
+  void print(char);
+  void insertMatrix(int, int, int, int, Matrix<T>&);
+  void setPositionbyForce(int i, T value){matrix[i] = value;}
+  template<typename H> friend void matrixMultiply(Matrix<H> &, Matrix<H> &, 
+						  Matrix<H> &, char transA = 'N',
+						  char transB = 'N');
+  template<typename H> friend void matrixMultiplywithPadding(Matrix<H>& A,Matrix<H>& B,
+							     Matrix<H>& C, 
+							     char transA = 'N', 
+							     char transB = 'N');
+  template<typename H> friend double squareForm(Matrix<H> &, Matrix<H> &, 
+						Matrix<H>&);
+  template<typename H> friend void GensquareForm(Matrix<H> &, Matrix<H> &, 
+						 Matrix<H>&, Matrix<H> &);
+
+  template<typename H> friend void bfgssolver(Matrix<H>&, Matrix<H>&, Matrix<H>&);
+  void matrixInverse();
+  
+  T& operator()(int& );                  //READ
+  const T& operator()(int &) const;      //WRITE
+  T& operator()(int&, int&);             //READ
+  const T& operator()(int&, int&) const; //WRITE
+  //T& operator()(int);
+  Matrix<T>& operator=(Matrix<T>& );
+  Matrix<T>& operator*=(double );
+};
+
+// copy constructor
+template<typename T>
+Matrix<T>::Matrix(Matrix<T>& other){
+  m = other.m;
+  n = other.n;
+  matrix = new T[m * n];
+  for(int i = 0; i < m * n; i++){
+    matrix[i] = other(i);
+  }
+  potentialN = n;
+  potentialM = m;
+  fullMatrix = false;
+}
+
+// 2 integer constructor.  Initialize to zeroes
+template<typename T>
+Matrix<T>::Matrix(const int& m0, const int& n0):m(m0), n(n0), potentialM(m0), potentialN(n0){
+  if (0 >= m0 || 0 >= n0){
+    std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
+    std::cerr << "m: " << m0 << " n:" << n0 << std::endl;
+  }
+  //std::cout << "m: " << m0 << "n: " << n0 << std::endl;
+  matrix = new T[m0 * n0];
+  for(int i_ = 0; i_ < (m0 * n0); i_++){
+    matrix[i_] = 0.0;
+  }
+}
+
+// 2 integer constructor with data
+template<typename T>
+Matrix<T>::Matrix(T *& A, const int& m0, const int& n0):m(m0), n(n0), potentialM(m0), 
+					potentialN(n0){
+  if (0 >= m || 0 >= n){
+    std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
+    std::cerr << "m: " << m << " n: " << n << std::endl;
+  }
+  matrix = new T[m * n];
+  for(int i = 0; i < m * n; i++){
+    matrix[i] = A[i];
+  }
+}
+
+
+// 4 integer constructor
+template<typename T>
+Matrix<T>::Matrix(T* A, int m0, int n0, int potM, int potN):
+  m(m0), n(n0), potentialM(potM), potentialN(potN){
+  if (0 >= m || 0 >= n){
+    std::cerr << "Impossible to have a dimension zero or negative" << std::endl;
+    std::cerr << "m: " << m << " n:" << n << std::endl;
+  }
+  matrix = new T[m * n];
+  for(int i = 0; i < m * n; i++){
+    matrix[i] = A[i];
+  }
+}
+
+// destructor
+template<typename T>
+Matrix<T>::~Matrix(){
+  delete [] matrix;
+}
+
+// accessors
+template<typename T>
+T& Matrix<T>::operator()(int& i){
+  return matrix[i];
+}
+
+template<typename T>
+const T& Matrix<T>::operator()(int& i) const{
+  return matrix[i];
+}
+
+template<typename T>
+T& Matrix<T>::operator()(int& i, int& j){
+  return matrix[i + j * potentialM];
+}
+
+template<typename T>
+const T& Matrix<T>::operator()(int& i, int& j) const{
+  return matrix[i + j * potentialM];
+}
+
+template<typename T>
+void Matrix<T>::print(){
+  for(int i = 0; i < m; i++){
+    for(int j = 0; j < n; j++){
+      std::cout << matrix[i + j * potentialM] << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
+template<typename T>
+void Matrix<T>::insertMatrix(int i, int j, int ii, int jj, Matrix<T>& V){
+  /*
+    In this function I take a vector and insert it in the position indicated by the
+    integers.  The position indicated by the integers are the submatrix indicated by 
+    (i,j) x (ii, jj)
+  */
+  // perform some checks
+  if((jj - j) * (ii - i) != (V.getM() - 1) * (V.getN() - 1)){
+    std::cout << "wrong dimensions in insertMatrix procedure" << std::endl;
+  }
+  int counter = 0;
+  
+  for(int k = j; k <= jj; k++){
+    for(int l = i; l <= ii; l++){
+      // Notice I must use potentialM instead of M
+      matrix[l + k * potentialM] = V(counter);
+      counter++;
+    }
+  }
+}
+
+template<typename T>
+void Matrix<T>::setN(int A){
+  n = A;
+}
+
+template<typename T>
+void Matrix<T>::setM(int A){
+  m = A;
+}
+
+template<typename T>
+void Matrix<T>::insertColumn(T*& x, int i){
+  int temp;
+  temp =  i * m;
+  vcopy<T>(matrix + temp, x, m);
+  // update the size of the matrix.  If the matrix is empty add a column to the end
+  if (!fullMatrix)
+    n = n + 1;
+  if (potentialN == n)
+    fullMatrix = true;
+}
+
+template<typename T>
+void Matrix<T>::print(char a){
+  std::cout << "printing matrix<T>: " << a << std::endl;
+  for(int i = 0; i < m; i++){
+    for(int j = 0; j < n; j++){
+      std::cout << matrix[i + j * m] << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
+template<typename T>
+Matrix<T>& Matrix<T>::operator=(Matrix<T>& rhs){
+  /*
+    Please notice that this is not your average "equal" operator.  I am not creating any
+    new memory and I am only using what I already had in the receiving Matrix<T>
+
+    A check is performed... but you don't want this to crash while you run it so be
+    careful
+  */
+  
+  if(rhs.m != m)
+    std::cerr << "This is an assignment to an element of different size" << std::endl;
+  if(this != &rhs){
+    m = rhs.m;
+    n = rhs.n;   
+    for (int i = 0; i < m * n; i++)
+      matrix[i] = rhs(i);
+  }
+  return *this;
+}
+
+template<typename T>
+Matrix<T>& Matrix<T>::operator*=(double rhs){
+  for(int i = 0; i < n * m; i++){
+    matrix[i] = rhs * matrix[i];
+  }
+  return (*this);
+}
+
+// constructors
+template<typename T>
+Matrix<T>::Matrix():m(1), n(1){
+  matrix = new T[1];
+  matrix[0] = 0.0;
+}
+
+template<typename T>
+void Matrix<T>::initializeToZero(){
+  for (int i = 0; i < m * n ; i++)
+    matrix[i] = 0.0;
+}
+
+template<typename T>
+bool Matrix<T>::isSquare(){
+  bool retvalue;
+  (m == n) ? retvalue = true : retvalue = false;
+  return retvalue;
+}
+
+template<typename T>
+void bfgssolver(Matrix<T>& A, Matrix<T>& B, Matrix<T>& x){
+  /*
+    Solves the system Ax = B
+  */
+  
+  // Perform some basic checks
+  // A has to be nxn
+  if((A.m != A.n) || A.m <= 0){
+    std::cerr << "Dimensions of A are wrong.  Either not a square matrix or one of" << 
+      "the dimensions of the matrix is wrong.  Aborting " << std::endl;
+    std::cerr << "Dimensions of A are: " << A.m << " by " << A.n << std::endl; 
+  }
+  if(A.m != B.m){
+    std::cerr << "Size of matrix A and B are in disagreement" << std::endl;
+  }
+  if(A.n != x.m){
+    std::cerr << "Size of matrix A and x are in disagreement" << std::endl;
+  }
+  
+  // Variables to the equation
+  int N = A.m;
+  int NRHS = 1; //I always have to solve only one system
+  double* A0 = new double[A.m * A.n];
+  int* IPIV = new int[A.m]; // Not initialize it??? that is the question
+  int info;
+  
+  // Use a copy of A0 that will be destroyed (do it in only one loop)
+  for(int i = 0; i < A.m * A.n; i++)
+    A0[i] = A(i);
+  // Do not actually use matrix b since it will be destroyed.  Use "x" instead
+  x = B;
+    
+  dgesv_(&N, &NRHS, A0, &N, IPIV, x.matrix, &N, &info);
+  // A0 now contains the factors L and U from the LU factorization of A
+  if(0 != info ){
+    if(info < 0){
+      std::cerr << "Argument " << -info << " had an illegal value" << std::endl;
+    } else {
+      std::cerr << "Position U(i,i) where i = " << info << " is exactly zero.  The " <<
+	"factorization was completed but the U is exactly singular,  so the solution" <<
+	" could not be computed" << std::endl;
+    }
+  }
+}
+
+template<typename T>
+void matrixMultiplywithPadding(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C, 
+
+			       char transA = 'N', char transB = 'N'){
+  /*  Multiplies A * B = C */
+  
+  // Perform some basic checks (dependent on transA and transB)
+  
+  if('N' == transA && 'N' == transB){
+    if(A.n != B.m)
+      std::cerr << "Matrix Dimensions for the multiplicating matrix  do not agree" <<
+	std::endl;
+    if(A.m != C.m){
+      std::cerr << "Size m of the result matrix is wrong" << std::endl;
+      std::cerr << "A.m: " << A.m << " C.m: " << C.m << std::endl;
+    }
+    if(B.n != C.n){
+      std::cerr << "Size n of the result matrix is wrong" << std::endl;
+      std::cerr << "B.n: " << B.n << " C.n: " << C.n << std::endl;
+    }
+  } else if('T' == transA && 'N' == transB){
+    if(A.m != B.m)
+      std::cerr << "Matrix Dimensions for the multiplicating matrix  do not agree" <<
+	std::endl;
+    if(A.n != C.m){
+      std::cerr << "Size m of the result matrix is wrong" << std::endl;
+      std::cerr << "A.n: " << A.n << " C.m: " << C.m << std::endl;
+    }
+    if(B.n != C.n){
+      std::cerr << "Size n of the result matrix is wrong" << std::endl;
+      std::cerr << "B.n: " << B.n << " C.n: " << C.n << std::endl;
+    }
+  } else if('N' == transA && 'T' == transB){
+    if(A.n != B.n)
+      std::cerr << "Matrix Dimensions for the multiplicating matrix  do not agree" <<
+	std::endl;
+    if(A.m != C.m){
+      std::cerr << "Size m of the result matrix is wrong" << std::endl;
+      std::cerr << "A.m: " << A.m << " C.m: " << C.m << std::endl;
+    }
+    if(B.m != C.n){
+      std::cerr << "Size n of the result matrix is wrong" << std::endl;
+      std::cerr << "B.m: " << B.m << " C.n: " << C.n << std::endl;
+    }
+  } else if('T' == transA && 'N' == transB){
+    if(A.m != B.m)
+      std::cerr << "Matrix Dimensions for the multiplicating matrix  do not agree" <<
+	std::endl;
+    if(A.n != C.m){
+      std::cerr << "Size m of the result matrix is wrong" << std::endl;
+      std::cerr << "A.n: " << A.n << " B.m: " << B.m << std::endl;
+    }
+    if(B.n != C.n){
+      std::cerr << "Size n of the result matrix is wrong" << std::endl;
+      std::cerr << "B.n: " << B.n << " C.n: " << C.n << std::endl;
+    }
+  }
+
+  // declare some local variables so that external variables do not get destroyed
+  // Will make local copies of A and B.  This may sound like a waste of time.  But
+  // avoids the problem of unintentionally
+  // UPDATE: Not necessary for this function.  A and B will be unchanged on exit
+  
+  int m0;
+  int n0;
+  int k0;
+  int LDA = A.m;
+  int LDB = B.m;
+  int LDC = C.m;
+  double alpha = 1.0;
+  double beta = 0.0;
+
+  // create temporary matrices to hold the operations
+  Matrix<T> tempA(A.m, A.n);
+  Matrix<T> tempB(B.m, B.n);
+  Matrix<T> tempC(C.m, C.n);
+
+  // Copy all the values from A and B to tempA and tempC
+  for(int i = 0; i < A.m; i++){
+    for(int j = 0; j < A.n; j++){
+      tempA(i, j) = A(i, j);
+    }
+  }
+
+  for(int i = 0; i < B.m; i++){
+    for(int j = 0; j < B.n; j++){
+      tempB(i, j) = B(i, j);
+    }
+  }
+
+  if('N' == transA || 'n' == transA){
+    m0 = A.m;
+    k0 = A.n;
+  }
+  
+  if('T' == transA || 't' == transA){
+    m0 = A.n;
+    k0 = A.m;
+  }
+
+  if('N' == transB || 'n' == transB){
+    n0 = B.n;
+  } else{
+    n0 = B.m;
+  }
+  
+  dgemm_(&transA, &transB, &m0, &n0, &k0, &alpha, tempA.matrix, &LDA, tempB.matrix, 
+	 &LDB, &beta, tempC.matrix, &LDC);
+  
+  // Copy the results back to C
+  for(int i = 0; i < C.m; i++){
+    for(int j = 0; j < C.n; j++){
+      C(i, j) = tempC(i, j);
+    }
+  }
+
+}
+
+template<typename T>
+void matrixMultiply(Matrix<T>& A, Matrix<T>& B, Matrix<T>& C, char transA = 'N',
+		    char transB = 'N'){
+  /*  Multiplies A * B = C */
+  
+  // Perform some basic checks (dependent on transA and transB)
+  
+  if('N' == transA && 'N' == transB){
+    if(A.n != B.m)
+      std::cerr << "Matrix Dimensions for the multiplicating matrix  do not agree" <<
+	std::endl;
+    if(A.m != C.m){
+      std::cerr << "Size m of the result matrix is wrong" << std::endl;
+      std::cerr << "A.m: " << A.m << " C.m: " << C.m << std::endl;
+    }
+    if(B.n != C.n){
+      std::cerr << "Size n of the result matrix is wrong" << std::endl;
+      std::cerr << "B.n: " << B.n << " C.n: " << C.n << std::endl;
+    }
+  } else if('T' == transA && 'N' == transB){
+    if(A.m != B.m)
+      std::cerr << "Matrix Dimensions for the multiplicating matrix  do not agree" <<
+	std::endl;
+    if(A.n != C.m){
+      std::cerr << "Size m of the result matrix is wrong" << std::endl;
+      std::cerr << "A.n: " << A.n << " C.m: " << C.m << std::endl;
+    }
+    if(B.n != C.n){
+      std::cerr << "Size n of the result matrix is wrong" << std::endl;
+      std::cerr << "B.n: " << B.n << " C.n: " << C.n << std::endl;
+    }
+  } else if('N' == transA && 'T' == transB){
+    if(A.n != B.n)
+      std::cerr << "Matrix Dimensions for the multiplicating matrix  do not agree" <<
+	std::endl;
+    if(A.m != C.m){
+      std::cerr << "Size m of the result matrix is wrong" << std::endl;
+      std::cerr << "A.m: " << A.m << " C.m: " << C.m << std::endl;
+    }
+    if(B.m != C.n){
+      std::cerr << "Size n of the result matrix is wrong" << std::endl;
+      std::cerr << "B.m: " << B.m << " C.n: " << C.n << std::endl;
+    }
+  } else if('T' == transA && 'N' == transB){
+    if(A.m != B.m)
+      std::cerr << "Matrix Dimensions for the multiplicating matrix  do not agree" <<
+	std::endl;
+    if(A.n != C.m){
+      std::cerr << "Size m of the result matrix is wrong" << std::endl;
+      std::cerr << "A.n: " << A.n << " B.m: " << B.m << std::endl;
+    }
+    if(B.n != C.n){
+      std::cerr << "Size n of the result matrix is wrong" << std::endl;
+      std::cerr << "B.n: " << B.n << " C.n: " << C.n << std::endl;
+    }
+  }
+  
+  // declare some local variables so that external variables do not get destroyed
+  // Will make local copies of A and B.  This may sound like a waste of time.  But
+  // avoids the problem of unintentionally
+  // UPDATE: Not necessary for this function.  A and B will be unchanged on exit
+  
+  int m0;
+  int n0;
+  int k0;
+  int LDA = A.m;
+  int LDB = B.m;
+  int LDC = C.m;
+  double alpha = 1.0;
+  double beta = 0.0;
+  
+  if('N' == transA || 'n' == transA){
+    m0 = A.m;
+    k0 = A.n;
+  }
+  
+  if('T' == transA || 't' == transA){
+    m0 = A.n;
+    k0 = A.m;
+  }
+
+  if('N' == transB || 'n' == transB){
+    n0 = B.n;
+  } else{
+    n0 = B.m;
+  }
+  
+  dgemm_(&transA, &transB, &m0, &n0, &k0, &alpha, A.matrix, &LDA, B.matrix, 
+	 &LDB, &beta, C.matrix, &LDC);
+}
+
+template<typename T>
+double squareForm(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C){
+  /* 
+     This one solves problems of the type x^TBz where x, and z are COLUMN vectors and
+     B is a square matrix.  No warnings are checked here since they will show up in 
+     the individual multiplications anyway
+  */
+
+  // Create a temporal instance for first multiplication result storage
+  Matrix<T> temp(1, B.n);
+  Matrix<T> finalresult(1, 1);
+  int posit = 0;
+  T squareFormResult;
+
+  matrixMultiply(A, B, temp, 'T', 'N');
+  matrixMultiply(temp, C, finalresult, 'N', 'N');
+  squareFormResult = finalresult(posit);
+
+  return squareFormResult;
+}
+
+template<typename T>
+T squareFormwithPadding(Matrix<T> & A, Matrix<T> & B, Matrix<T>& C){
+  /* 
+     This one solves problems of the type x^TBz where x, and z are COLUMN vectors and
+     B is a square matrix.  No warnings are checked here since they will show up in 
+     the individual multiplications anyway
+  */
+
+  // Create a temporal instance for first multiplication result storage
+  Matrix<T> temp(1, B.getN());
+  Matrix<T> finalresult(1, 1);
+  int posit = 0;
+  T squareFormResult;
+
+  matrixMultiplywithPadding(A, B, temp, 'T', 'N');
+  matrixMultiply(temp, C, finalresult, 'N', 'N');
+  squareFormResult = finalresult(posit);
+
+  return squareFormResult;
+}
+
+template<typename H> 
+void GensquareForm(Matrix<H> & A, Matrix<H> & B, Matrix<H>& C, Matrix<H>& res){
+  /* 
+     This one solves problems of the type x^TBz where x, and z are COLUMN vectors and
+     B is a square matrix.  No warnings are checked here since they will show up in 
+     the individual multiplications anyway
+     Notice that the only difference between this method and the one above is that
+     this method returns a full matrix and not just a double.
+  */
+
+  // Create a temporal instance for first multiplication result storage
+  Matrix<H> temp(A.n, B.n);
+  matrixMultiply(A, B, temp, 'T', 'N');
+  matrixMultiply(temp, C, res, 'N', 'N');
+}
+
+template<typename T>
+void Matrix<T>::matrixInverse(){
+  // find the inverse of a matrix.
+
+  if(m != n)
+    std::cerr << "the matrix is not square" << std::endl; 
+  
+  int N = n;
+  // let's just create an array where to put the data and be done with this.
+  double * tmatrix = new double[n * n];
+  for(int i = 0; i < n; i++){
+    for(int j = 0; j < n; j++){
+      double hello = matrix[i + j * potentialM];
+      tmatrix[i + j * n] = hello;
+    }
+  }
+  int LWORK = n * n;
+  double* WORK = new double[LWORK];
+  int* IPIV = new int[n];
+  int INFO;
+    
+
+  dgetrf_(&N, &N, tmatrix, &N, IPIV, &INFO);
+  dgetri_(&N, tmatrix, &N, IPIV, WORK, &LWORK, &INFO);
+
+  // copy stuff back after the calculations
+  for(int i = 0; i < n; i++){
+    for(int j = 0; j < n; j++){
+      matrix[i + j * potentialM] = tmatrix[i + j * n];
+    }
+  }
+}
+
+#endif // _NUMMATRIX_HPP_
